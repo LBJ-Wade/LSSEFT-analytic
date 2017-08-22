@@ -31,9 +31,15 @@
 #include <map>
 #include <memory>
 
+#include "shared/defaults.h"
+
 #include "boost/optional.hpp"
 
 #include "ginac/ginac.h"
+
+
+//! forward-declare vector
+class vector;
 
 
 //! symbol factory provides a unified API for building GiNaC symbols
@@ -55,27 +61,44 @@ class symbol_factory
     
   public:
     
-    //! constructor is default
-    symbol_factory() = default;
+    //! constructor accepts default dimension of index-space
+    explicit symbol_factory(unsigned int d_ = LSSEFT_DEFAULT_INDEX_DIMENSION);
     
     //! destructor is default
     ~symbol_factory() = default;
     
     
-    // OBTAIN SYMBOL
+    // OBTAIN SYMBOLS
     
   public:
     
     //! manufacture a GiNaC symbol corresponding to a given name
     GiNaC::symbol& make_symbol(std::string name, boost::optional<std::string> latex_name = boost::none);
     
+    //! make a vector object
+    vector make_vector(std::string name, boost::optional<std::string> latex_name = boost::none);
+    
+    
+    // INDEX SERVICES
+    
+  public:
+    
+    //! make a dummy index
+    GiNaC::idx make_dummy_index();
+    
     
     // INTERNAL DATA
     
   private:
     
-    // symbol database
+    //! symbol database
     symbol_db symbols;
+    
+    //! cache dimension of index space
+    unsigned int index_dimension;
+    
+    //! counter for unique index symbols
+    unsigned int index_count{0};
   
   };
 

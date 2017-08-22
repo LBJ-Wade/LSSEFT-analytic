@@ -36,8 +36,8 @@ ENDIF()
 ADD_EXECUTABLE(LSSEFT_analytic
   main.cpp
   lib/kernel.cpp
+  lib/vector.cpp
   services/symbol_factory.cpp
-  services/vector_factory.cpp
   shared/exceptions.cpp
   )
 
@@ -57,6 +57,8 @@ TARGET_INCLUDE_DIRECTORIES(LSSEFT_analytic PRIVATE
 SET(LIBRARY_FILES
   lib/kernel.cpp
   lib/kernel.h
+  lib/vector.cpp
+  lib/vector.h
   )
 
 SET(LOCALIZATIONS_FILES
@@ -67,14 +69,12 @@ SET(LOCALIZATIONS_FILES
 SET(SERVICES_FILES
   services/symbol_factory.cpp
   services/symbol_factory.h
-  services/vector_factory.cpp
-  services/vector_factory.h
   )
 
 SET(SHARED_FILES
   shared/exceptions.cpp
   shared/exceptions.h
-  )
+  shared/defaults.h)
 
 SET(TOP_LEVEL_FILES
   main.cpp

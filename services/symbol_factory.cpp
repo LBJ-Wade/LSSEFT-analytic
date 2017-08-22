@@ -26,8 +26,17 @@
 
 #include "symbol_factory.h"
 
+#include "lib/vector.h"
+
 #include "shared/exceptions.h"
+#include "shared/defaults.h"
 #include "localizations/messages.h"
+
+
+symbol_factory::symbol_factory(unsigned int d_)
+  : index_dimension(d_)
+  {
+  }
 
 
 GiNaC::symbol& symbol_factory::make_symbol(std::string name, boost::optional<std::string> latex_name)
@@ -59,4 +68,25 @@ GiNaC::symbol& symbol_factory::make_symbol(std::string name, boost::optional<std
     
     // otherwise, raise an exception
     throw exception(ERROR_SYMBOL_INSERTION_FAILED, exception_code::symbol_error);
+  }
+
+
+GiNaC::idx symbol_factory::make_dummy_index()
+  {
+    // generate unique name for this dummy index
+    std::string name = LSSEFT_DEFAULT_INDEX_NAME + std::to_string(this->index_count++);
+    
+    // generate symbol and convert to an index object
+    GiNaC::symbol s{name};
+    GiNaC::idx i{s, this->index_dimension};
+    
+    return i;
+  }
+
+
+vector symbol_factory::make_vector(std::string name, boost::optional<std::string> latex_name)
+  {
+    auto sym = this->make_symbol(std::move(name), std::move(latex_name));
+    
+    return vector{sym, *this};
   }

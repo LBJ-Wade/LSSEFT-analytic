@@ -26,8 +26,38 @@
 
 #include <iostream>
 
+#include "services/symbol_factory.h"
+#include "lib/vector.h"
+
 
 int main(int argc, char* argv[])
   {
+    symbol_factory sf;
+    
+    auto k1 = sf.make_vector("k1");
+    auto k2 = sf.make_vector("k2");
+    
+    // generate symbol for magnitude k
+    auto k = sf.make_symbol("k");
+    
+    auto k1_norm = k1.norm_square();
+    std::cout << "k1 norm^2 = " << k1_norm << '\n';
+    
+    auto i = sf.make_dummy_index();
+    std::cout << "k2 indexed = " << k2[i] << '\n';
+    
+    auto lin = k1 + 3 * k2;
+    std::cout << "lin indexed = " << lin[i] << '\n';
+    
+    auto dotp = dot(k2, lin);
+    std::cout << "k2.lin = " << dotp << '\n';
+    
+    GiNaC::scalar_products sp;
+    sp.add(k1.get_expr(), k1.get_expr(), k);
+    sp.add(k2.get_expr(), k2.get_expr(), k);
+    sp.add(k1.get_expr(), k2.get_expr(), -k);
+    std::cout << "k1 norm^2 simplified = " << k1_norm.simplify_indexed(sp) << '\n';
+    std::cout << "k2.lin simplified = " << dotp.simplify_indexed(sp) << '\n';
+    
     return EXIT_SUCCESS;
   }
