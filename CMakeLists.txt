@@ -30,12 +30,60 @@ IF(NOT GINAC_FOUND)
   BUILD_GINAC(${CMAKE_BINARY_DIR}/thirdparty/GiNaC ${CLN_INCLUDE_DIRS} ${CLN_LIBRARY_DIRS} ${CLN_LIBRARIES} ${EXTERNAL_INSTALL_PREFIX})
 ENDIF()
 
-SET(SOURCE_FILES main.cpp)
 
-ADD_EXECUTABLE(LSSEFT_analytic ${SOURCE_FILES})
+# add LSSEFT_analytic executable
+
+ADD_EXECUTABLE(LSSEFT_analytic
+  main.cpp
+  lib/kernel.cpp
+  services/symbol_factory.cpp
+  services/vector_factory.cpp
+  shared/exceptions.cpp
+  )
 
 ADD_DEPENDENCIES(LSSEFT_analytic DEPS)
 
 TARGET_LINK_LIBRARIES(LSSEFT_analytic ${GINAC_LIBRARIES} ${Boost_LIBRARIES})
 
-TARGET_INCLUDE_DIRECTORIES(LSSEFT_analytic PRIVATE)
+TARGET_INCLUDE_DIRECTORIES(LSSEFT_analytic PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${GINAC_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
+  )
+
+
+# add dummy target for CLion
+
+SET(LIBRARY_FILES
+  lib/kernel.cpp
+  lib/kernel.h
+  )
+
+SET(LOCALIZATIONS_FILES
+  localizations/en/messages_en.h
+  localizations/messages.h
+  )
+
+SET(SERVICES_FILES
+  services/symbol_factory.cpp
+  services/symbol_factory.h
+  services/vector_factory.cpp
+  services/vector_factory.h
+  )
+
+SET(SHARED_FILES
+  shared/exceptions.cpp
+  shared/exceptions.h
+  )
+
+SET(TOP_LEVEL_FILES
+  main.cpp
+  )
+
+ADD_EXECUTABLE(clion_dummy_target
+  ${LIBRARY_FILES}
+  ${LOCALIZATIONS_FILES}
+  ${SERVICES_FILES}
+  ${SHARED_FILES}
+  ${TOP_LEVEL_FILES}
+  )
