@@ -217,13 +217,9 @@ bool is_rational(const GiNaC::ex& expr, GiNaC::exvector dummies)
         // object is not rational if there is a non-dummy index
         return not_dummies.empty();
       }
-    if(GiNaC::is_exactly_a<GiNaC::symbol>(expr_expand)
-       || GiNaC::is_exactly_a<GiNaC::numeric>(expr_expand))
-      {
-        return true;
-      }
-    
-    return false;
+
+    return GiNaC::is_exactly_a<GiNaC::symbol>(expr_expand)
+           || GiNaC::is_exactly_a<GiNaC::numeric>(expr_expand);
   }
 
 
