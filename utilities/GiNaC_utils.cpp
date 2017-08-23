@@ -142,6 +142,12 @@ GiNaC::ex simplify_index(const GiNaC::ex& expr, const GiNaC::scalar_products& sp
   }
 
 
+GiNaC::ex simplify_index(const GiNaC::ex& expr)
+  {
+    return simplify_index(expr, GiNaC::scalar_products{});
+  }
+
+
 bool is_rational_add(const GiNaC::ex& expr)
   {
     for(auto t = expr.begin(); t != expr.end(); ++t)

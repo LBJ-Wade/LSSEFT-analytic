@@ -103,5 +103,7 @@ int main(int argc, char* argv[])
     delta.add(SPT::DA(z), delta2, alpha);
     delta.add(SPT::DB(z), delta2, gamma);
     
+    std::cout << delta;
+    
     return EXIT_SUCCESS;
   }

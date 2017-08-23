@@ -32,6 +32,7 @@ constexpr auto WARNING_LABEL = "warning:";
 
 constexpr auto ERROR_SYMBOL_INSERTION_FAILED = "Internal error: symbol insertion failed";
 constexpr auto ERROR_INITIAL_VALUE_INSERT_FAILED = "Internal error: initial value insertion failed";
+constexpr auto ERROR_KERNEL_INSERT_FAILED = "Internal error: kernel insertion failed";
 
 constexpr auto ERROR_KERNEL_NOT_SCALAR = "Kernel is not a scalar function of the momenta";
 constexpr auto ERROR_KERNEL_NOT_RATIONAL = "Kernel is not a rational function of the momenta";

@@ -85,6 +85,8 @@ namespace std
                 symbols.push_back(t->get_symbol().get_name());
               }
             
+            std::sort(symbols.begin(), symbols.end());
+            
             std::ostringstream iv_string;
             for(const auto& sym : symbols)
               {
@@ -116,6 +118,7 @@ namespace std
             const initial_value_set& bv = b.second;
             
             // test for equality of initial-value strings
+            // these are ordered in-situ lexicographically by momentum.
             // we do this by ordering their symbol names lexicographically
             // and testing for equality of those
             std::vector<std::string> a_symbols;
@@ -130,6 +133,9 @@ namespace std
               {
                 b_symbols.push_back(t->get_symbol().get_name());
               }
+
+            std::sort(a_symbols.begin(), a_symbols.end());
+            std::sort(b_symbols.begin(), b_symbols.end());
     
             auto t = a_symbols.cbegin();
             auto u = b_symbols.cbegin();
@@ -188,6 +194,14 @@ class fourier_kernel
     fourier_kernel& add(time_function t, initial_value_set s, GiNaC::ex K);
     
     
+    // SERVICES
+    
+  public:
+    
+    //! write self to a stream
+    void write(std::ostream& out) const;
+    
+    
     // INTERNAL DATA
     
   private:
@@ -196,6 +210,13 @@ class fourier_kernel
     kernel_db kernels;
   
   };
+
+
+inline std::ostream& operator<<(std::ostream& str, const fourier_kernel& obj)
+  {
+    obj.write(str);
+    return str;
+  }
 
 
 #endif //LSSEFT_ANALYTIC_FOURIER_KERNEL_H

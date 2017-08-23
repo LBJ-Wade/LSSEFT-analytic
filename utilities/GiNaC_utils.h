@@ -57,6 +57,9 @@ GiNaC_symbol_set get_expr_symbols(const GiNaC::ex& expr);
 //! This is an alternative implementation that handles such cases
 GiNaC::ex simplify_index(const GiNaC::ex& expr, const GiNaC::scalar_products& sp);
 
+//! version of simplify_index() without scalar_products table
+GiNaC::ex simplify_index(const GiNaC::ex& expr);
+
 //! GiNaC's internal is_rational() is broken, because it does not handle
 //! indexed quantities
 bool is_rational(const GiNaC::ex& expr);
