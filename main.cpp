@@ -97,13 +97,16 @@ int main(int argc, char* argv[])
     sp2.add(ssym, ssym, ssym*ssym);
     std::cout << "alpha simplified = " << simplify_index(alpha, sp2) << '\n';
     
-    fourier_kernel delta;
+    fourier_kernel<3> delta;
 
     delta.add(SPT::D(z), delta1, 1);
     delta.add(SPT::DA(z), delta2, alpha);
     delta.add(SPT::DB(z), delta2, gamma);
     
     std::cout << delta;
+    std::cout << delta * 2;
+    std::cout << delta + delta;
+    std::cout << delta - delta;
     
     return EXIT_SUCCESS;
   }
