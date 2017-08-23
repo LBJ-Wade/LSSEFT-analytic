@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 22/08/2017.
+// Created by David Seery on 23/08/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,24 +24,30 @@
 // --@@
 //
 
-#ifndef LSSEFT_ANALYTIC_DEFAULTS_H
-#define LSSEFT_ANALYTIC_DEFAULTS_H
+#ifndef LSSEFT_ANALYTIC_HASH_COMBINE_H
+#define LSSEFT_ANALYTIC_HASH_COMBINE_H
 
 
-//! default dimension of spatial indices = 3
-constexpr unsigned int LSSEFT_DEFAULT_INDEX_DIMENSION = 3;
 
-//! default name for dummy indices
-constexpr auto LSSEFT_DEFAULT_INDEX_NAME = "i";
+namespace hash_impl
+  {
+    
+    // base case for variadic recursion
+    inline void hash_combine(std::size_t& seed)
+      {
+      }
+    
+    
+    // inductive case for variadic recursion
+    template <typename T, typename... Rest>
+    inline void hash_combine(std::size_t& seed, const T& v, Rest... rest)
+      {
+        std::hash<T> hasher;
+        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        hash_combine(seed, rest...);
+      }
+    
+  }   // namespace hash_impl
 
-//! default name for dummy momentum
-constexpr auto LSSEFT_DEFAULT_MOMENTUM_NAME = "q";
 
-//! default text name for redshift variable
-constexpr auto LSSEFT_REDSHIFT_NAME = "z";
-
-//! default LaTeX name for redshift variable
-constexpr auto LSSEFT_REDSHIFT_LATEX = "z";
-
-
-#endif //LSSEFT_ANALYTIC_DEFAULTS_H
+#endif //LSSEFT_ANALYTIC_HASH_COMBINE_H

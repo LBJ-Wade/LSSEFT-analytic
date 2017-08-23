@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 21/08/2017.
+// Created by David Seery on 23/08/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,19 +24,19 @@
 // --@@
 //
 
-#ifndef LSSEFT_ANALYTIC_KERNEL_H
-#define LSSEFT_ANALYTIC_KERNEL_H
+#ifndef LSSEFT_ANALYTIC_ANSI_COLOUR_CODES_H
+#define LSSEFT_ANALYTIC_ANSI_COLOUR_CODES_H
 
 
-#include "ginac/ginac.h"
+#define ANSI_RED          "\033[31m"
+#define ANSI_GREEN        "\033[32m"
+#define ANSI_MAGENTA      "\033[35m"
+
+#define ANSI_BOLD_RED     "\033[1;31m"
+#define ANSI_BOLD_GREEN   "\033[1;32m"
+#define ANSI_BOLD_MAGENTA "\033[1;35m"
+
+#define ANSI_NORMAL       "\033[0m"
 
 
-//! kernel represents an object defined by an integral kernel and early-time
-//! values for each stochastic quantity such as the density constrast \delta*_k
-class kernel
-  {
-  
-  };
-
-
-#endif //LSSEFT_ANALYTIC_KERNEL_H
+#endif //LSSEFT_ANALYTIC_ANSI_COLOUR_CODES_H

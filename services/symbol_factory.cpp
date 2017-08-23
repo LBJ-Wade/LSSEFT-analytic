@@ -27,6 +27,7 @@
 #include "symbol_factory.h"
 
 #include "lib/vector.h"
+#include "lib/initial_value.h"
 
 #include "shared/exceptions.h"
 #include "shared/defaults.h"
@@ -39,24 +40,24 @@ symbol_factory::symbol_factory(unsigned int d_)
   }
 
 
-GiNaC::symbol& symbol_factory::make_symbol(std::string name, boost::optional<std::string> latex_name)
+const GiNaC::symbol& symbol_factory::make_symbol(std::string name, boost::optional<std::string> latex_name)
   {
     // search for existing definition of this symbol
     auto t = this->symbols.find(std::make_pair(name, latex_name));
 
     // if a definition was found, return the symbol
-    if(t != this->symbols.end()) return *t->second;
+    if(t != this->symbols.end()) return t->second;
     
     // if a definition was not found, we need to manufacture a suitable symbol
-    std::unique_ptr<GiNaC::symbol> sym;
+    GiNaC::symbol sym;
     
     if(latex_name)
       {
-        sym = std::make_unique<GiNaC::symbol>(name, *latex_name);
+        sym = GiNaC::symbol{name, *latex_name};
       }
     else
       {
-        sym = std::make_unique<GiNaC::symbol>(name);
+        sym = GiNaC::symbol{name};
       }
     
     // emplace new element corresponding to this symbol
@@ -64,10 +65,16 @@ GiNaC::symbol& symbol_factory::make_symbol(std::string name, boost::optional<std
     auto r = this->symbols.emplace(std::move(key), std::move(sym));
     
     // check whether insertion actually occurred
-    if(r.second) return *r.first->second;
+    if(r.second) return r.first->second;
     
     // otherwise, raise an exception
     throw exception(ERROR_SYMBOL_INSERTION_FAILED, exception_code::symbol_error);
+  }
+
+
+const GiNaC::symbol& symbol_factory::get_z()
+  {
+    return this->make_symbol(std::string{LSSEFT_REDSHIFT_NAME}, std::string{LSSEFT_REDSHIFT_LATEX});
   }
 
 
@@ -78,9 +85,18 @@ GiNaC::idx symbol_factory::make_dummy_index()
     
     // generate symbol and convert to an index object
     GiNaC::symbol s{name};
-    GiNaC::idx i{s, this->index_dimension};
     
-    return i;
+    return GiNaC::idx{s, this->index_dimension};
+  }
+
+
+GiNaC::symbol symbol_factory::make_unique_momentum()
+  {
+    // generate unique name for this momentum variable
+    std::string name = LSSEFT_DEFAULT_MOMENTUM_NAME + std::to_string(this->momentum_count++);
+    
+    //! generate symbol
+    return GiNaC::symbol{name};
   }
 
 
@@ -88,5 +104,20 @@ vector symbol_factory::make_vector(std::string name, boost::optional<std::string
   {
     auto sym = this->make_symbol(std::move(name), std::move(latex_name));
     
-    return vector{sym, *this};
+    return this->make_vector(sym);
+  }
+
+
+vector symbol_factory::make_vector(const GiNaC::symbol& s)
+  {
+    return vector{s, *this};
+  }
+
+
+initial_value symbol_factory::make_initial_value(std::string name, boost::optional<std::string> latex_name)
+  {
+    auto sym = this->make_symbol(std::move(name), std::move(latex_name));
+    auto k = this->make_unique_momentum();
+    
+    return initial_value{k, sym, *this};
   }

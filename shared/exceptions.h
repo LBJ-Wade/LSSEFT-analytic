@@ -34,7 +34,9 @@
 
 enum class exception_code
   {
-    symbol_error
+    symbol_error,
+    kernel_error,
+    initial_value_error
   };
 
 

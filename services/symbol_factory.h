@@ -29,7 +29,6 @@
 
 
 #include <map>
-#include <memory>
 
 #include "shared/defaults.h"
 
@@ -40,6 +39,9 @@
 
 //! forward-declare vector
 class vector;
+
+//! forward-declare initial_value
+class initial_value;
 
 
 //! symbol factory provides a unified API for building GiNaC symbols
@@ -54,7 +56,7 @@ class symbol_factory
     using key_type = std::pair< std::string, boost::optional<std::string> >;
     
     //! type for symbol database
-    using symbol_db = std::map< key_type, std::unique_ptr<GiNaC::symbol> >;
+    using symbol_db = std::map< key_type, GiNaC::symbol >;
     
     
     // CONSTRUCTOR, DESTRUCTOR
@@ -72,11 +74,25 @@ class symbol_factory
     
   public:
     
-    //! manufacture a GiNaC symbol corresponding to a given name
-    GiNaC::symbol& make_symbol(std::string name, boost::optional<std::string> latex_name = boost::none);
+    //! get GiNaC symbol representing redshift z
+    const GiNaC::symbol& get_z();
     
-    //! make a vector object
+    //! manufacture a GiNaC symbol corresponding to a given name
+    const GiNaC::symbol& make_symbol(std::string name, boost::optional<std::string> latex_name = boost::none);
+    
+    
+    // FACTORY FUNCTIONS
+    
+  public:
+    
+    //! make a vector object from a name
     vector make_vector(std::string name, boost::optional<std::string> latex_name = boost::none);
+    
+    //! make a vector object from an existing symbol
+    vector make_vector(const GiNaC::symbol& s);
+    
+    //! make an initial value object
+    initial_value make_initial_value(std::string name, boost::optional<std::string> latex_name = boost::none);
     
     
     // INDEX SERVICES
@@ -85,6 +101,9 @@ class symbol_factory
     
     //! make a dummy index
     GiNaC::idx make_dummy_index();
+    
+    //! make a unique momentum variable
+    GiNaC::symbol make_unique_momentum();
     
     
     // INTERNAL DATA
@@ -99,6 +118,9 @@ class symbol_factory
     
     //! counter for unique index symbols
     unsigned int index_count{0};
+    
+    //! counter for unique momentum symbols
+    unsigned int momentum_count{0};
   
   };
 

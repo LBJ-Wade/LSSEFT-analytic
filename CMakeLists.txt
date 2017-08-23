@@ -13,7 +13,7 @@ SET_COMPILER_FLAGS()
 # RESOLVE DEPENDENCIES
 
 # find required Boost libraries
-FIND_PACKAGE(Boost 1.56 REQUIRED COMPONENTS timer)
+FIND_PACKAGE(Boost 1.56 REQUIRED COMPONENTS timer date_time)
 
 # find GiNaC libraries
 IF(NOT FORCE_BUILD_GINAC)
@@ -35,10 +35,14 @@ ENDIF()
 
 ADD_EXECUTABLE(LSSEFT_analytic
   main.cpp
-  lib/kernel.cpp
+  lib/initial_value.cpp
+  lib/fourier_kernel.cpp
   lib/vector.cpp
   services/symbol_factory.cpp
+  shared/error.cpp
   shared/exceptions.cpp
+  SPT/time_functions.cpp
+  utilities/GiNaC_utils.cpp
   )
 
 ADD_DEPENDENCIES(LSSEFT_analytic DEPS)
@@ -55,10 +59,12 @@ TARGET_INCLUDE_DIRECTORIES(LSSEFT_analytic PRIVATE
 # add dummy target for CLion
 
 SET(LIBRARY_FILES
-  lib/kernel.cpp
-  lib/kernel.h
+  lib/fourier_kernel.cpp
+  lib/fourier_kernel.h
   lib/vector.cpp
   lib/vector.h
+  lib/initial_value.cpp
+  lib/initial_value.h
   )
 
 SET(LOCALIZATIONS_FILES
@@ -72,9 +78,24 @@ SET(SERVICES_FILES
   )
 
 SET(SHARED_FILES
+  shared/ansi_colour_codes.h
   shared/exceptions.cpp
   shared/exceptions.h
-  shared/defaults.h)
+  shared/defaults.h
+  shared/error.cpp
+  shared/error.h
+  shared/ansi_colour_codes.h)
+
+SET(SPT_FILES
+  SPT/time_functions.cpp
+  SPT/time_functions.h
+  )
+
+SET(UTILITIES_FILES
+  utilities/GiNaC_utils.cpp
+  utilities/GiNaC_utils.h
+  utilities/hash_combine.h
+  )
 
 SET(TOP_LEVEL_FILES
   main.cpp
@@ -85,5 +106,7 @@ ADD_EXECUTABLE(clion_dummy_target
   ${LOCALIZATIONS_FILES}
   ${SERVICES_FILES}
   ${SHARED_FILES}
+  ${SPT_FILES}
+  ${UTILITIES_FILES}
   ${TOP_LEVEL_FILES}
   )

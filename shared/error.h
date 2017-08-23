@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 21/08/2017.
+// Created by David Seery on 23/08/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,4 +24,44 @@
 // --@@
 //
 
-#include "kernel.h"
+#ifndef LSSEFT_ANALYTIC_ERROR_H
+#define LSSEFT_ANALYTIC_ERROR_H
+
+
+#include <string>
+
+
+class error_handler
+  {
+    
+    // CONSTRUCTOR, DESTRUCTOR
+  
+  public:
+    
+    //! constructor is default
+    error_handler() = default;
+    
+    //! destructor is default
+    ~error_handler() = default;
+    
+    
+    // INTERFACE
+  
+  public:
+    
+    //! report an error
+    void error(std::string msg);
+    
+    //! report a warning
+    void warn(std::string msg);
+    
+    //! report an information message
+    void info(std::string msg);
+    
+    //! make an announcement
+    void announce(std::string msg);
+    
+  };
+
+
+#endif //LSSEFT_ANALYTIC_ERROR_H

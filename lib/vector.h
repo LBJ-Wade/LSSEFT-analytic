@@ -35,6 +35,7 @@
 // forward-declare vector class
 class vector;
 
+
 // forward declare out-of-class operator overloads
 
 //! unary - on a vector
@@ -74,12 +75,12 @@ class vector
     
   protected:
     
-    //! constructor takes a symbol representing the vector kernel
+    //! basic private constructor accepts a symbol representing the vector kernel
     vector(GiNaC::symbol& k, symbol_factory& sf_);
     
     //! private constructor available to overloaded arithmetic functions that can accept
     //! a GiNaC::ex rather than just a symbol
-    explicit vector(GiNaC::ex e, symbol_factory& sf_);
+    vector(GiNaC::ex e, symbol_factory& sf_);
     
     
     // INTERFACE

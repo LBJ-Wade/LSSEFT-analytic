@@ -25,9 +25,16 @@
 //
 
 #include <iostream>
+#include <functional>
 
 #include "services/symbol_factory.h"
 #include "lib/vector.h"
+#include "lib/initial_value.h"
+#include "lib/fourier_kernel.h"
+
+#include "SPT/time_functions.h"
+
+#include "utilities/GiNaC_utils.h"
 
 
 int main(int argc, char* argv[])
@@ -58,6 +65,43 @@ int main(int argc, char* argv[])
     sp.add(k1.get_expr(), k2.get_expr(), -k);
     std::cout << "k1 norm^2 simplified = " << k1_norm.simplify_indexed(sp) << '\n';
     std::cout << "k2.lin simplified = " << dotp.simplify_indexed(sp) << '\n';
+    
+    auto z = sf.get_z();
+    GiNaC::ex growth = SPT::D(z);
+    std::cout << "growth factor = " << growth << ", derivative dD/dz = " << GiNaC::diff(growth, z) << '\n';
+    
+    auto deltaq = sf.make_initial_value("delta");
+    auto deltar = sf.make_initial_value("delta");
+    auto deltas = sf.make_initial_value("delta");
+    
+    initial_value_set delta1{deltaq};
+    initial_value_set delta2{deltaq, deltar};
+    initial_value_set delta3{deltaq, deltar, deltas};
+    
+    vector q = deltaq;
+    vector r = deltar;
+    vector s = deltas;
+    
+    GiNaC::ex alpha = dot(q, q+r) / q.norm_square();
+    GiNaC::ex beta = dot(q, r) * (q + r).norm_square() / (2 * q.norm_square() * r.norm_square());
+    GiNaC::ex gamma = alpha + beta;
+    std::cout << "alpha(q,r) = " << alpha << '\n';
+    std::cout << "beta(q,r) = " << beta << '\n';
+    
+    GiNaC::scalar_products sp2;
+    GiNaC::symbol qsym = GiNaC::ex_to<GiNaC::symbol>(q.get_expr());
+    GiNaC::symbol rsym = GiNaC::ex_to<GiNaC::symbol>(r.get_expr());
+    GiNaC::symbol ssym = GiNaC::ex_to<GiNaC::symbol>(s.get_expr());
+    sp2.add(qsym, qsym, qsym*qsym);
+    sp2.add(rsym, rsym, rsym*rsym);
+    sp2.add(ssym, ssym, ssym*ssym);
+    std::cout << "alpha simplified = " << simplify_index(alpha, sp2) << '\n';
+    
+    fourier_kernel delta;
+
+    delta.add(SPT::D(z), delta1, 1);
+    delta.add(SPT::DA(z), delta2, alpha);
+    delta.add(SPT::DB(z), delta2, gamma);
     
     return EXIT_SUCCESS;
   }
