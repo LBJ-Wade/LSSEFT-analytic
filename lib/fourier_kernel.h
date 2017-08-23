@@ -77,11 +77,18 @@ namespace std
             
             size_t h = string_hasher(time_string.str());
             
-            // to hash the initial value set, print its symbol string and hash that
-            std::ostringstream iv_string;
+            // to hash the initial value set, order its symbols lexicographically,
+            // print them, and hash those
+            std::vector<std::string> symbols;
             for(auto t = obj.second.value_cbegin(); t != obj.second.value_cend(); ++t)
               {
-                iv_string << t->get_symbol();
+                symbols.push_back(t->get_symbol().get_name());
+              }
+            
+            std::ostringstream iv_string;
+            for(const auto& sym : symbols)
+              {
+                iv_string << sym;
               }
             
             // combine both string hashes together
@@ -109,13 +116,27 @@ namespace std
             const initial_value_set& bv = b.second;
             
             // test for equality of initial-value strings
-            // note that we use only the symbols, not their momenta
-            auto t = av.value_cbegin();
-            auto u = bv.value_cbegin();
+            // we do this by ordering their symbol names lexicographically
+            // and testing for equality of those
+            std::vector<std::string> a_symbols;
+            std::vector<std::string> b_symbols;
 
-            for(; t != av.value_cend() && u != bv.value_cend(); ++t, ++u)
+            for(auto t = av.value_cbegin(); t != av.value_cend(); ++t)
               {
-                if(t->get_symbol() != u->get_symbol()) return false;
+                a_symbols.push_back(t->get_symbol().get_name());
+              }
+    
+            for(auto t = bv.value_cbegin(); t != bv.value_cend(); ++t)
+              {
+                b_symbols.push_back(t->get_symbol().get_name());
+              }
+    
+            auto t = a_symbols.cbegin();
+            auto u = b_symbols.cbegin();
+
+            for(; t != a_symbols.cend() && u != b_symbols.cend(); ++t, ++u)
+              {
+                if(*t != *u) return false;
               }
             
             return true;

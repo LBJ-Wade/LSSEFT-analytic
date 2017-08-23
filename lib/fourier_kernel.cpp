@@ -62,10 +62,10 @@ fourier_kernel& fourier_kernel::add(time_function t, initial_value_set s, GiNaC:
     GiNaC_symbol_set used_not_avail;
     GiNaC_symbol_set avail_not_used;
 
-    std::set_difference(used.begin(), used.end(), avail.begin(), avail.end(),
-                        std::inserter(used_not_avail, used_not_avail.end()));
-    std::set_difference(avail.begin(), avail.end(), used.begin(), used.end(),
-                        std::inserter(avail_not_used, avail_not_used.end()));
+    std::set_difference(used.cbegin(), used.cend(), avail.cbegin(), avail.cend(),
+                        std::inserter(used_not_avail, used_not_avail.end()), GiNaC_utils_impl::compare_symbol{});
+    std::set_difference(avail.cbegin(), avail.cend(), used.cbegin(), used.cend(),
+                        std::inserter(avail_not_used, avail_not_used.end()), GiNaC_utils_impl::compare_symbol{});
     
     // raise exception on attempt to use a Fourier momentum that isn't available
     if(!used_not_avail.empty())

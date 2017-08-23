@@ -34,14 +34,22 @@ GiNaC_symbol_set get_expr_symbols(const GiNaC::ex& expr)
   {
     GiNaC_symbol_set syms;
     
-    for(auto t = expr.postorder_begin(); t != expr.postorder_end(); ++t)
+    if(GiNaC::is_exactly_a<GiNaC::indexed>(expr))
       {
-        const GiNaC::ex& e = *t;
-        if(GiNaC::is_a<GiNaC::symbol>(e))
-          {
-            const auto& s = GiNaC::ex_to<GiNaC::symbol>(e);
-            syms.insert(s);
-          }
+        return get_expr_symbols(expr.op(0));
+      }
+    
+    if(GiNaC::is_exactly_a<GiNaC::symbol>(expr))
+      {
+        syms.insert(GiNaC::ex_to<GiNaC::symbol>(expr));
+        return syms;
+      }
+
+    size_t nops = expr.nops();
+    for(size_t i = 0; i < nops; ++i)
+      {
+        auto new_syms = get_expr_symbols(expr.op(i));
+        std::copy(new_syms.begin(), new_syms.end(), std::inserter(syms, syms.end()));
       }
     
     return syms;
