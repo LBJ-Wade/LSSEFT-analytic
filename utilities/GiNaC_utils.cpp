@@ -126,7 +126,7 @@ GiNaC::ex simplify_pow(const GiNaC::ex& expr, const GiNaC::scalar_products& sp)
     // if the base is not indexed then apply recursively and return
     if(!GiNaC::is_exactly_a<GiNaC::indexed>(base))
       {
-        return GiNaC::pow(simplify_index(expr, sp), exponent);
+        return GiNaC::pow(simplify_index(base, sp), exponent);
       }
     
     // do nothing if the exponent isn't a number; the expression probably doesn't make sense
