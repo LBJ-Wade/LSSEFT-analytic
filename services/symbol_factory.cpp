@@ -78,7 +78,7 @@ const GiNaC::symbol& symbol_factory::get_z()
   }
 
 
-GiNaC::idx symbol_factory::make_dummy_index()
+GiNaC::idx symbol_factory::make_unique_index()
   {
     // generate unique name for this dummy index
     std::string name = LSSEFT_DEFAULT_INDEX_NAME + std::to_string(this->index_count++);
@@ -120,4 +120,12 @@ initial_value symbol_factory::make_initial_value(std::string name, boost::option
     auto k = this->make_unique_momentum();
     
     return initial_value{k, sym, *this};
+  }
+
+
+initial_value symbol_factory::make_initial_value(const GiNaC::symbol& s)
+  {
+    auto k = this->make_unique_momentum();
+    
+    return initial_value{k, s, *this};
   }

@@ -46,11 +46,16 @@ namespace GiNaC_utils_impl
     
   }   // namespace initial_value_impl
 
+//! set of GiNaC symbols, with comparison performed lexicographically by name
+//! (GiNaC does not provide this option itself)
 using GiNaC_symbol_set = std::set< GiNaC::symbol, GiNaC_utils_impl::compare_symbol >;
 
 
 //! extract a set of GiNaC symbols from a given expression
 GiNaC_symbol_set get_expr_symbols(const GiNaC::ex& expr);
+
+//! extract a set of GiNaC indices from a given expression
+GiNaC_symbol_set get_expr_indices(const GiNaC::ex& expr);
 
 //! GiNaC's internal simplify_indexed() is broken, because it does not handle
 //! index sums in the denominator or as the argument of powers with exponent other than +2

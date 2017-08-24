@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
     auto k1_norm = k1.norm_square();
     std::cout << "k1 norm^2 = " << k1_norm << '\n';
     
-    auto i = sf.make_dummy_index();
+    auto i = sf.make_unique_index();
     std::cout << "k2 indexed = " << k2[i] << '\n';
     
     auto lin = k1 + 3 * k2;
@@ -97,16 +97,17 @@ int main(int argc, char* argv[])
     sp2.add(ssym, ssym, ssym*ssym);
     std::cout << "alpha simplified = " << simplify_index(alpha, sp2) << '\n';
     
-    fourier_kernel<3> delta;
+    auto delta = sf.make_fourier_kernel<3>();
 
     delta.add(SPT::D(z), delta1, 1);
     delta.add(SPT::DA(z), delta2, alpha);
     delta.add(SPT::DB(z), delta2, gamma);
     
-    std::cout << delta;
-    std::cout << delta * 2;
-    std::cout << delta + delta;
-    std::cout << delta - delta;
+    std::cout << delta << '\n';
+    std::cout << delta * 2 << '\n';
+    std::cout << delta + delta << '\n';
+    std::cout << delta - delta << '\n';
+    std::cout << delta * delta << '\n';
     
     return EXIT_SUCCESS;
   }

@@ -56,6 +56,42 @@ GiNaC_symbol_set get_expr_symbols(const GiNaC::ex& expr)
   }
 
 
+GiNaC_symbol_set get_expr_indices(const GiNaC::ex& expr)
+  {
+    GiNaC_symbol_set idxs;
+    
+    if(GiNaC::is_exactly_a<GiNaC::indexed>(expr))
+      {
+        // walk through all indices, extracting their symbols
+        size_t nops = expr.nops();
+        for(size_t i = 1; i < nops; ++i)
+          {
+            const auto& idx_raw = expr.op(i);
+            if(GiNaC::is_a<GiNaC::idx>(idx_raw))
+              {
+                const auto& idx = GiNaC::ex_to<GiNaC::idx>(idx_raw);
+                const auto& sym = idx.get_value();
+                if(GiNaC::is_exactly_a<GiNaC::symbol>(sym))
+                  {
+                    idxs.insert(GiNaC::ex_to<GiNaC::symbol>(sym));
+                  }
+              }
+          }
+        
+        return idxs;
+      }
+    
+    size_t nops = expr.nops();
+    for(size_t i = 0; i < nops; ++i)
+      {
+        auto new_idxs = get_expr_indices(expr.op(i));
+        std::copy(new_idxs.begin(), new_idxs.end(), std::inserter(idxs, idxs.end()));
+      }
+    
+    return idxs;
+  }
+
+
 GiNaC::ex simplify_add(const GiNaC::ex& expr, const GiNaC::scalar_products& sp)
   {
     GiNaC::ex val{0};

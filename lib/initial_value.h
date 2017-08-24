@@ -182,6 +182,12 @@ class initial_value_set
     //! add a stochastic variable to the set
     initial_value_set& insert(initial_value v);
     
+    //! get size
+    size_t size() const { return this->vars.size(); }
+    
+    //! is container empty?
+    bool empty() const { return this->vars.empty(); }
+    
     
     
     // INTERNAL DATA

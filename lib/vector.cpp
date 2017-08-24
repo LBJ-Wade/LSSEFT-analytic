@@ -78,7 +78,7 @@ vector operator*(const GiNaC::numeric a, const vector& b)
 
 GiNaC::ex dot(const vector a, const vector b)
   {
-    auto dummy_index = a.sf.make_dummy_index();
+    auto dummy_index = a.sf.make_unique_index();
     
     auto a_idx = a[dummy_index];
     auto b_idx = b[dummy_index];
@@ -98,7 +98,7 @@ GiNaC::ex vector::operator[](const GiNaC::idx& i) const
 
 GiNaC::ex vector::norm_square() const
   {
-    auto dummy_index = this->sf.make_dummy_index();
+    auto dummy_index = this->sf.make_unique_index();
     
     auto expr_idx = this->operator[](dummy_index);
     GiNaC::ex expr_idx_sq = expr_idx * expr_idx;

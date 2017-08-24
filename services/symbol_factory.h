@@ -43,6 +43,10 @@ class vector;
 //! forward-declare initial_value
 class initial_value;
 
+//! forward-declare fourier_kernel
+template <unsigned int N>
+class fourier_kernel;
+
 
 //! symbol factory provides a unified API for building GiNaC symbols
 class symbol_factory
@@ -94,13 +98,20 @@ class symbol_factory
     //! make an initial value object
     initial_value make_initial_value(std::string name, boost::optional<std::string> latex_name = boost::none);
     
+    //! make an initial value object from an existing symbol
+    initial_value make_initial_value(const GiNaC::symbol& s);
+    
+    //! make an empty Fourier kernel
+    template <unsigned int N>
+    fourier_kernel<N> make_fourier_kernel();
+    
     
     // INDEX SERVICES
     
   public:
     
-    //! make a dummy index
-    GiNaC::idx make_dummy_index();
+    //! make a unique index
+    GiNaC::idx make_unique_index();
     
     //! make a unique momentum variable
     GiNaC::symbol make_unique_momentum();
@@ -123,6 +134,13 @@ class symbol_factory
     unsigned int momentum_count{0};
   
   };
+
+
+template <unsigned int N>
+fourier_kernel<N> symbol_factory::make_fourier_kernel()
+  {
+    return fourier_kernel<N>{*this};
+  }
 
 
 #endif //LSSEFT_ANALYTIC_SYMBOL_FACTORY_H
