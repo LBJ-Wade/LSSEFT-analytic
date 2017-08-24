@@ -111,3 +111,10 @@ GiNaC::ex vector::norm() const
   {
     return GiNaC::sqrt(this->norm_square());
   }
+
+
+vector& vector::operator+=(const vector& rhs)
+  {
+    this->expr += rhs.expr;
+    return *this;
+  }

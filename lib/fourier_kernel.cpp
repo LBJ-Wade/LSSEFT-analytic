@@ -84,7 +84,7 @@ void validate_momenta(const initial_value_set& s, const GiNaC::ex& K, bool silen
     if(!avail_not_used.empty() && !silent)
       {
         std::ostringstream msg;
-        msg << (avail_not_used.size() == 1 ? ERROR_UNUSED_MOMENTA_SING : ERROR_UNUSED_MOMENTA_PLURAL) << " ";
+        msg << (avail_not_used.size() == 1 ? WARNING_UNUSED_MOMENTA_SING : WARNING_UNUSED_MOMENTA_PLURAL) << " ";
         
         // attach unused momenta to message
         unsigned int count = 0;

@@ -83,6 +83,14 @@ class vector
     vector(GiNaC::ex e, symbol_factory& sf_);
     
     
+    // OPERATORS
+    
+  public:
+    
+    //! implement +=
+    vector& operator+=(const vector& rhs);
+    
+    
     // INTERFACE
     
   public:

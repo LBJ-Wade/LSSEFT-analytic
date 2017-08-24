@@ -132,6 +132,12 @@ class symbol_factory
     
     //! counter for unique momentum symbols
     unsigned int momentum_count{0};
+    
+    
+    // RESERVED SYMBOLS
+    
+    //! redshift z
+    GiNaC::symbol z;
   
   };
 

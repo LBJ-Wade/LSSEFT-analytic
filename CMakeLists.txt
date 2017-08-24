@@ -41,6 +41,7 @@ ADD_EXECUTABLE(LSSEFT_analytic
   services/symbol_factory.cpp
   shared/error.cpp
   shared/exceptions.cpp
+  SPT/one_loop_kernels.cpp
   SPT/time_functions.cpp
   utilities/GiNaC_utils.cpp
   )
@@ -89,6 +90,8 @@ SET(SHARED_FILES
 SET(SPT_FILES
   SPT/time_functions.cpp
   SPT/time_functions.h
+  SPT/one_loop_kernels.cpp
+  SPT/one_loop_kernels.h
   )
 
 SET(UTILITIES_FILES

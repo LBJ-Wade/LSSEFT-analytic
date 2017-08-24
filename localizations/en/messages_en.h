@@ -38,10 +38,11 @@ constexpr auto ERROR_KERNEL_NOT_SCALAR = "Kernel is not a scalar function of the
 constexpr auto ERROR_KERNEL_NOT_RATIONAL = "Kernel is not a rational function of the momenta";
 constexpr auto ERROR_UNKNOWN_MOMENTA_SING = "Kernel depends on unknown momentum vector";
 constexpr auto ERROR_UNKNOWN_MOMENTA_PLURAL = "Kernel depends on unknown momentum vectors";
-constexpr auto ERROR_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
-constexpr auto ERROR_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";
 constexpr auto ERROR_REPEATED_INITIAL_MOMENTUM = "Attempt to add new initial value with duplicate momentum";
 
+constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
+constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";
+constexpr auto WARNING_ORDER_ZERO_KERNEL = "Ignoring order-zero kernel";
 constexpr auto WARNING_KERNEL_EXPRESSION = "Kernel expression";
 
 

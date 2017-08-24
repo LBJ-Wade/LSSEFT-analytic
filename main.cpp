@@ -33,6 +33,7 @@
 #include "lib/fourier_kernel.h"
 
 #include "SPT/time_functions.h"
+#include "SPT/one_loop_kernels.h"
 
 #include "utilities/GiNaC_utils.h"
 
@@ -41,73 +42,63 @@ int main(int argc, char* argv[])
   {
     symbol_factory sf;
     
-    auto k1 = sf.make_vector("k1");
-    auto k2 = sf.make_vector("k2");
-    
-    // generate symbol for magnitude k
-    auto k = sf.make_symbol("k");
-    
-    auto k1_norm = k1.norm_square();
-    std::cout << "k1 norm^2 = " << k1_norm << '\n';
-    
-    auto i = sf.make_unique_index();
-    std::cout << "k2 indexed = " << k2[i] << '\n';
-    
-    auto lin = k1 + 3 * k2;
-    std::cout << "lin indexed = " << lin[i] << '\n';
-    
-    auto dotp = dot(k2, lin);
-    std::cout << "k2.lin = " << dotp << '\n';
-    
-    GiNaC::scalar_products sp;
-    sp.add(k1.get_expr(), k1.get_expr(), k);
-    sp.add(k2.get_expr(), k2.get_expr(), k);
-    sp.add(k1.get_expr(), k2.get_expr(), -k);
-    std::cout << "k1 norm^2 simplified = " << k1_norm.simplify_indexed(sp) << '\n';
-    std::cout << "k2.lin simplified = " << dotp.simplify_indexed(sp) << '\n';
-    
+    // redshift z is the time variable
     auto z = sf.get_z();
-    GiNaC::ex growth = SPT::D(z);
-    std::cout << "growth factor = " << growth << ", derivative dD/dz = " << GiNaC::diff(growth, z) << '\n';
     
+    // manufacture placeholder stochastic initial values delta*_q, delta*_s, delta*_t
+    // (recall we skip delta*_r because r is also the line-of-sight variable)
     auto deltaq = sf.make_initial_value("delta");
-    auto deltar = sf.make_initial_value("delta");
     auto deltas = sf.make_initial_value("delta");
+    auto deltat = sf.make_initial_value("delta");
     
-    initial_value_set delta1{deltaq};
-    initial_value_set delta2{deltaq, deltar};
-    initial_value_set delta3{deltaq, deltar, deltas};
+    // linear set is delta*_q
+    initial_value_set iv1{deltaq};
     
+    // quadratic set is delta*_q delta*_s
+    initial_value_set iv2{deltaq, deltas};
+    
+    // cubic set is delta*_q delta*_s delta*_t
+    initial_value_set iv3{deltaq, deltas, deltat};
+
+    // extract momentum vectors from these initial value placeholders
     vector q = deltaq;
-    vector r = deltar;
     vector s = deltas;
+    vector t = deltat;
     
-    GiNaC::ex alpha = dot(q, q+r) / q.norm_square();
-    GiNaC::ex beta = dot(q, r) * (q + r).norm_square() / (2 * q.norm_square() * r.norm_square());
-    GiNaC::ex gamma = alpha + beta;
-    std::cout << "alpha(q,r) = " << alpha << '\n';
-    std::cout << "beta(q,r) = " << beta << '\n';
     
-    GiNaC::scalar_products sp2;
-    GiNaC::symbol qsym = GiNaC::ex_to<GiNaC::symbol>(q.get_expr());
-    GiNaC::symbol rsym = GiNaC::ex_to<GiNaC::symbol>(r.get_expr());
-    GiNaC::symbol ssym = GiNaC::ex_to<GiNaC::symbol>(s.get_expr());
-    sp2.add(qsym, qsym, qsym*qsym);
-    sp2.add(rsym, rsym, rsym*rsym);
-    sp2.add(ssym, ssym, ssym*ssym);
-    std::cout << "alpha simplified = " << simplify_index(alpha, sp2) << '\n';
-    
+    // set up kernels for the dark matter overdensity \delta
     auto delta = sf.make_fourier_kernel<3>();
 
-    delta.add(SPT::D(z), delta1, 1);
-    delta.add(SPT::DA(z), delta2, alpha);
-    delta.add(SPT::DB(z), delta2, gamma);
+    // linear order
+    delta.add(SPT::D(z), iv1, 1);
     
-    std::cout << delta << '\n';
-    std::cout << delta * 2 << '\n';
-    std::cout << delta + delta << '\n';
-    std::cout << delta - delta << '\n';
-    std::cout << delta * delta << '\n';
+    // second order
+    delta.add(SPT::DA(z), iv2, alpha(q, s));
+    delta.add(SPT::DB(z), iv2, gamma(q, s));
+    
+    // quadratic order
+    delta.add(SPT::DD(z) - SPT::DJ(z), iv3, 2*gamma_bar(s+t, q)*alpha_bar(s, t));
+    delta.add(SPT::DE(z),              iv3, 2*gamma_bar(s+t, q)*gamma_bar(s, t));
+    delta.add(SPT::DF(z) + SPT::DJ(z), iv3, 2*alpha_bar(s+t, q)*alpha_bar(s, t));
+    delta.add(SPT::DG(z),              iv3, 2*alpha_bar(s+t, q)*gamma_bar(s, t));
+    delta.add(SPT::DJ(z),              iv3, alpha(s+t, q)*gamma_bar(s, t) - 2*alpha(s+t, q)*alpha_bar(s, t));
+    
+    
+    // compute kernels for the velocity potential \phi, v = grad phi -> v(k) = i k phi
+    auto delta1 = delta.order(1);
+    auto delta2 = delta.order(2);
+    auto delta3 = delta.order(3);
+    
+    auto phi1 = InverseLaplacian(-diff_t(delta1));
+    auto phi2 = InverseLaplacian(-diff_t(delta2) - delta1*Laplacian(phi1) - gradgrad(phi1, delta1));
+    auto phi3 = InverseLaplacian(-diff_t(delta3)
+                                 - delta1*Laplacian(phi2) - delta2*Laplacian(phi1)
+                                 - gradgrad(phi1, delta2) - gradgrad(phi2, delta1));
+    
+    auto phi = phi1 + phi2 + phi3;
+    
+    std::cout << phi1 << '\n';
+    
     
     return EXIT_SUCCESS;
   }

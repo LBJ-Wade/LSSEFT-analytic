@@ -35,7 +35,8 @@
 
 
 symbol_factory::symbol_factory(unsigned int d_)
-  : index_dimension(d_)
+  : index_dimension(d_),
+    z(LSSEFT_REDSHIFT_NAME, LSSEFT_REDSHIFT_LATEX)
   {
   }
 
@@ -74,7 +75,7 @@ const GiNaC::symbol& symbol_factory::make_symbol(std::string name, boost::option
 
 const GiNaC::symbol& symbol_factory::get_z()
   {
-    return this->make_symbol(std::string{LSSEFT_REDSHIFT_NAME}, std::string{LSSEFT_REDSHIFT_LATEX});
+    return this->z;
   }
 
 
