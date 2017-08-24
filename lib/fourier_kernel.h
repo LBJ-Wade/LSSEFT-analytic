@@ -856,7 +856,8 @@ fourier_kernel<N> gradgrad(const fourier_kernel<N>& a, const fourier_kernel<N>& 
     
     KernelProduct(a, b, rule);
     
-    return r;  }
+    return r;
+  }
 
 
 

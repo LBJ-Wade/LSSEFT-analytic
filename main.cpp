@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
     
     auto phi = phi1 + phi2 + phi3;
     
-    std::cout << phi1 << '\n';
+    std::cout << phi << '\n';
     
     
     return EXIT_SUCCESS;
