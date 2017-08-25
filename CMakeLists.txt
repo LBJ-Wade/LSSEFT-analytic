@@ -38,6 +38,8 @@ ADD_EXECUTABLE(LSSEFT_analytic
   lib/initial_value.cpp
   lib/fourier_kernel.cpp
   lib/vector.cpp
+  lib/Pk_one_loop.cpp
+  lib/detail/contractions.cpp
   services/symbol_factory.cpp
   shared/error.cpp
   shared/exceptions.cpp
@@ -66,6 +68,13 @@ SET(LIBRARY_FILES
   lib/vector.h
   lib/initial_value.cpp
   lib/initial_value.h
+  lib/Pk_one_loop.cpp
+  lib/Pk_one_loop.h
+  )
+
+SET(LIBRARY_DETAIL_FILES
+  lib/detail/contractions.cpp
+  lib/detail/contractions.h
   )
 
 SET(LOCALIZATIONS_FILES
@@ -106,6 +115,7 @@ SET(TOP_LEVEL_FILES
 
 ADD_EXECUTABLE(clion_dummy_target
   ${LIBRARY_FILES}
+  ${LIBRARY_DETAIL_FILES}
   ${LOCALIZATIONS_FILES}
   ${SERVICES_FILES}
   ${SHARED_FILES}

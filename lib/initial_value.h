@@ -134,8 +134,6 @@ class initial_value_set
     //! (any symbol typically compares less than any other symbol, so they
     //! appear equivalent to std::set<>)
     using k_db = GiNaC_symbol_set;
-  
-  protected:
     
     //! database of initial value objects
     using iv_db = std::set< initial_value >;
@@ -201,6 +199,25 @@ class initial_value_set
     k_db ks;
     
   };
+
+
+//! specialize std::les<> to iv_db::const_iterator, so these iterators can be stored in eg. a std::set<>
+namespace std
+  {
+    
+    template<>
+    struct less<initial_value_set::iv_db::const_iterator>
+      {
+        bool operator()(const initial_value_set::iv_db::const_iterator& a,
+                        const initial_value_set::iv_db::const_iterator& b) const
+          {
+            // use std::less<> applied to the elements that these iterators point to
+            std::less<initial_value> l;
+            return l(*a, *b);
+          }
+      };
+    
+  }   // namespace std
 
 
 #endif //LSSEFT_ANALYTIC_INITIAL_VALUE_H

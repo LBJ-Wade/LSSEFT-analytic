@@ -31,11 +31,11 @@
 #include "lib/vector.h"
 #include "lib/initial_value.h"
 #include "lib/fourier_kernel.h"
+#include "lib/Pk_one_loop.h"
 
 #include "SPT/time_functions.h"
 #include "SPT/one_loop_kernels.h"
 
-#include "utilities/GiNaC_utils.h"
 
 
 int main(int argc, char* argv[])
@@ -96,9 +96,15 @@ int main(int argc, char* argv[])
                                  - gradgrad(phi1, delta2) - gradgrad(phi2, delta1));
     
     auto phi = phi1 + phi2 + phi3;
+
     
-    std::cout << phi << '\n';
+    // set up momentum label k
+    auto k = sf.make_symbol("k");
     
+    // construct 1-loop \delta power spectrum
+    Pk_one_loop Pk_delta{delta, delta, k, sf};
+
+    std::cout << "Tree-level P(k) = " << Pk_delta.get_tree() << '\n';
     
     return EXIT_SUCCESS;
   }

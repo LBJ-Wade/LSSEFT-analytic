@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 21/08/2017.
+// Created by David Seery on 25/08/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -23,54 +23,4 @@
 // @contributor: David Seery <D.Seery@sussex.ac.uk>
 // --@@
 //
-
-#ifndef LSSEFT_ANALYTIC_EXCEPTIONS_H
-#define LSSEFT_ANALYTIC_EXCEPTIONS_H
-
-
-#include <string>
-#include <exception>
-
-
-enum class exception_code
-  {
-    symbol_error,
-    kernel_error,
-    initial_value_error,
-    contraction_error
-  };
-
-
-class exception: public std::runtime_error
-  {
-    
-    // CONSTRUCTOR, DESTRUCTOR
-    
-  public:
-    
-    //! constructor
-    exception(std::string msg, exception_code c);
-    
-    //! destructor
-    ~exception() = default;
-    
-    
-    // INTERFACE
-    
-  public:
-    
-    //! read exception code
-    exception_code get_code() const { return this->code; }
-    
-    
-    // INTERNAL DATA
-    
-  private:
-    
-    //! cache exception code
-    exception_code code;
-  
-  };
-
-
-#endif //LSSEFT_ANALYTIC_EXCEPTIONS_H
+#include "Pk_one_loop.h"
