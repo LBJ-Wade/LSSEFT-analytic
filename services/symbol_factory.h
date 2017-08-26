@@ -115,6 +115,9 @@ class symbol_factory
     
     //! make a unique momentum variable
     GiNaC::symbol make_unique_momentum();
+
+    //! make a unique loop momentum variable
+    GiNaC::symbol make_unique_loop_momentum();
     
     
     // INTERNAL DATA
@@ -132,6 +135,9 @@ class symbol_factory
     
     //! counter for unique momentum symbols
     unsigned int momentum_count{0};
+
+    //! counter for unique loop momentum symbols
+    unsigned int loop_count{0};
     
     
     // RESERVED SYMBOLS

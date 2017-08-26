@@ -234,7 +234,10 @@ namespace detail
         enumerate_contractions(size_t num, const iv_list& ivs) const;
 
         //! build the data needed to construct a Wick product from a contraction group
-        void build_Wick_product(const contraction_group& gp);
+        template <size_t N>
+        void build_Wick_product(const contraction_group& gp,
+                                const std::array<initial_value_set, N>& groups,
+                                const std::array<GiNaC::ex, N>& kext);
 
         
         // INTERNAL DATA
@@ -277,8 +280,8 @@ namespace detail
               }
           }
 
-        // now build all possible pairs, keeping only those that mix the groups;
-        // pairings that don't mix groups will give disconnected correlation functions
+        // now build all possible Wick pairs, keeping only those that produce connected
+        // correlation functions
         auto ctrs = this->enumerate_contractions(num, ivs);
 
         // iterate over contractions groups held in ctrs
@@ -288,8 +291,60 @@ namespace detail
 
             // convert this contraction group into the data we need to supply -- eg. GiNaC substitution lists,
             // lists of external momenta, etc ...
-            this->build_Wick_product(gp);
+            this->build_Wick_product(gp, groups, kext);
           }
+      }
+
+
+    template <size_t N>
+    void contractions::build_Wick_product(const contraction_group& gp,
+                                          const std::array<initial_value_set, N>& groups,
+                                          const std::array<GiNaC::ex, N>& kext)
+      {
+        // need to build a string of power spectra representing the Wick product in gp
+        Pk_string Ps;
+
+        // keep track of which momenta are integrated over, corresponding to loops
+        GiNaC_symbol_set loop_momenta;
+
+        for(const auto& prod : gp)
+          {
+            const auto& left = prod.first;
+            const auto& right = prod.second;
+
+            const auto& left_sym = left.first->get_symbol();
+            const auto& left_mom = left.first->get_momentum();
+
+            const auto& right_sym = right.first->get_symbol();
+            const auto& right_mom = right.first->get_momentum();
+
+            // place symbols into canonical order, inherited from std::less<> applied to GiNaC
+            // symbols (recall we define this ourselves to give lexical order on the symbol names)
+            GiNaC::symbol l;
+            GiNaC::symbol r;
+            if(std::less<>{}(left_sym, right_sym))
+              {
+                l = left_sym;
+                r = right_sym;
+              }
+            else
+              {
+                l = right_sym;
+                r = left_sym;
+              }
+
+            // take momentum from first field (the choice is arbitrary)
+            Ps.emplace_back(cfs::Pk(l, r, left_mom), left.second);
+          }
+
+        // convert Ps to a GiNaC product
+        GiNaC::ex W = 1;
+        for(const auto& factor : Ps)
+          {
+            W *= factor.first;
+          }
+
+        this->items->emplace_back(std::make_unique<Wick_data>(W));
       }
 
 

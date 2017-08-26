@@ -96,7 +96,17 @@ GiNaC::symbol symbol_factory::make_unique_momentum()
     // generate unique name for this momentum variable
     std::string name = LSSEFT_DEFAULT_MOMENTUM_NAME + std::to_string(this->momentum_count++);
     
-    //! generate symbol
+    // generate symbol
+    return GiNaC::symbol{name};
+  }
+
+
+GiNaC::symbol symbol_factory::make_unique_loop_momentum()
+  {
+    // generate unique name for this loop momentum
+    std::string name = LSSEFT_DEFAULT_LOOP_MOMENTUM_NAME + std::to_string(this->loop_count++);
+
+    // generate symbol
     return GiNaC::symbol{name};
   }
 

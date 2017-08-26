@@ -114,51 +114,6 @@ namespace detail
         return ctrs;
       }
 
-    void contractions::build_Wick_product(const contractions::contraction_group& gp)
-      {
-        // need to build a string of power spectra representing the Wick product in gp
-        Pk_string Ps;
-
-        for(const auto& prod : gp)
-          {
-            const auto& left = prod.first;
-            const auto& right = prod.second;
-
-            const auto& left_sym = left.first->get_symbol();
-            const auto& left_mom = left.first->get_momentum();
-
-            const auto& right_sym = right.first->get_symbol();
-            const auto& right_mom = right.first->get_momentum();
-
-            // place symbols into canonical order, inherited from std::less<> applied to GiNaC
-            // symbols (recall we define this ourselves to give lexical order on the symbol names)
-            GiNaC::symbol l;
-            GiNaC::symbol r;
-            if(std::less<>{}(left_sym, right_sym))
-              {
-                l = left_sym;
-                r = right_sym;
-              }
-            else
-              {
-                l = right_sym;
-                r = left_sym;
-              }
-
-            // take momentum from first field
-            Ps.emplace_back(cfs::Pk(l, r, left_mom), left.second);
-          }
-
-        // convert Ps to a GiNaC product
-        GiNaC::ex W = 1;
-        for(const auto& factor : Ps)
-          {
-            W *= factor.first;
-          }
-
-        this->items->emplace_back(std::make_unique<Wick_data>(W));
-      }
-
 
     void graph::add_edge(size_t source, size_t dest)
       {

@@ -37,6 +37,9 @@ constexpr auto LSSEFT_DEFAULT_INDEX_NAME = "i";
 //! default name for dummy momentum
 constexpr auto LSSEFT_DEFAULT_MOMENTUM_NAME = "q";
 
+//! default name for dummy loop momentum
+constexpr auto LSSEFT_DEFAULT_LOOP_MOMENTUM_NAME = "l";
+
 //! default text name for redshift variable
 constexpr auto LSSEFT_REDSHIFT_NAME = "z";
 
