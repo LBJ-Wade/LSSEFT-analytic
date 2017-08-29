@@ -113,5 +113,9 @@ int main(int argc, char* argv[])
     std::cout << "Loop-level 13 P(k):" << '\n';
     std::cout << P13 << '\n';
     
+    const auto& P22 = Pk_delta.get_22();
+    std::cout << "Loop-level 22 P(k):" << '\n';
+    std::cout << P22 << '\n';
+    
     return EXIT_SUCCESS;
   }

@@ -227,7 +227,7 @@ Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2
 template <typename Kernel1, typename Kernel2, typename InsertOperator>
 void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, InsertOperator ins)
   {
-    // cross-multiply all terms in ker1 and ker2, using the insertion operator 'ins'
+    // multiply out all terms in ker1 and ker2, using the insertion operator 'ins'
     // to store the results in a suitable Pk database
     
     for(auto t1 = ker1.cbegin(); t1 != ker1.cend(); ++t1)
@@ -244,7 +244,7 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Insert
             const auto& iv2 = t2->second->get_initial_value_set();
         
             detail::contractions ctrs(detail::contractions::iv_group<2>{ iv1, iv2 },
-                                      detail::contractions::kext_group<2>{ this->k, -this->k });
+                                      detail::contractions::kext_group<2>{ this->k, -this->k }, this->sf);
         
             const auto& Wicks = ctrs.get();
             for(const auto& W : Wicks)

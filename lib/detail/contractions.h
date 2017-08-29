@@ -136,7 +136,8 @@ namespace detail
       public:
         
         //! constructor captures data
-        Wick_data(GiNaC::ex Pks_, GiNaC_symbol_set lm_, subs_map rm_);
+        template <typename RemapContainer>
+        Wick_data(GiNaC::ex Pks_, RemapContainer& mma_, GiNaC_symbol_set lm_, subs_map rm_);
         
         //! destructor is default
         ~Wick_data() = default;
@@ -152,6 +153,9 @@ namespace detail
         //! extract set of loop momenta
         const GiNaC_symbol_set& get_loop_momenta() const { return this->loop_momenta; }
         
+        //! extract substitution rules for each kernel
+        const std::vector<subs_map>& get_substitution_rules() const { return this->mma_map; }
+        
         //! extract replacement rules for Rayleigh momenta
         const subs_map& get_Rayleigh_momenta() const { return this->Rayleigh_momenta; }
         
@@ -160,11 +164,8 @@ namespace detail
         
       private:
         
-        //! substitution map for kernel 1
-        GiNaC::exmap ker1_subs;
-        
-        //! substitution map for kernel 2
-        GiNaC::exmap ker2_subs;
+        //! substitution rules for each kernel
+        std::vector<subs_map> mma_map;
         
         //! list of remaining free (ie. loop) momenta
         GiNaC_symbol_set loop_momenta;
@@ -177,6 +178,17 @@ namespace detail
         GiNaC::ex Pk_string;
 
       };
+    
+    
+    template <typename RemapContainer>
+    Wick_data::Wick_data(GiNaC::ex Pks_, RemapContainer& mma_, GiNaC_symbol_set lm_, subs_map rm_)
+      : Pk_string(std::move(Pks_)),
+        loop_momenta(std::move(lm_)),
+        Rayleigh_momenta(std::move(rm_))
+      {
+        // copy contents of mma into remap rules
+        std::move(mma_.begin(), mma_.end(), std::back_inserter(this->mma_map));
+      }
     
     
     //! the set of all possible contractions is a list of contraction_data objects
@@ -224,8 +236,18 @@ namespace detail
 
         //! a string of such power spectrum elements
         using Pk_string = std::vector<Pk_element>;
-        
-        
+    
+    
+        //! array of exmaps used to remap kernel momentum labels after assigning loop momenta
+        template <size_t N>
+        using remap_group = std::array<GiNaC::exmap, N>;
+    
+        //! convenience type holding a std::set of momentum labels that are yet to be fixed (during assignment of loop momenta)
+        template <size_t N>
+        using symbol_group = std::array<GiNaC_symbol_set, N>;
+    
+    
+    
         // CONSTRUCTOR, DESTRUCTOR
         
       public:
@@ -234,7 +256,7 @@ namespace detail
         //! a list of corresponding external momenta,
         //! and constructs a set of all possible contractions between them
         template <size_t N>
-        contractions(iv_group<N> clusters, kext_group<N> kext);
+        contractions(iv_group <N> clusters, kext_group <N> kext, symbol_factory& sf_);
         
         //! destructor is default
         ~contractions() = default;
@@ -259,7 +281,23 @@ namespace detail
         //! compute the loop order of a given contraction group
         template <size_t N>
         size_t loop_order(const contraction_group& gp, const iv_group<N>& clusters);
-
+        
+        //! assign loop momenta
+        template <size_t N, typename LabelMap, typename UnassignedGroup>
+        void assign_loop_momenta(const contraction_group& gp, const iv_group <N>& clusters, LabelMap& mma_map,
+                                 UnassignedGroup& unassigned, GiNaC_symbol_set& loop_momenta);
+        
+        //! assign external momenta
+        template <size_t N, typename LabelMap, typename UnassignedGroup>
+        void assign_external_momenta(const iv_group<N>& clusters, const kext_group<N>& kext, LabelMap& mma_map,
+                                     UnassignedGroup& unassigned);
+        
+        //! evaluate all Wick contractions
+        template <size_t N, typename LabelMap, typename UnassignedGroup>
+        void evaluate_Wick_contractions(const contraction_group& gp, const iv_group<N>& clusters,
+                                        const LabelMap& mma_map, const UnassignedGroup& unassigned,
+                                        Pk_string& Ps);
+        
         //! build the data needed to construct a Wick product from a contraction group
         template <size_t N>
         void build_Wick_product(const contraction_group& gp, const iv_group<N>& clusters, const kext_group<N>& kext);
@@ -268,6 +306,9 @@ namespace detail
         // INTERNAL DATA
         
       private:
+        
+        //! cache reference to symbol factory
+        symbol_factory& sf;
 
         //! set of Wick contractions
         std::unique_ptr<Wick_set> items;
@@ -276,8 +317,9 @@ namespace detail
 
 
     template <size_t N>
-    contractions::contractions(iv_group<N> clusters, kext_group<N> kext)
-      : items(std::make_unique<Wick_set>())
+    contractions::contractions(iv_group <N> clusters, kext_group <N> kext, symbol_factory& sf_)
+      : items(std::make_unique<Wick_set>()),
+        sf(sf_)
       {
         // total number of fields should be even since we currently include only Gaussian contractions
         // that pair together exactly two fields
@@ -320,14 +362,185 @@ namespace detail
             this->build_Wick_product(gp, clusters, kext);
           }
       }
+    
+    
+    template <size_t N, typename LabelMap, typename UnassignedGroup>
+    void
+    contractions::assign_external_momenta(const iv_group<N>& clusters, const kext_group<N>& kext, LabelMap& mma_map,
+                                          UnassignedGroup& unassigned)
+      {
+        for(size_t i = 0; i < N; ++i)
+          {
+            const auto& labels = unassigned[i];
+            
+            if(labels.size() < 1)
+              throw exception(ERROR_COULD_NOT_ASSIGN_EXTERNAL_MOMENTUM, exception_code::contraction_error);
+            
+            // if there is *more than one* unassigned momentum left in this cluster, then do nothing
+            // currently, we assume all these free fields will be attached to an external momentum in another cluster
+            // TODO: this may need revisiting in future, but currently seems OK at least for the 1-loop P and B
+            if(labels.size() > 2) continue;
+            
+            // we are guaranteed there is exactly a single unassigned momentum left, so pick it out
+            const auto label = *labels.begin();
+            
+            // Each cluster has a momentum conservation delta-function of the form delta(k_ext - q1 - q2 - ... - qn).
+            // At this stage, our assumptions guarantee that all but one of the qi are now fixed
+            // The remaining one, say qj, can be written qj = k_exit - q1 - ... - qn
+            const auto& ks = clusters[i].get_momenta();
+            GiNaC::ex sum = kext[i];
+            for(const auto& k : ks)
+              {
+                if(k != label) sum -= k;
+              }
+
+            // the q_i have all been assigned, so we should make the appropriate replacements
+            // to get their final values
+            auto relabelled_sum = sum.subs(mma_map[i]);
+            
+            // store this final value in the replacement map
+            mma_map[i][label] = relabelled_sum;
+            
+            // remove this label from the unassigned list
+            unassigned[i].erase(unassigned[i].begin());
+          }
+      }
+    
+    
+    template <size_t N, typename LabelMap, typename UnassignedGroup>
+    void
+    contractions::assign_loop_momenta(const contraction_group& gp, const iv_group<N>& clusters, LabelMap& mma_map,
+                                      UnassignedGroup& unassigned, GiNaC_symbol_set& loop_momenta)
+      {
+        size_t loop_order = this->loop_order(gp, clusters);
+    
+        // take a working copy of the list of Wick contractions
+        std::list< contraction > gp_copy;
+        std::copy(gp.begin(), gp.end(), std::back_inserter(gp_copy));
+    
+        // predicate to search for candidate Wick contractions
+        auto find_candidate = [&](const contraction& c) -> bool
+          {
+            // work out which clusters the legs of this contraction belong to
+            const auto& clust1 = c.first.second;
+            const auto& clust2 = c.second.second;
+        
+            // if there is only a single momentum remaining unassigned at either vertex, then this
+            // contraction isn't a loop -- it must communicate with an external momentum
+            if(unassigned[clust1].size() <= 1) return false;
+            if(unassigned[clust2].size() <= 1) return false;
+        
+            // otherwise, we can assign a loop momentum
+            return true;
+          };
+    
+        // attempt to assign loop momentum labels
+        for(size_t i = 0; i < loop_order; ++i)
+          {
+            // search gp_copy for a candidate contraction to assign as a loop
+            auto t = std::find_if(gp_copy.begin(), gp_copy.end(), find_candidate);
+        
+            if(t == gp_copy.end())
+              throw exception(ERROR_COULD_NOT_ASSIGN_LOOP_MOMENTUM, exception_code::contraction_error);
+        
+            // remove these momentum labels from the unassigned list
+            const auto& clust1 = t->first.second;
+            const auto& clust2 = t->second.second;
+        
+            const auto& iv1 = *t->first.first;
+            const auto& iv2 = *t->second.first;
+        
+            auto t1 = unassigned[clust1].find(iv1.get_momentum());
+            auto t2 = unassigned[clust2].find(iv2.get_momentum());
+            
+            if(t1 == unassigned[clust1].end() || t2 == unassigned[clust2].end())
+              throw exception(ERROR_COULD_NOT_ASSIGN_LOOP_MOMENTUM, exception_code::contraction_error);
+        
+            unassigned[clust1].erase(t1);
+            unassigned[clust2].erase(t2);
+            
+            // manufacture a new loop momentum variable
+            auto l = this->sf.make_unique_loop_momentum();
+
+            // generate replacement rules for the momenta we have paired up
+            mma_map[clust1][iv1.get_momentum()] = l;
+            mma_map[clust1][iv2.get_momentum()] = -l;
+            
+            // insert the label l in the list of loop momenta
+            loop_momenta.insert(l);
+        
+            // remove this contraction from the candidate list
+            gp_copy.erase(t);
+          }
+      }
+    
+    
+    template <size_t N, typename LabelMap, typename UnassignedGroup>
+    void
+    contractions::evaluate_Wick_contractions(const contraction_group& gp, const iv_group <N>& clusters,
+                                             const LabelMap& mma_map, const UnassignedGroup& unassigned, Pk_string& Ps)
+      {
+        for(const auto& prod : gp)
+          {
+            const auto& left = prod.first;
+            const auto& right = prod.second;
+            
+            const auto& left_clust = left.second;
+            const auto& right_clust = right.second;
+        
+            const auto& left_sym = left.first->get_symbol();
+            const auto& left_mom = left.first->get_momentum();
+        
+            const auto& right_sym = right.first->get_symbol();
+            const auto& right_mom = right.first->get_momentum();
+    
+            // first, if both momenta appear in the 'unassigned' set then this implementation doesn't
+            // currently know what to do. Give up in despair.
+            bool left_unassigned = unassigned[left_clust].find(left_sym) != unassigned[left_clust].end();
+            bool right_unassigned = unassigned[right_clust].find(right_sym) != unassigned[right_clust].end();
+            
+            if(left_unassigned && right_unassigned)
+              throw exception(ERROR_COULD_NOT_EVALUATE_WICK_CONTRACTION, exception_code::contraction_error);
+    
+            // place symbols into canonical order, inherited from std::less<> applied to GiNaC
+            // symbols (recall we define this ourselves to give lexical order on the symbol names)
+            GiNaC::symbol l = left_sym;
+            GiNaC::symbol r = right_sym;
+            if(std::less<>{}(left_sym, right_sym)) std::swap(l,r);
+            
+            // we have a choice which momentum to use
+            // it's preferable to use either a simple external momentum or a simple loop momentum
+            GiNaC::ex q;
+            
+            // if either the left- or right-hand momentum is unassigned, we always use the other one
+            if(left_unassigned)  { Ps.emplace_back(cfs::Pk(l, r, right_mom).subs(mma_map[right_clust]), right_clust); break; }
+            if(right_unassigned) { Ps.emplace_back(cfs::Pk(l, r, left_mom).subs(mma_map[left_clust]), left_clust); break; }
+            
+            // otherwise, if the left-momentum is a simple symbol then we should use it;
+            // this will catch cases where the momentum is exactly an external momentum or a simple loop
+            auto t1 = mma_map[left_clust].find(left_sym);
+            if(t1 != mma_map[left_clust].end() && GiNaC::is_a<GiNaC::symbol>(t1->second))
+              {
+                Ps.emplace_back(cfs::Pk(l, r, left_mom).subs(mma_map[left_clust]), left_clust); break;
+              }
+            
+            // same for right-momentum
+            auto t2 = mma_map[right_clust].find(right_sym);
+            if(t2 != mma_map[right_clust].end() && GiNaC::is_a<GiNaC::symbol>(t2->second))
+              {
+                Ps.emplace_back(cfs::Pk(l, r, right_mom).subs(mma_map[right_clust]), right_clust); break;
+              }
+        
+            // nothing to choose between the LHS and RHS momenta, so just pick one
+            Ps.emplace_back(cfs::Pk(l, r, left_mom).subs(mma_map[left_clust]), left_clust);
+          }
+      }
 
 
     template <size_t N>
     void
     contractions::build_Wick_product(const contraction_group& gp, const iv_group<N>& clusters, const kext_group<N>& kext)
       {
-        size_t loop_order = this->loop_order(gp, clusters);
-        
         // need to build a string of power spectra representing the Wick product in gp
         Pk_string Ps;
 
@@ -336,45 +549,32 @@ namespace detail
         
         // keep track of which momenta need Rayleigh expansion
         subs_map Rayleigh_momenta;
+        
+        // STEP 1. Set up replacement rules for relabelling the momenta carried by each kernel
+        remap_group<N> mma_map;
+        symbol_group<N> unassigned;
 
-        for(const auto& prod : gp)
+        // populate 'unassigned' with the momentum labels for each group
+        for(size_t i = 0; i < N; ++i)
           {
-            const auto& left = prod.first;
-            const auto& right = prod.second;
-
-            const auto& left_sym = left.first->get_symbol();
-            const auto& left_mom = left.first->get_momentum();
-
-            const auto& right_sym = right.first->get_symbol();
-            const auto& right_mom = right.first->get_momentum();
-
-            // place symbols into canonical order, inherited from std::less<> applied to GiNaC
-            // symbols (recall we define this ourselves to give lexical order on the symbol names)
-            GiNaC::symbol l;
-            GiNaC::symbol r;
-            if(std::less<>{}(left_sym, right_sym))
-              {
-                l = left_sym;
-                r = right_sym;
-              }
-            else
-              {
-                l = right_sym;
-                r = left_sym;
-              }
-
-            // take momentum from first field (the choice is arbitrary)
-            Ps.emplace_back(cfs::Pk(l, r, left_mom), left.second);
+            unassigned[i] = clusters[i].get_momenta();
           }
-
-        // convert Ps to a GiNaC product
+        
+        this->assign_loop_momenta(gp, clusters, mma_map, unassigned, loop_momenta);
+        this->assign_external_momenta(clusters, kext, mma_map, unassigned);
+        
+        // STEP 2. Construct Wick contractions
+        this->evaluate_Wick_contractions(gp, clusters, mma_map, unassigned, Ps);
+        
+        // STEP 3. Convert Ps to a GiNaC product corresponding to the outcome of all Wick contractions
         GiNaC::ex W = 1;
         for(const auto& factor : Ps)
           {
             W *= factor.first;
           }
 
-        this->items->emplace_back(std::make_unique<Wick_data>(W, loop_momenta, Rayleigh_momenta));
+        // STEP 4. Store all this data
+        this->items->emplace_back(std::make_unique<Wick_data>(W, mma_map, loop_momenta, Rayleigh_momenta));
       }
     
     

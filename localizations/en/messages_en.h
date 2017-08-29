@@ -51,11 +51,15 @@ constexpr auto ERROR_KERNEL_INITIAL_VALUES_DISAGREE = "Internal error: operator 
 constexpr auto ERROR_ODD_CONTRACTIONS = "Odd number of fields in contraction: result is zero";
 constexpr auto ERROR_UNKNOWN_VERTEX = "Internal error: unknown vertex when traversing graph";
 constexpr auto ERROR_CONTRACTION_FAILURE = "Internal error: mismatch when constructing possible initial value contractions";
+constexpr auto ERROR_COULD_NOT_ASSIGN_LOOP_MOMENTUM = "Internal error: could not assign loop momentum";
+constexpr auto ERROR_COULD_NOT_ASSIGN_EXTERNAL_MOMENTUM = "Internal error: could not assign external momentum";
+constexpr auto ERROR_COULD_NOT_EVALUATE_WICK_CONTRACTION = "Internal error: cannot (yet) evaluate a Wick contraction between two unassigned momenta";
 
 constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
 constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";
 constexpr auto WARNING_ORDER_ZERO_KERNEL = "Ignoring order-zero kernel";
 constexpr auto WARNING_KERNEL_EXPRESSION = "Kernel expression";
+
 
 
 #endif //LSSEFT_ANALYTIC_MESSAGES_EN_H
