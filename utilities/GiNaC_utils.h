@@ -33,10 +33,13 @@
 #include "ginac/ginac.h"
 
 
-namespace GiNaC_utils_impl
+namespace std
   {
     
-    struct compare_symbol
+    //! specialize std::less for a GiNaC symbol, defined to
+    //! order lexically by name
+    template <>
+    struct less<GiNaC::symbol>
       {
         bool operator()(const GiNaC::symbol& a, const GiNaC::symbol& b) const
           {
@@ -44,11 +47,11 @@ namespace GiNaC_utils_impl
           }
       };
     
-  }   // namespace initial_value_impl
+  }   // namespace std
 
 //! set of GiNaC symbols, with comparison performed lexicographically by name
 //! (GiNaC does not provide this option itself)
-using GiNaC_symbol_set = std::set< GiNaC::symbol, GiNaC_utils_impl::compare_symbol >;
+using GiNaC_symbol_set = std::set< GiNaC::symbol, std::less<GiNaC::symbol> >;
 
 
 //! extract a set of GiNaC symbols from a given expression

@@ -106,7 +106,7 @@ class symbol_factory
     fourier_kernel<N> make_fourier_kernel();
     
     
-    // INDEX SERVICES
+    // SERVICES
     
   public:
     

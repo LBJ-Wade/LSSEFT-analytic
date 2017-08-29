@@ -281,7 +281,8 @@ namespace detail
           }
 
         // now build all possible Wick pairs, keeping only those that produce connected
-        // correlation functions
+        // correlation functions; we check this by building a representation of the
+        // Wick graph and checking it for connectedness
         auto ctrs = this->enumerate_contractions(num, ivs);
 
         // iterate over contractions groups held in ctrs

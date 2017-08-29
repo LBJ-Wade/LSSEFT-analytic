@@ -33,12 +33,20 @@ constexpr auto WARNING_LABEL = "warning:";
 constexpr auto ERROR_SYMBOL_INSERTION_FAILED = "Internal error: symbol insertion failed";
 constexpr auto ERROR_INITIAL_VALUE_INSERT_FAILED = "Internal error: initial value insertion failed";
 constexpr auto ERROR_KERNEL_INSERT_FAILED = "Internal error: kernel insertion failed";
+constexpr auto ERROR_KERNEL_COPY_INSERT_FAILED = "Internal error: kernel insertion failed on copy";
+constexpr auto ERROR_KERNEL_TRANSFORM_INSERT_FAILED = "Internal error: kernel insertion failed during transformation step";
 
 constexpr auto ERROR_KERNEL_NOT_SCALAR = "Kernel is not a scalar function of the momenta";
 constexpr auto ERROR_KERNEL_NOT_RATIONAL = "Kernel is not a rational function of the momenta";
 constexpr auto ERROR_UNKNOWN_MOMENTA_SING = "Kernel depends on unknown momentum vector";
 constexpr auto ERROR_UNKNOWN_MOMENTA_PLURAL = "Kernel depends on unknown momentum vectors";
 constexpr auto ERROR_REPEATED_INITIAL_MOMENTUM = "Attempt to add new initial value with duplicate momentum";
+constexpr auto ERROR_SUBSTITION_LABEL_NOT_A_SYMBOL = "Kernel substitution list contains a complex element";
+constexpr auto ERROR_SUBSTITUTION_LIST_HAS_IV_MOMENTUM = "Kernel substitution list contains initial momentum";
+constexpr auto ERROR_MULTIPLY_KERNEL_UNKNOWN_MOMENTUM = "Kernel multiplicand depends on unknown momentum";
+constexpr auto ERROR_SUBSTITUTION_RULE_ALREADY_EXISTS = "Redefinition of existing substitution rule";
+
+constexpr auto ERROR_KERNEL_INITIAL_VALUES_DISAGREE = "Internal error: operator += applied to kernels whose initial values disagree";
 
 constexpr auto ERROR_ODD_CONTRACTIONS = "Odd number of fields in contraction: result is zero";
 constexpr auto ERROR_UNKNOWN_VERTEX = "Internal error: unknown vertex when traversing graph";

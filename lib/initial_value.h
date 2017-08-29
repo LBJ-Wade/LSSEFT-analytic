@@ -72,6 +72,9 @@ class initial_value
     //! get GiNaC symbol representing the variable type
     const GiNaC::symbol& get_symbol() const { return this->obj; }
     
+    //! perform momentum remapping, generating a new initial_value objext
+    initial_value relabel_momentum(GiNaC::symbol new_k) const;
+    
     
     // INTERNAL DATA
     
@@ -170,22 +173,31 @@ class initial_value_set
     iv_db::const_reverse_iterator value_crend() const   { return this->vars.crend(); }
     
     
-    // INTERFACE
+    // INSERT ELEMENT
     
   public:
     
-    //! get the set of momenta used by this set of stochastic variables
-    const k_db& get_momenta() const { return this->ks; }
-    
     //! add a stochastic variable to the set
     initial_value_set& insert(initial_value v);
+    
+    
+    // QUERY DATA
+    
+  public:
+    
+    //! get the set of momenta used by this set of stochastic variables as a k_db
+    const k_db& get_momenta() const { return this->ks; }
+    
+    
+    // CONTAINER HANDLING
+    
+  public:
     
     //! get size
     size_t size() const { return this->vars.size(); }
     
     //! is container empty?
     bool empty() const { return this->vars.empty(); }
-    
     
     
     // INTERNAL DATA

@@ -40,6 +40,17 @@ initial_value::initial_value(GiNaC::symbol k_, GiNaC::symbol obj_, symbol_factor
   }
 
 
+initial_value initial_value::relabel_momentum(GiNaC::symbol new_k) const
+  {
+    initial_value r = *this;
+    
+    // relabel momentum variable
+    r.k = std::move(new_k);
+    
+    return r;
+  }
+
+
 initial_value_set::initial_value_set(std::initializer_list<initial_value> vals)
   : initial_value_set() // forward to base constructor
   {

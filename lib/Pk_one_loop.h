@@ -48,8 +48,8 @@ class Pk_one_loop
     
     //! constructor accepts two Fourier kernels and the corresponding momentum labels
     template <unsigned int N1, unsigned int N2>
-    Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2, const GiNaC::symbol& k_,
-                symbol_factory& sf_);
+    Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
+                const GiNaC::symbol& k_, symbol_factory& sf_);
     
     //! destructor is default
     ~Pk_one_loop() = default;
@@ -117,8 +117,8 @@ class Pk_one_loop
 
 
 template <unsigned int N1, unsigned int N2>
-Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2, const GiNaC::symbol& k_,
-                         symbol_factory& sf_)
+Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
+                         const GiNaC::symbol& k_, symbol_factory& sf_)
   : k(k_),
     sf(sf_)
   {
@@ -134,25 +134,22 @@ Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2
 template <typename Kernel1, typename Kernel2>
 void Pk_one_loop::build_tree(const Kernel1& ker1, const Kernel2& ker2)
   {
-    const auto ker1_db = ker1.order_db(1);
-    const auto ker2_db = ker2.order_db(1);
+    const auto ker1_db = ker1.order(1);
+    const auto ker2_db = ker2.order(1);
     
     // cross-multiply all terms in ker1_db and ker2_db
-    for(const auto& t1 : ker1_db)
+    for(auto t1 = ker1_db.cbegin(); t1 != ker1_db.cend(); ++t1)
       {
-        for(const auto& t2 : ker2_db)
+        for(auto t2 = ker2_db.cbegin(); t2 != ker2_db.cend(); ++t2)
           {
-            const auto& key1 = t1.first;
-            const auto& key2 = t2.first;
+            const auto& tm1 = t1->second->get_time_function();
+            const auto& tm2 = t2->second->get_time_function();
             
-            const auto& K1 = t1.second;
-            const auto& K2 = t1.second;
+            const auto& K1 = t1->second->get_kernel();
+            const auto& K2 = t2->second->get_kernel();
             
-            const auto& tm1 = key1.first;
-            const auto& tm2 = key2.first;
-            
-            const auto& iv1 = key1.second;
-            const auto& iv2 = key2.second;
+            const auto& iv1 = t1->second->get_initial_value_set();
+            const auto& iv2 = t2->second->get_initial_value_set();
 
             detail::contractions ctrs(std::array<initial_value_set, 2>{iv1, iv2},
                                       std::array<GiNaC::ex, 2>{this->k, -this->k});
@@ -173,19 +170,19 @@ void Pk_one_loop::build_tree(const Kernel1& ker1, const Kernel2& ker2)
 template <typename Kernel1, typename Kernel2>
 void Pk_one_loop::build_13(const Kernel1& ker1, const Kernel2& ker2)
   {
-    const auto ker1_db1 = ker1.order_db(1);
-    const auto ker1_db3 = ker1.order_db(3);
+    const auto ker1_db1 = ker1.order(1);
+    const auto ker1_db3 = ker1.order(3);
     
-    const auto ker2_db1 = ker2.order_db(1);
-    const auto ker2_db3 = ker2.order_db(3);
+    const auto ker2_db1 = ker2.order(1);
+    const auto ker2_db3 = ker2.order(3);
   }
 
 
 template <typename Kernel1, typename Kernel2>
 void Pk_one_loop::build_22(const Kernel1& ker1, const Kernel2& ker2)
   {
-    const auto ker1_db2 = ker1.order_db(2);
-    const auto ker2_db2 = ker2.order_db(2);
+    const auto ker1_db2 = ker1.order(2);
+    const auto ker2_db2 = ker2.order(2);
   };
 
 

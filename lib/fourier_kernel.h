@@ -54,17 +54,233 @@ namespace fourier_kernel_impl
   {
     
     // set up necessary types
+
+    //! list of GiNaC non-rotationally-invariant vectors that appear in the
+    //! denominator of the kernel, and which will need to be computed
+    //! by Rayleigh expansion in correlation functions
+    using subs_list = GiNaC::exmap;
     
     //! type for functions of time
     using time_function = GiNaC::ex;
     
-    //! type for kernel database key: kernels are stored by their time_function and initial_value_set
-    //! two keys compare equal if their time functions match, and the initial value set contains the
-    //! same *symbols* (doesn't have to be the same momenta)
-    using key_type = std::pair< time_function, initial_value_set >;
+    
+    //! forward-declare key
+    class key;
+    
+    //! forward-declare kernel
+    class kernel;
+    
+    //! perform stream insertion
+    std::ostream& operator<<(std::ostream& str, const kernel& a);
+    
+    //! unary - for kernel
+    kernel operator-(const kernel& a);
+    
+    //! multiplication by arbitrary expression
+    kernel operator*(const GiNaC::ex a, const kernel& b);
+    
+    //! multiplication of kernels
+    kernel operator*(const kernel& a, const kernel& b);
+    
+    //! differentiation with respect to redshift z
+    kernel diff_z(const kernel& a);
+    
+    
+    //! kernel captures the details of a Fourier kernel
+    class kernel
+      {
+        
+        //! a momenta_list is a list of initial_value references, ordered by symbol name
+        using momenta_list = std::vector< std::reference_wrapper<const initial_value> >;
+        
+        // CONSTRUCTOR, DESTRUCTOR
+        
+      public:
+        
+        //! constructor accepts a GiNaC expression and a list corresponding to
+        //! non-rotationally-invariant combinations of momenta that appear in the denominator;
+        //! these will need to be handled by a Rayleigh plane wave expansion when computing
+        //! correlation functions
+        kernel(GiNaC::ex K_, initial_value_set iv_, time_function tm_, subs_list vs_,
+               symbol_factory& sf_)
+          : K(std::move(K_)),
+            tm(std::move(tm_)),
+            iv(std::move(iv_)),
+            vs(std::move(vs_)),
+            sf(sf_)
+          {
+          }
+        
+        //! destructor us default
+        ~kernel() = default;
+        
+        
+        // INTERFACE
+        
+      public:
+        
+        //! get order of this term
+        size_t order() const { return this->iv.size(); }
+        
+        //! get total momentum = sum of dummy momenta
+        vector get_total_momentum() const;
+        
+        //! allow implicit conversion to a GiNaC::ex
+        explicit operator GiNaC::ex() const { return this->K; }
+    
+    
+        // ACCESSORS
+  
+      public:
+    
+        //! get time function
+        const time_function& get_time_function() const { return this->tm; }
+    
+        //! get initial value list
+        const initial_value_set& get_initial_value_set() const { return this->iv; }
+        
+        //! get substitution list
+        const subs_list& get_substitution_list() const { return this->vs; }
+        
+        //! get kernel expression
+        const GiNaC::ex& get_kernel() const { return this->K; }
+        
+        
+        // OPERATIONS
+        
+      public:
+        
+        //! allow in-place kernel addition
+        kernel& operator+=(const kernel& rhs);
+        
+        //! allow in-place multiplication
+        kernel& operator*=(const kernel& rhs);
+        
+        //! adjust kernel by a factor
+        kernel& multiply_kernel(GiNaC::ex f);
+        
+        //! adjust kernel by a factor, generating a new substitution rule
+        kernel& multiply_kernel(GiNaC::ex f, GiNaC::symbol s, GiNaC::ex rule);
+        
+      protected:
+        
+        //! merge substitution rules from another kernel object, using (and possibly modifying) a given replacement map
+        void compose_substitution_rules(const kernel& rhs, GiNaC::exmap& mma_map);
+        
+        
+        // SERVICES
+        
+      public:
+        
+        //! write self to stream
+        void write(std::ostream& out) const;
+        
+        
+        // INTERNAL API
+        
+      protected:
+        
+        //! get list of momentum labels, in order corresponding to lexical order of symbols
+        momenta_list get_ordered_momenta() const;
+        
+        
+        // INTERNAL DATA
+        
+      private:
+        
+        // AGENTS
+        
+        //! cache reference to symbol factory
+        symbol_factory& sf;
+        
+        
+        // KERNEL DATA
+        
+        //! cache kernel expression
+        GiNaC::ex K;
+        
+        //! time function
+        time_function tm;
+        
+        //! cache initial value set
+        initial_value_set iv;
+        
+        //! cache list of non-invariant denominator combinations
+        subs_list vs;
+        
+        
+        friend class key;
+        
+        friend kernel operator-(const kernel& a);
+        friend kernel operator*(const GiNaC::ex a, const kernel& b);
+        friend kernel operator*(const kernel& a, const kernel& b);
+        
+        friend kernel diff_z(const kernel& a);
+        
+      };
+    
+    
+    //! key is a flyweight that captures the time and initial value combinations
+    //! from a given kernel, which we use to index the database
+    class key
+      {
+        
+        // CONSTRUCTOR, DESTRUCTOR
+        
+      public:
+        
+        //! constructor accepts a kernel object and captures its data
+        explicit key(kernel& k)
+          : tm(k.tm),
+            iv(k.iv)
+          {
+          }
+        
+        //! alternative constructor accepts explicit references
+        key(const time_function& tm_, const initial_value_set& iv_)
+          : tm(tm_),
+            iv(iv_)
+          {
+          }
+        
+        //! destructor is default
+        ~key() = default;
+        
+        
+        // ACCESSORS
+        
+      public:
+        
+        //! get time function
+        const time_function& get_time_function() const { return this->tm; }
+        
+        //! get initial value list
+        const initial_value_set& get_initial_value_set() const { return this->iv; }
+        
+        
+        // SERVICES
+        
+      public:
+        
+        //! get lexicographically-ordered list of symbols in the initial value set;
+        //! used for ordering and comparison
+        std::vector<GiNaC::symbol> get_ordered_iv_symbols() const;
+        
+        
+        // INTERNAL DATA
+        
+      public:
+        
+        //! reference to time function
+        const time_function& tm;
+        
+        //! reference to initial value set
+        const initial_value_set& iv;
+        
+      };
     
     //! the kernel database is an unordered map of keys to kernel expressions
-    using kernel_db = std::unordered_map< key_type, GiNaC::ex >;
+    using kernel_db = std::unordered_map< key, std::unique_ptr<kernel> >;
     
   }   // namespace fourier_kernel_impl
 
@@ -74,36 +290,28 @@ namespace std
   {
     
     template<>
-    struct hash<fourier_kernel_impl::key_type>
+    struct hash<fourier_kernel_impl::key>
       {
-        size_t operator()(const fourier_kernel_impl::key_type& obj) const
+        size_t operator()(const fourier_kernel_impl::key& obj) const
           {
             std::hash<std::string> string_hasher;
             
             // to hash the time expression, expand it completely and print
             std::ostringstream time_string;
-            time_string << obj.first.expand();
+            time_string << obj.get_time_function().expand();
             
             size_t h = string_hasher(time_string.str());
             
-            // to hash the initial value set, order its symbols lexicographically,
-            // print them, and hash those
-            std::vector<std::string> symbols;
-            for(auto t = obj.second.value_cbegin(); t != obj.second.value_cend(); ++t)
-              {
-                symbols.push_back(t->get_symbol().get_name());
-              }
+            // to hash the initial value set, order its symbols lexicographically
+            const auto symbols = obj.get_ordered_iv_symbols();
+    
+            std::string symbol_string;
+            std::for_each(symbols.begin(), symbols.end(),
+                          [&](const GiNaC::symbol& e) -> std::string
+                            { return symbol_string += e.get_name(); });
             
-            std::sort(symbols.begin(), symbols.end());
-            
-            std::ostringstream iv_string;
-            for(const auto& sym : symbols)
-              {
-                iv_string << sym;
-              }
-            
-            // combine both string hashes together
-            hash_impl::hash_combine(h, iv_string.str());
+            // and hash that. Then we combine both hashes together.
+            hash_impl::hash_combine(h, symbol_string);
             
             // return final value
             return h;
@@ -112,49 +320,27 @@ namespace std
     
     
     template<>
-    struct equal_to<fourier_kernel_impl::key_type>
+    struct equal_to<fourier_kernel_impl::key>
       {
-        bool operator()(const fourier_kernel_impl::key_type& a, const fourier_kernel_impl::key_type& b) const
+        bool operator()(const fourier_kernel_impl::key& a, const fourier_kernel_impl::key& b) const
           {
-            const fourier_kernel_impl::time_function& at = a.first;
-            const fourier_kernel_impl::time_function& bt = b.first;
+            const auto& at = a.get_time_function();
+            const auto& bt = b.get_time_function();
             
             // test for equality of expressions
             auto rt = (at == bt);
             if(!static_cast<bool>(rt)) return false;
             
-            const initial_value_set& av = a.second;
-            const initial_value_set& bv = b.second;
-            
             // test for equality of initial-value strings
-            // these are ordered in-situ lexicographically by momentum.
             // we do this by ordering their symbol names lexicographically
             // and testing for equality of those
-            std::vector<std::string> a_symbols;
-            std::vector<std::string> b_symbols;
-
-            for(auto t = av.value_cbegin(); t != av.value_cend(); ++t)
-              {
-                a_symbols.push_back(t->get_symbol().get_name());
-              }
+            auto a_symbols = a.get_ordered_iv_symbols();
+            auto b_symbols = b.get_ordered_iv_symbols();
     
-            for(auto t = bv.value_cbegin(); t != bv.value_cend(); ++t)
-              {
-                b_symbols.push_back(t->get_symbol().get_name());
-              }
-
-            std::sort(a_symbols.begin(), a_symbols.end());
-            std::sort(b_symbols.begin(), b_symbols.end());
-    
-            auto t = a_symbols.cbegin();
-            auto u = b_symbols.cbegin();
-
-            for(; t != a_symbols.cend() && u != b_symbols.cend(); ++t, ++u)
-              {
-                if(*t != *u) return false;
-              }
-            
-            return true;
+            return std::equal(a_symbols.cbegin(), a_symbols.cend(),
+                              b_symbols.cbegin(), b_symbols.cend(),
+                              [](const GiNaC::symbol& asym, const GiNaC::symbol& bsym) -> bool
+                                { return asym.get_name() == bsym.get_name(); });
           }
       };
     
@@ -164,6 +350,21 @@ namespace std
 // forward-declare class fourier_kernel
 template <unsigned int N>
 class fourier_kernel;
+
+//! generic kernel transformation function
+namespace fourier_kernel_impl
+  {
+
+    //! build a new kernel by applying Op to the elements of kernel a
+    template <unsigned int N, typename Operator>
+    fourier_kernel<N> transform_kernel(const fourier_kernel<N>& a, Operator op);
+
+    //! build a new kernel by applying Op to the elements of kernels a and b,
+    //! and then inserting elements from b into a
+    template <unsigned int N, typename Operator>
+    fourier_kernel<N> transform_kernel(const fourier_kernel<N>& a, const fourier_kernel<N>& b, Operator op);
+    
+  }   // namespace fourier_kernel_impl
 
 //! unary - on a Fourier kernel
 template <unsigned int N>
@@ -233,10 +434,16 @@ class fourier_kernel
     using time_function = fourier_kernel_impl::time_function;
     
     //! pull in key_type
-    using key_type = fourier_kernel_impl::key_type;
+    using key_type = fourier_kernel_impl::key;
+    
+    //! pull in kernel type
+    using kernel_type = fourier_kernel_impl::kernel;
     
     //! pull in kernel_db
     using kernel_db = fourier_kernel_impl::kernel_db;
+    
+    //! pull in subs_list
+    using subs_list = fourier_kernel_impl::subs_list;
     
     
     // CONSTRUCTOR, DESTRUCTOR
@@ -249,13 +456,27 @@ class fourier_kernel
     //! destructor
     ~fourier_kernel() = default;
     
+    //! copy constructor is disabled
+    fourier_kernel(const fourier_kernel& obj) = delete;
+    
+    //! force compiler to generate default move constructor
+    fourier_kernel(fourier_kernel&& obj) = default;
+    
   protected:
     
     //! constructor captures symbol_factory class and creates an empty Fourier representation
-    fourier_kernel(symbol_factory& sf_)
+    explicit fourier_kernel(symbol_factory& sf_)
       : sf(sf_)
       {
       }
+    
+    
+    // ITERATORS
+    
+  public:
+    
+    kernel_db::const_iterator cbegin() const { return this->kernels.cbegin(); }
+    kernel_db::const_iterator cend() const   { return this->kernels.cend(); }
     
     
     // KERNEL FUNCTIONS
@@ -264,13 +485,20 @@ class fourier_kernel
     
     //! add a kernel of the form t * K(q1, q2, ..., qn) * s(q1, q2, ..., qn)
     //! where t is a time function, s is a string of stochastic initial conditions,
-    //! and K is the Fourier kernel
-    fourier_kernel& add(time_function t, initial_value_set s, GiNaC::ex K);
+    //! and K is the Fourier kernel. The optional list of GiNaC expressions
+    //! noninv_list can be used to indicate rotationally-noninvariant combinations that
+    //! appear in the denominator, and which should be handled by Rayleigh plane-wave
+    //! expansion when computing correlation functions.
+    //! WARNING: if any rotationally noninvariant expression appear explicitly in the
+    //! denominator then any computed correlation functions are unlikely to be reliable
+    fourier_kernel&
+    add(time_function t, initial_value_set s, GiNaC::ex K, subs_list vs = subs_list{});
     
   protected:
     
     //! implementation: add a kernel
-    fourier_kernel& add(time_function t, initial_value_set s, GiNaC::ex K, bool silent);
+    fourier_kernel&
+    add(time_function t, initial_value_set s, GiNaC::ex K, subs_list vs, bool silent);
     
     
     // OPERATIONS
@@ -279,9 +507,6 @@ class fourier_kernel
     
     //! extract list of elements of fixed order as a new Fourier kernel
     fourier_kernel order(unsigned int ord) const;
-    
-    //! extract list of elements of fixed order as a kernel_db
-    kernel_db order_db(unsigned int ord) const;
     
     
     // SERVICES
@@ -305,6 +530,12 @@ class fourier_kernel
     
     friend class symbol_factory;
     
+    // friend declarations can't be partial specializations, so we must use the fully templated versions here
+    template <unsigned int M, typename Operator>
+    friend fourier_kernel<M> fourier_kernel_impl::transform_kernel(const fourier_kernel<M>& a, Operator op);
+    template <unsigned int M, typename Operator>
+    friend fourier_kernel<M> fourier_kernel_impl::transform_kernel(const fourier_kernel<M>& a, const fourier_kernel<M>& b, Operator op);
+    
     friend fourier_kernel operator-<>(const fourier_kernel& a);
     friend fourier_kernel operator+<>(const fourier_kernel& a, const fourier_kernel& b);
     friend fourier_kernel operator-<>(const fourier_kernel& a, const fourier_kernel& b);
@@ -323,112 +554,61 @@ class fourier_kernel
   };
 
 
-//! validate that a given kernel has the correct structre (is a scalar, is a rational function of the momenta)
+//! validate that an initial value set is not empty
+bool validate_ivset_nonempty(const initial_value_set& s, const GiNaC::ex& K, bool silent);
+
+//! validate that a substitution list doesn't overlap with an initial value list
+void validate_subslist(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs);
+
+//! validate that a given kernel has the correct structure (is a scalar, is a rational function of the momenta)
 void validate_structure(const GiNaC::ex& K);
 
 //! validate that a kernel and set of initial values match (no unknown momenta in kernel)
-void validate_momenta(const initial_value_set& s, const GiNaC::ex& K, bool silent);
+void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs,
+                      const GiNaC::ex& K, bool silent);
 
 
 template <unsigned int N>
-fourier_kernel<N>& fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K)
+fourier_kernel<N>&
+fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_list vs)
   {
-    return this->add(std::move(t), std::move(s), std::move(K), false);
+    return this->add(std::move(t), std::move(s), std::move(K), std::move(vs), false);
   }
 
 
 template <unsigned int N>
-fourier_kernel<N>& fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, bool silent)
+fourier_kernel<N>&
+fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_list vs, bool silent)
   {
-    // ensure s is not empty
-    if(s.empty())
-      {
-        if(!silent)
-          {
-            error_handler err;
-            err.warn(WARNING_ORDER_ZERO_KERNEL);
-            
-            std::ostringstream msg;
-            msg << WARNING_KERNEL_EXPRESSION << " = " << K;
-            err.info(msg.str());
-          }
-        
-        return *this;
-      }
-    
-    // construct key for this kernel
-    key_type key = std::make_pair(t, s);
+    if(!validate_ivset_nonempty(s, K, silent)) return *this;
+    validate_subslist(s, vs);
     
     // validate that K is structurally OK (scalar, rational)
     validate_structure(K);
     
     // validate that momentum variables used in K match those listed in the stochastic terms
-    validate_momenta(s, K, silent);
+    validate_momenta(s, vs, K, silent);
+    
+    // check whether an entry with this key already exists
+    auto ker = std::make_unique<kernel_type>(std::move(K), std::move(s), std::move(t), std::move(vs), this->sf);
+    key_type key{*ker};
     
     // now need to insert this kernel into the database; first, check whether an entry with this
     // key already exists
     auto it = this->kernels.find(key);
     
-    // it not, we can insert directly
-    if(it == this->kernels.end())
+    // if so, then a matching element already exists and we should add the current kernel to it
+    // notice that momentum relabelling, if needed, is handled by the kernel addition implementation
+    if(it != this->kernels.end())
       {
-        auto r = this->kernels.emplace(std::move(key), std::move(K));
-        if(!r.second)
-          {
-            throw exception(ERROR_KERNEL_INSERT_FAILED, exception_code::kernel_error);
-          }
+        *it->second += *ker;
         return *this;
       }
     
-    // if so, we need to reallocate momenta in K to match the existing version
-    // do this by pairing up symbols between lists in lexicographical order (we already know
-    // that the symbol lists agree), and compare the momenta pointed to by each
-    
-    using iter_pair = std::pair< std::string, GiNaC::symbol >;
-    using iter_set = std::vector< iter_pair >;
-    
-    iter_set existing_string;
-    iter_set our_string;
-    
-    for(auto u = it->first.second.value_cbegin(); u != it->first.second.value_cend(); ++u)
-      {
-        existing_string.emplace_back(u->get_symbol().get_name(), u->get_momentum());
-      }
-    
-    for(auto u = s.value_cbegin(); u != s.value_cend(); ++u)
-      {
-        our_string.emplace_back(u->get_symbol().get_name(), u->get_momentum());
-      }
-    
-    std::sort(existing_string.begin(), existing_string.end(),
-              [](const iter_pair& a, const iter_pair& b) -> bool { return a.first < b.first; });
-    std::sort(our_string.begin(), our_string.end(),
-              [](const iter_pair& a, const iter_pair& b) -> bool { return a.first < b.first; });
-    
-    GiNaC::exmap replace_rules;
-    
-    auto u = existing_string.cbegin();
-    auto v = our_string.cbegin();
-    for(; u != existing_string.cend() && v != our_string.cend(); ++u, ++v)
-      {
-        if(u->second != v->second)
-          {
-            replace_rules[v->second] = u->second;
-          }
-      }
-    
-    GiNaC::ex m;
-    if(replace_rules.empty())
-      {
-        // no replacement to be done
-        m = simplify_index(it->second + K);
-      }
-    else
-      {
-        m = simplify_index(it->second + K.subs(replace_rules));
-      }
-    it->second = m;
-    
+    // otherwise, we can insert directly
+    auto res = this->kernels.emplace(std::move(key), std::move(ker));
+    if(!res.second) throw exception(ERROR_KERNEL_INSERT_FAILED, exception_code::kernel_error);
+
     return *this;
   }
 
@@ -442,40 +622,13 @@ fourier_kernel<N> fourier_kernel<N>::order(unsigned int ord) const
     
     for(const auto& t : this->kernels)
       {
-        const key_type& key = t.first;
-        const GiNaC::ex& K = t.second;
-        
-        const time_function& tm = key.first;
-        const initial_value_set& ivs = key.second;
-        
-        if(ivs.size() == ord)
+        // if order matches required value, make a copy of the kernel and emplace it
+        if(t.second->order() == ord)
           {
-            r.add(tm, ivs, K, true);
-          }
-      }
-    
-    return r;
-  }
-
-
-template <unsigned int N>
-typename fourier_kernel<N>::kernel_db fourier_kernel<N>::order_db(unsigned int ord) const
-  {
-    kernel_db r;
-    
-    if(ord > N) return r;
-    
-    for(const auto& t : this->kernels)
-      {
-        const key_type& key = t.first;
-        const GiNaC::ex& K = t.second;
-        
-        const time_function& tm = key.first;
-        const initial_value_set& ivs = key.second;
-        
-        if(ivs.size() == ord)
-          {
-            r.emplace(key, K);
+            auto copy_ker = std::make_unique<kernel_type>(*t.second);
+            key_type copy_key{*copy_ker};
+            auto res = r.kernels.emplace(std::move(copy_key), std::move(copy_ker));
+            if(!res.second) throw exception(ERROR_KERNEL_COPY_INSERT_FAILED, exception_code::kernel_error);
           }
       }
     
@@ -490,23 +643,15 @@ void fourier_kernel<N>::write(std::ostream& out) const
     
     for(const auto& t : this->kernels)
       {
-        const key_type& key = t.first;
-        const GiNaC::ex& K = t.second;
+        const auto& key = t.first;
+        const auto& ker = *t.second;
         
-        const time_function& tm = key.first;
-        const initial_value_set& ivs = key.second;
+        const time_function& tm = ker.get_time_function();
+        const initial_value_set& ivs = ker.get_initial_value_set();
+        const subs_list& vs = ker.get_substitution_list();
         
-        out << count << "." << '\n';
-        out << "  time factor = " << tm << '\n';
-        
-        out << "  IC set =";
-        for(auto u = ivs.value_cbegin(); u != ivs.value_cend(); ++u)
-          {
-            out << " " << u->get_symbol() << "(" << u->get_momentum() << ")";
-          }
-        out << '\n';
-        
-        out << "  kernel = " << K << '\n';
+        out << "Kernel " << count << "." << '\n';
+        t.second->write(out);
         
         ++count;
       }
@@ -521,70 +666,69 @@ std::ostream& operator<<(std::ostream& str, const fourier_kernel<N>& obj)
   }
 
 
+template <unsigned int N, typename Operator>
+fourier_kernel<N> fourier_kernel_impl::transform_kernel(const fourier_kernel<N>& a, Operator op)
+  {
+    // manufacture a blank fourier kernel of max order N
+    auto r = a.sf.template make_fourier_kernel<N>();
+    
+    // copy elements from a into this blank kernel, applying op as we go
+    for(const auto& t : a.kernels)
+      {
+        const auto& value = *t.second;
+        
+        // apply operator to kernel and emplace it in the new list
+        
+        auto ker = std::make_unique< typename fourier_kernel<N>::kernel_type >(op(value));
+        typename fourier_kernel<N>::key_type key{*ker};
+        
+        auto res = r.kernels.emplace(std::move(key), std::move(ker));
+        if(!res.second) throw exception(ERROR_KERNEL_TRANSFORM_INSERT_FAILED, exception_code::kernel_error);
+      }
+    
+    return r;
+  }
+
+
+template <unsigned int N, typename Operator>
+fourier_kernel<N> fourier_kernel_impl::transform_kernel(const fourier_kernel<N>& a, const fourier_kernel<N>& b, Operator op)
+  {
+    // copy elements of a into a new kernel, applying op
+    auto r = fourier_kernel_impl::transform_kernel(a, op);
+    
+    // now copy elements from b into this kernel, applying op
+    for(const auto& t : b.kernels)
+      {
+        const auto& value = *t.second;
+        
+        // apply operator to kernel
+        auto ker = op(value);
+        
+        // insert this new kernel
+        r.add(value.get_time_function(), value.get_initial_value_set(), value.get_kernel(), value.get_substitution_list(), true);
+      }
+    
+    return r;
+  }
+
+
 template <unsigned int N>
 fourier_kernel<N> operator-(const fourier_kernel<N>& a)
   {
-    auto r = a.sf.template make_fourier_kernel<N>();
+    using fourier_kernel_impl::kernel;
+    using fourier_kernel_impl::transform_kernel;
     
-    for(const auto& t : a.kernels)
-      {
-        const auto& key = t.first;
-        const auto& K = t.second;
-        
-        const auto& tm = key.first;
-        const auto& ivs = key.second;
-        
-        r.add(tm, ivs, -K, true);
-      }
-    
-    return r;
-  }
-
-
-template <unsigned int N>
-fourier_kernel<N> operator+(const fourier_kernel<N>& a, const fourier_kernel<N>& b)
-  {
-    auto r = a;
-    
-    for(const auto& t : b.kernels)
-      {
-        const auto& key = t.first;
-        const auto& K = t.second;
-        
-        const auto& tm = key.first;
-        const auto& ivs = key.second;
-        
-        r.add(tm, ivs, K, true);
-      }
-    
-    return r;
-  }
-
-
-template <unsigned int N>
-fourier_kernel<N> operator-(const fourier_kernel<N>& a, const fourier_kernel<N>& b)
-  {
-    return a + (-b);
+    return transform_kernel(a, [](const kernel& b) -> kernel { return -b; });
   }
 
 
 template <unsigned int N>
 fourier_kernel<N> operator*(const fourier_kernel<N>& a, const GiNaC::ex b)
   {
-    auto r = a.sf.template make_fourier_kernel<N>();
+    using fourier_kernel_impl::kernel;
+    using fourier_kernel_impl::transform_kernel;
     
-    for(const auto& t : a.kernels)
-      {
-        const auto& key = t.first;
-        const auto& K = t.second;
-        
-        const auto& tm = key.first;
-        const auto& ivs = key.second;
-        
-        r.add(b*tm, ivs, K, true);
-      }
-    
-    return r;
+    return transform_kernel(a, [&](const kernel& c) -> kernel { return b*c; });
   }
 
 
@@ -602,6 +746,23 @@ fourier_kernel<N> operator/(const fourier_kernel<N>& a, const GiNaC::ex b)
   }
 
 
+template <unsigned int N>
+fourier_kernel<N> operator+(const fourier_kernel<N>& a, const fourier_kernel<N>& b)
+  {
+    using fourier_kernel_impl::kernel;
+    using fourier_kernel_impl::transform_kernel;
+    
+    return transform_kernel(a, b, [](const kernel& c) -> kernel { return c; });
+  }
+
+
+template <unsigned int N>
+fourier_kernel<N> operator-(const fourier_kernel<N>& a, const fourier_kernel<N>& b)
+  {
+    return a + (-b);
+  }
+
+
 inline GiNaC::ex BasicKernelProduct(const GiNaC::ex& a, const GiNaC::ex& b,
                                     const initial_value_set& a_ivs, const initial_value_set& b_ivs)
   {
@@ -609,124 +770,54 @@ inline GiNaC::ex BasicKernelProduct(const GiNaC::ex& a, const GiNaC::ex& b,
   }
 
 
-//! cross-multiply two kernels
-template <typename KernelProductRule, typename Inserter>
-void CrossMultiplyRule(const fourier_kernel_impl::kernel_db::value_type& a,
-                       const fourier_kernel_impl::kernel_db::value_type& b,
-                       KernelProductRule kprod, Inserter ins, symbol_factory& sf)
-  {
-    const auto& a_key = a.first;
-    const auto& b_key = b.first;
-    
-    const auto& a_K = a.second;
-    const auto& b_K = b.second;
-    
-    const auto& a_tm = a_key.first;
-    const auto& b_tm = b_key.first;
-    
-    const auto& a_ivs = a_key.second;
-    const auto& b_ivs = b_key.second;
-    
-    // product time function is just product of each individual time function
-    auto prod_tm = a_tm * b_tm;
-    
-    // replace all indices and momenta by unique labels before taking the product of the
-    // kernels and initial value sets
-    const auto& a_idxs = get_expr_indices(a_K);
-    const auto& b_idxs = get_expr_indices(b_K);
-    
-    // set up substitution rules for a and b kernels
-    GiNaC::exmap a_subs_rules;
-    GiNaC::exmap b_subs_rules;
-    
-    // populate a substitution rules with index relabellings
-    for(const auto& idx : a_idxs)
-      {
-        const auto new_idx = sf.make_unique_index();
-        a_subs_rules[idx] = GiNaC::ex_to<GiNaC::symbol>(new_idx.get_value());
-      }
-    
-    // populate b substitution rules with index relabellings
-    for(const auto& idx : b_idxs)
-      {
-        const auto new_idx = sf.make_unique_index();
-        b_subs_rules[idx] = GiNaC::ex_to<GiNaC::symbol>(new_idx.get_value());
-      }
-    
-    // build initial value set for product, adding relabelling rules for momenta as we go
-    initial_value_set prod_ivs;
-    initial_value_set new_a_ivs;
-    initial_value_set new_b_ivs;
-    
-    // build replica initial values for a with new momenta labels, and push the relabelling rules
-    for(auto t = a_ivs.value_cbegin(); t != a_ivs.value_cend(); ++t)
-      {
-        const auto new_iv = sf.make_initial_value(t->get_symbol());
-        
-        a_subs_rules[t->get_momentum()] = new_iv.get_momentum();
-
-        new_a_ivs.insert(new_iv);
-        prod_ivs.insert(new_iv);
-      }
-    
-    // build replica initial values for b with new momenta labels, and push the relabelling rules
-    for(auto t = b_ivs.value_cbegin(); t != b_ivs.value_cend(); ++t)
-      {
-        const auto new_iv = sf.make_initial_value(t->get_symbol());
-    
-        b_subs_rules[t->get_momentum()] = new_iv.get_momentum();
-        
-        new_b_ivs.insert(new_iv);
-        prod_ivs.insert(new_iv);
-      }
-    
-    // build final expression for product kernel using the specified product rule
-    auto prod_K = kprod(a_K.subs(a_subs_rules), b_K.subs(b_subs_rules), new_a_ivs, new_b_ivs);
-    
-    // insert product kernel
-    ins(prod_tm, prod_ivs, prod_K);
-  }
-
-
-//! generic algorithm to construct a product of kernels, with a parmametrizable rule
+//! generic algorithm to construct a product of kernels, with a parametrizable rule
 //! for constructing the product at a fixed order
 template <unsigned int N, typename ProductRule>
 void KernelProduct(const fourier_kernel<N>& a, const fourier_kernel<N>& b, ProductRule rule)
   {
-    // work through the orders that can appear in the product
+    // work through all orders that can appear in the product;
     // since everything is a perturbation, the product of two perturbations is second order
-    // and we start at 2
+    // and we should start at 2
     for(unsigned int i = 2; i <= N; ++i)
       {
         for(unsigned int j = 1; j < i; ++j)
           {
             // extract terms of order j from a and order (i-j) from b
-            auto a_set = a.order_db(j);
-            auto b_set = b.order_db(i-j);
+            auto a_set = a.order(j);
+            auto b_set = b.order(i-j);
             
             // cross-multiply all of these terms and insert into r
-            for(const auto& ta : a_set)
+            for(auto ta = a_set.cbegin(); ta != a_set.cend(); ++ta)
               {
-                for(const auto& tb : b_set)
+                for(auto tb = b_set.cbegin(); tb != b_set.cend(); ++tb)
                   {
-                    rule(ta, tb);
+                    // apply ProductRule to these factors
+                    // the rule may customize the kernel before inserting it in a destination container
+                    rule(*ta->second, *tb->second);
                   }
               }
           }
       }
-  };
+  }
 
 
 template <unsigned int N>
 fourier_kernel<N> operator*(const fourier_kernel<N>& a, const fourier_kernel<N>& b)
   {
+    using fourier_kernel_impl::kernel;
+    
+    // manufacture a blank fourier kernel of max order N
     auto r = a.sf.template make_fourier_kernel<N>();
 
-    auto ins = [&](auto t, auto s, auto K) -> void { r.add(t, s, K, true); };
-    auto prod = [](auto u, auto v, auto u_ivs, auto v_ivs) -> auto { return BasicKernelProduct(u, v, u_ivs, v_ivs); };
-    auto rule = [&](const auto& u, const auto& v) -> void { CrossMultiplyRule(u, v, prod, ins, a.sf); };
+    // insert step is trivial and should just copy each kernel product into the new container r
+    auto ins = [&](const kernel& c, const kernel& d) -> void
+      {
+        auto k = c * d;
+        
+        r.add(k.get_time_function(), k.get_initial_value_set(), k.get_kernel(), k.get_substitution_list(), true);
+      };
     
-    KernelProduct(a, b, rule);
+    KernelProduct(a, b, ins);
     
     return r;
   }
@@ -744,117 +835,86 @@ fourier_kernel<N> diff_t(const fourier_kernel<N>& a)
 template <unsigned int N>
 fourier_kernel<N> diff_z(const fourier_kernel<N>& a)
   {
-    auto r = a.sf.template make_fourier_kernel<N>();
+    using fourier_kernel_impl::kernel;
+    using fourier_kernel_impl::transform_kernel;
     
-    // loop through kernels, taking derivative with respect to z, and pushing the result to r
-    const auto& z = a.sf.get_z();
-    
-    for(auto& t : a.kernels)
-      {
-        const auto& key = t.first;
-        const auto& K = t.second;
-        
-        const auto& tm = key.first;
-        const auto& ivs = key.second;
-        
-        r.add(GiNaC::diff(tm, z), ivs, K, true);
-      }
-    
-    return r;
+    return transform_kernel(a, [](const kernel& b) -> kernel { return diff_z(b); });
   }
 
 
 template <unsigned int N>
 fourier_kernel<N> Laplacian(const fourier_kernel<N>& a)
   {
-    auto r = a.sf.template make_fourier_kernel<N>();
+    using fourier_kernel_impl::kernel;
+    using fourier_kernel_impl::transform_kernel;
     
-    // loop through kernels, taking derivative with respect to z, and pushing the result to r
-    const auto& z = a.sf.get_z();
-    
-    for(auto& t : a.kernels)
+    return transform_kernel(a, [](kernel b) -> kernel
       {
-        const auto& key = t.first;
-        const auto& K = t.second;
+        // extract -k^2 for this kernel
+        // it's preferable to avoid introducing a new subsitution rule here; those are best kept
+        // for factors in the denominator
+        auto vsum = b.get_total_momentum();
+        auto vsq = -vsum.norm_square();
         
-        const auto& tm = key.first;
-        const auto& ivs = key.second;
-
-        // get sum of momenta in ivs, which is guaranteed to be nonempty
-        vector vsum = *ivs.value_cbegin();
-        for(auto u = ++ivs.value_cbegin(); u != ivs.value_cend(); ++u)
-          {
-            vsum += *u;
-          }
-        
-        r.add(tm, ivs, -vsum.norm_square() * K, true);
-      }
-    
-    return r;
+        b.multiply_kernel(vsq);
+        return b;
+      });
   }
 
 
 template <unsigned int N>
 fourier_kernel<N> InverseLaplacian(const fourier_kernel<N>& a)
   {
-    auto r = a.sf.template make_fourier_kernel<N>();
+    using fourier_kernel_impl::kernel;
+    using fourier_kernel_impl::transform_kernel;
     
-    // loop through kernels, taking derivative with respect to z, and pushing the result to r
-    const auto& z = a.sf.get_z();
-    
-    for(auto& t : a.kernels)
+    return transform_kernel(a, [&](kernel b) -> kernel
       {
-        const auto& key = t.first;
-        const auto& K = t.second;
-        
-        const auto& tm = key.first;
-        const auto& ivs = key.second;
-        
-        // get sum of momenta in ivs, which is guaranteed to be nonempty
-        vector vsum = *ivs.value_cbegin();
-        for(auto u = ++ivs.value_cbegin(); u != ivs.value_cend(); ++u)
+        // extract -k^2 for this kernel
+        auto vsum = b.get_total_momentum();
+
+        // if this is a term of O(delta) then the inverse Laplacian is rotationally invariant and
+        // we need do nothing special
+        if(b.order() == 1)
           {
-            vsum += *u;
+            auto vsq = -vsum.norm_square();
+            b.multiply_kernel(GiNaC::ex(1)/vsq);
+            return b;
           }
         
-        r.add(tm, ivs, -K / vsum.norm_square(), true);
-      }
-    
-    return r;
-  }
+        // otherwise, we need to generate a new substitution rule because we are introducing
+        // a non-rotationally invariant denominator
+        auto label_sym = a.sf.make_unique_momentum();
+        vector label = a.sf.make_vector(label_sym);
+        auto vsq = -label.norm_square();
+        b.multiply_kernel(GiNaC::ex(1)/vsq, label_sym, vsum.get_expr());
 
-
-inline GiNaC::ex GradGradKernelProduct(const GiNaC::ex& a, const GiNaC::ex& b,
-                                       const initial_value_set& a_ivs, const initial_value_set& b_ivs)
-  {
-    // get sum of momenta in a_ivs, which is guaranteed to be nonempty
-    vector asum = *a_ivs.value_cbegin();
-    for(auto u = ++a_ivs.value_cbegin(); u != a_ivs.value_cend(); ++u)
-      {
-        asum += *u;
-      }
-
-    // get corresponding sym for b_ivs
-    vector bsum = *b_ivs.value_cbegin();
-    for(auto u = ++b_ivs.value_cbegin(); u != b_ivs.value_cend(); ++u)
-      {
-        bsum += *u;
-      }
-
-    return -dot(asum, bsum)*a*b;
+        return b;
+      });
   }
 
 
 template <unsigned int N>
 fourier_kernel<N> gradgrad(const fourier_kernel<N>& a, const fourier_kernel<N>& b)
   {
+    using fourier_kernel_impl::kernel;
+    
+    // manufacture a blank fourier kernel of max order N
     auto r = a.sf.template make_fourier_kernel<N>();
     
-    auto ins = [&](auto t, auto s, auto K) -> void { r.add(t, s, K, true); };
-    auto prod = [](auto u, auto v, auto u_ivs, auto v_ivs) -> auto { return GradGradKernelProduct(u, v, u_ivs, v_ivs); };
-    auto rule = [&](const auto& u, const auto& v) -> void { CrossMultiplyRule(u, v, prod, ins, a.sf); };
+    // insert step should multiply each product kernel by -ka.kb
+    auto ins = [&](const kernel& c, const kernel& d) -> void
+      {
+        auto kc = c.get_total_momentum();
+        auto kd = d.get_total_momentum();
+        auto kc_dot_kd = -dot(kc, kd);
+        
+        auto k = kc_dot_kd * c * d;
+        
+        r.add(k.get_time_function(), k.get_initial_value_set(), k.get_kernel(), k.get_substitution_list(), true);
+      };
     
-    KernelProduct(a, b, rule);
+    KernelProduct(a, b, ins);
     
     return r;
   }
