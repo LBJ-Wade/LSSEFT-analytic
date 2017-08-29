@@ -295,8 +295,7 @@ namespace detail
         //! evaluate all Wick contractions
         template <size_t N, typename LabelMap, typename UnassignedGroup>
         void evaluate_Wick_contractions(const contraction_group& gp, const iv_group<N>& clusters,
-                                        const LabelMap& mma_map, const UnassignedGroup& unassigned,
-                                        Pk_string& Ps);
+                                        LabelMap& mma_map, const UnassignedGroup& unassigned, Pk_string& Ps);
         
         //! build the data needed to construct a Wick product from a contraction group
         template <size_t N>
@@ -477,8 +476,8 @@ namespace detail
     
     template <size_t N, typename LabelMap, typename UnassignedGroup>
     void
-    contractions::evaluate_Wick_contractions(const contraction_group& gp, const iv_group <N>& clusters,
-                                             const LabelMap& mma_map, const UnassignedGroup& unassigned, Pk_string& Ps)
+    contractions::evaluate_Wick_contractions(const contraction_group& gp, const iv_group<N>& clusters,
+                                             LabelMap& mma_map, const UnassignedGroup& unassigned, Pk_string& Ps)
       {
         for(const auto& prod : gp)
           {
@@ -513,22 +512,38 @@ namespace detail
             GiNaC::ex q;
             
             // if either the left- or right-hand momentum is unassigned, we always use the other one
-            if(left_unassigned)  { Ps.emplace_back(cfs::Pk(l, r, right_mom).subs(mma_map[right_clust]), right_clust); break; }
-            if(right_unassigned) { Ps.emplace_back(cfs::Pk(l, r, left_mom).subs(mma_map[left_clust]), left_clust); break; }
+            if(left_unassigned)
+              {
+                Ps.emplace_back(cfs::Pk(l, r, right_mom).subs(mma_map[right_clust]), right_clust);
+                
+                // add a rewriting rule for this contraction
+                mma_map[left_clust][left_sym] = -right_mom.subs(mma_map[right_clust]);
+                break;
+              }
+            if(right_unassigned)
+              {
+                Ps.emplace_back(cfs::Pk(l, r, left_mom).subs(mma_map[left_clust]), left_clust);
+                
+                // add a rewriting rule for this contraction
+                mma_map[right_clust][right_sym] = -left_mom.subs(mma_map[left_clust]);
+                break;
+              }
             
             // otherwise, if the left-momentum is a simple symbol then we should use it;
             // this will catch cases where the momentum is exactly an external momentum or a simple loop
             auto t1 = mma_map[left_clust].find(left_sym);
             if(t1 != mma_map[left_clust].end() && GiNaC::is_a<GiNaC::symbol>(t1->second))
               {
-                Ps.emplace_back(cfs::Pk(l, r, left_mom).subs(mma_map[left_clust]), left_clust); break;
+                Ps.emplace_back(cfs::Pk(l, r, left_mom).subs(mma_map[left_clust]), left_clust);
+                break;
               }
             
             // same for right-momentum
             auto t2 = mma_map[right_clust].find(right_sym);
             if(t2 != mma_map[right_clust].end() && GiNaC::is_a<GiNaC::symbol>(t2->second))
               {
-                Ps.emplace_back(cfs::Pk(l, r, right_mom).subs(mma_map[right_clust]), right_clust); break;
+                Ps.emplace_back(cfs::Pk(l, r, right_mom).subs(mma_map[right_clust]), right_clust);
+                break;
               }
         
             // nothing to choose between the LHS and RHS momenta, so just pick one
