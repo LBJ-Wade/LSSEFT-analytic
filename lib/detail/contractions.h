@@ -122,6 +122,10 @@ namespace detail
         vertex_db vertices;
 
       };
+    
+    
+    //! type for substitution rules for Rayleigh momenta
+    using subs_map = GiNaC::exmap;
 
 
     class Wick_data
@@ -132,7 +136,7 @@ namespace detail
       public:
         
         //! constructor captures data
-        Wick_data(GiNaC::ex Pks_);
+        Wick_data(GiNaC::ex Pks_, GiNaC_symbol_set lm_, subs_map rm_);
         
         //! destructor is default
         ~Wick_data() = default;
@@ -144,6 +148,12 @@ namespace detail
 
         //! extract Wick product string
         const GiNaC::ex& get_Wick_string() const { return this->Pk_string; }
+        
+        //! extract set of loop momenta
+        const GiNaC_symbol_set& get_loop_momenta() const { return this->loop_momenta; }
+        
+        //! extract replacement rules for Rayleigh momenta
+        const subs_map& get_Rayleigh_momenta() const { return this->Rayleigh_momenta; }
         
         
         // INTERNAL DATA
@@ -158,6 +168,9 @@ namespace detail
         
         //! list of remaining free (ie. loop) momenta
         GiNaC_symbol_set loop_momenta;
+        
+        //! substitution map for Rayleigh momenta
+        subs_map Rayleigh_momenta;
         
         //! GiNaC expression representing the string of correlation functions
         //! produced by this set of Wick contraction
@@ -175,6 +188,16 @@ namespace detail
       {
         
         // TYPES
+        
+      public:
+        
+        //! initial value groups
+        template <size_t N>
+        using iv_group = std::array<initial_value_set, N>;
+        
+        //! group of external momenta
+        template <size_t N>
+        using kext_group = std::array<GiNaC::ex, N>;
         
       protected:
 
@@ -207,11 +230,11 @@ namespace detail
         
       public:
         
-        //! constructor takes a list of initial_value sets,
+        //! constructor takes a list of initial_value sets ('clusters'),
         //! a list of corresponding external momenta,
         //! and constructs a set of all possible contractions between them
         template <size_t N>
-        contractions(std::array<initial_value_set, N> groups, std::array<GiNaC::ex, N> kext);
+        contractions(iv_group<N> clusters, kext_group<N> kext);
         
         //! destructor is default
         ~contractions() = default;
@@ -232,12 +255,14 @@ namespace detail
         //! build and enumerate all possible contractions for a pair of index sets
         std::unique_ptr<contraction_set>
         enumerate_contractions(size_t num, const iv_list& ivs) const;
+        
+        //! compute the loop order of a given contraction group
+        template <size_t N>
+        size_t loop_order(const contraction_group& gp, const iv_group<N>& clusters);
 
         //! build the data needed to construct a Wick product from a contraction group
         template <size_t N>
-        void build_Wick_product(const contraction_group& gp,
-                                const std::array<initial_value_set, N>& groups,
-                                const std::array<GiNaC::ex, N>& kext);
+        void build_Wick_product(const contraction_group& gp, const iv_group<N>& clusters, const kext_group<N>& kext);
 
         
         // INTERNAL DATA
@@ -251,15 +276,15 @@ namespace detail
 
 
     template <size_t N>
-    contractions::contractions(std::array<initial_value_set, N> groups, std::array<GiNaC::ex, N> kext)
+    contractions::contractions(iv_group<N> clusters, kext_group<N> kext)
       : items(std::make_unique<Wick_set>())
       {
         // total number of fields should be even since we currently include only Gaussian contractions
         // that pair together exactly two fields
         size_t num = 0;
-        for(const auto& group : groups)
+        for(const auto& cluster : clusters)
           {
-            num += group.size();
+            num += cluster.size();
           }
 
         if(num % 2 != 0)
@@ -271,10 +296,10 @@ namespace detail
 
         for(size_t i = 0; i < N; ++i)
           {
-            const auto& group = groups[i];
-            for(auto t = group.value_cbegin(); t != group.value_cend(); ++t)
+            const auto& cluster = clusters[i];
+            for(auto t = cluster.value_cbegin(); t != cluster.value_cend(); ++t)
               {
-                // emplace an iterator to this initial field, tagged with the id of the group
+                // emplace an iterator to this initial field, tagged with the id of the cluster
                 // from which it comes
                 ivs.emplace_back(t, i);
               }
@@ -292,21 +317,25 @@ namespace detail
 
             // convert this contraction group into the data we need to supply -- eg. GiNaC substitution lists,
             // lists of external momenta, etc ...
-            this->build_Wick_product(gp, groups, kext);
+            this->build_Wick_product(gp, clusters, kext);
           }
       }
 
 
     template <size_t N>
-    void contractions::build_Wick_product(const contraction_group& gp,
-                                          const std::array<initial_value_set, N>& groups,
-                                          const std::array<GiNaC::ex, N>& kext)
+    void
+    contractions::build_Wick_product(const contraction_group& gp, const iv_group<N>& clusters, const kext_group<N>& kext)
       {
+        size_t loop_order = this->loop_order(gp, clusters);
+        
         // need to build a string of power spectra representing the Wick product in gp
         Pk_string Ps;
 
         // keep track of which momenta are integrated over, corresponding to loops
         GiNaC_symbol_set loop_momenta;
+        
+        // keep track of which momenta need Rayleigh expansion
+        subs_map Rayleigh_momenta;
 
         for(const auto& prod : gp)
           {
@@ -345,10 +374,39 @@ namespace detail
             W *= factor.first;
           }
 
-        this->items->emplace_back(std::make_unique<Wick_data>(W));
+        this->items->emplace_back(std::make_unique<Wick_data>(W, loop_momenta, Rayleigh_momenta));
       }
-
-
+    
+    
+    template <size_t N>
+    size_t
+    contractions::loop_order(const contraction_group& gp, const iv_group<N>& clusters)
+      {
+        // determine number of contractions
+        size_t contractions = gp.size();
+        
+        // determine number of initial field in the full cluster size
+        size_t fields = 0;
+        for(const auto& cluster : clusters)
+          {
+            fields += cluster.size();
+          }
+    
+        // ensure #fields is a multiple of 2
+        if(fields % 2 != 0)
+          throw exception(ERROR_ODD_CONTRACTIONS, exception_code::contraction_error);
+    
+        // there are #fields independent momentum integrals
+        // each contraction generates one momentum-conservation delta function
+        // there are also #clusters momentum-conservation delta functions, one for each cluster
+        // finally, one of these delta functions factorizes out to give global conservation of momentum
+        
+        // so, the number of unconstrained momentum integrations is
+        // #fields - #clusters - #contractions + 1
+        return fields - clusters.size() - contractions + 1;
+      }
+    
+    
   }   // namespace detail
 
 

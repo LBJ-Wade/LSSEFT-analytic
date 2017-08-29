@@ -90,6 +90,10 @@ namespace fourier_kernel_impl
     class kernel
       {
         
+        // TYPES
+        
+      protected:
+        
         //! a momenta_list is a list of initial_value references, ordered by symbol name
         using momenta_list = std::vector< std::reference_wrapper<const initial_value> >;
         

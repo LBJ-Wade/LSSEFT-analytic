@@ -170,8 +170,10 @@ namespace detail
       }
 
 
-    Wick_data::Wick_data(GiNaC::ex Pks_)
-      : Pk_string(std::move(Pks_))
+    Wick_data::Wick_data(GiNaC::ex Pks_, GiNaC_symbol_set lm_, subs_map rm_)
+      : Pk_string(std::move(Pks_)),
+        loop_momenta(std::move(lm_)),
+        Rayleigh_momenta(std::move(rm_))
       {
       }
 

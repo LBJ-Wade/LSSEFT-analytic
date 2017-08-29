@@ -103,8 +103,15 @@ int main(int argc, char* argv[])
     
     // construct 1-loop \delta power spectrum
     Pk_one_loop Pk_delta{delta, delta, k, sf};
+    
+    const auto& tree = Pk_delta.get_tree();
 
-    std::cout << "Tree-level P(k) = " << Pk_delta.get_tree() << '\n';
+    std::cout << "Tree-level P(k):" << '\n';
+    std::cout << tree << '\n';
+    
+    const auto& P13 = Pk_delta.get_13();
+    std::cout << "Loop-level 13 P(k):" << '\n';
+    std::cout << P13 << '\n';
     
     return EXIT_SUCCESS;
   }

@@ -23,4 +23,57 @@
 // @contributor: David Seery <D.Seery@sussex.ac.uk>
 // --@@
 //
+
 #include "Pk_one_loop.h"
+
+
+namespace Pk_one_loop_impl
+  {
+    
+    
+    std::ostream& operator<<(std::ostream& str, const Pk_element& obj)
+      {
+        obj.write(str);
+        return str;
+      }
+    
+    
+    std::ostream& operator<<(std::ostream& str, const Pk_db& obj)
+      {
+        size_t count = 0;
+        for(const auto& item : obj)
+          {
+            std::cout << "Element " << count << "." << '\n';
+            std::cout << *item << '\n';
+            
+            ++count;
+          }
+        
+        return str;
+      }
+    
+    
+    void Pk_element::write(std::ostream& out) const
+      {
+        std::cout << "  time function = " << this->tm << '\n';
+        std::cout << "  momentum kernel = " << this->K << '\n';
+        std::cout << "  Wick product = " << this->WickString << '\n';
+
+        std::cout << "  loop momenta =";
+        for(const auto& sym : this->loop_momenta)
+          {
+            std::cout << " " << sym;
+          }
+        if(this->loop_momenta.empty()) std::cout << " <none>";
+        std::cout << '\n';
+        
+        std::cout << "  Rayleigh momenta =";
+        for(const auto& rule : this->Rayleigh_momenta)
+          {
+            std::cout << " " << rule.first << " -> " << rule.second << ";";
+          }
+        if(this->Rayleigh_momenta.empty()) std::cout << " <none>";
+        std::cout << '\n';
+      }
+    
+  }   // namespace Pk_one_loop_impl
