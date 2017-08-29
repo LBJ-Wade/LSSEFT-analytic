@@ -45,6 +45,9 @@ int main(int argc, char* argv[])
     // redshift z is the time variable
     auto z = sf.get_z();
     
+    // epsilon is a common regulator for denominators that can go to zero
+    auto eps = sf.get_regulator();
+    
     // manufacture placeholder stochastic initial values delta*_q, delta*_s, delta*_t
     // (recall we skip delta*_r because r is also the line-of-sight variable)
     auto deltaq = sf.make_initial_value("delta");
@@ -73,15 +76,15 @@ int main(int argc, char* argv[])
     delta.add(SPT::D(z), iv1, 1);
     
     // second order
-    delta.add(SPT::DA(z), iv2, alpha(q, s));
-    delta.add(SPT::DB(z), iv2, gamma(q, s));
+    delta.add(SPT::DA(z), iv2, alpha(q, s, eps));
+    delta.add(SPT::DB(z), iv2, gamma(q, s, eps));
     
     // quadratic order
-    delta.add(SPT::DD(z) - SPT::DJ(z), iv3, 2*gamma_bar(s+t, q)*alpha_bar(s, t));
-    delta.add(SPT::DE(z),              iv3, 2*gamma_bar(s+t, q)*gamma_bar(s, t));
-    delta.add(SPT::DF(z) + SPT::DJ(z), iv3, 2*alpha_bar(s+t, q)*alpha_bar(s, t));
-    delta.add(SPT::DG(z),              iv3, 2*alpha_bar(s+t, q)*gamma_bar(s, t));
-    delta.add(SPT::DJ(z),              iv3, alpha(s+t, q)*gamma_bar(s, t) - 2*alpha(s+t, q)*alpha_bar(s, t));
+    delta.add(SPT::DD(z) - SPT::DJ(z), iv3, 2*gamma_bar(s+t, q, eps)*alpha_bar(s, t, eps));
+    delta.add(SPT::DE(z),              iv3, 2*gamma_bar(s+t, q, eps)*gamma_bar(s, t, eps));
+    delta.add(SPT::DF(z) + SPT::DJ(z), iv3, 2*alpha_bar(s+t, q, eps)*alpha_bar(s, t, eps));
+    delta.add(SPT::DG(z),              iv3, 2*alpha_bar(s+t, q, eps)*gamma_bar(s, t, eps));
+    delta.add(SPT::DJ(z),              iv3, alpha(s+t, q, eps)*gamma_bar(s, t, eps) - 2*alpha(s+t, q, eps)*alpha_bar(s, t, eps));
     
     
     // compute kernels for the velocity potential \phi, v = grad phi -> v(k) = i k phi

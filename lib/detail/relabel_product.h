@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 24/08/2017.
+// Created by David Seery on 29/08/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,40 +24,20 @@
 // --@@
 //
 
-#include "one_loop_kernels.h"
+#ifndef LSSEFT_ANALYTIC_RELABEL_PRODUCT_H
+#define LSSEFT_ANALYTIC_RELABEL_PRODUCT_H
 
 
-GiNaC::ex alpha(const vector& q, const vector& s, const GiNaC::symbol& eps)
+#include "services/symbol_factory.h"
+#include "utilities/GiNaC_utils.h"
+
+
+namespace detail
   {
-    return dot(q, q+s) / (q.norm_square() + eps);
-  }
+    
+    GiNaC::ex relabel_index_product(const GiNaC::ex& a, const GiNaC::ex& b, symbol_factory& sf);
+    
+  }   // namespace detail
 
 
-GiNaC::ex beta(const vector& q, const vector& s, const GiNaC::symbol& eps)
-  {
-    return dot(q, s) * (q+s).norm_square() / (2 * q.norm_square() * s.norm_square() + eps);
-  }
-
-
-GiNaC::ex gamma(const vector& q, const vector& s, const GiNaC::symbol& eps)
-  {
-    return alpha(q, s, eps) + beta(q, s, eps);
-  }
-
-
-GiNaC::ex alpha_bar(const vector& q, const vector& s, const GiNaC::symbol& eps)
-  {
-    return (alpha(q, s, eps) + alpha(s, q, eps)) / 2;
-  }
-
-
-GiNaC::ex beta_bar(const vector& q, const vector& s, const GiNaC::symbol& eps)
-  {
-    return (beta(q, s, eps) + beta(s, q, eps)) / 2;
-  }
-
-
-GiNaC::ex gamma_bar(const vector& q, const vector& s, const GiNaC::symbol& eps)
-  {
-    return (gamma(q, s, eps) + gamma(s, q, eps)) / 2;
-  }
+#endif //LSSEFT_ANALYTIC_RELABEL_PRODUCT_H

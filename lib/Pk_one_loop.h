@@ -32,6 +32,7 @@
 
 #include "fourier_kernel.h"
 #include "detail/contractions.h"
+#include "detail/relabel_product.h"
 
 #include "services/symbol_factory.h"
 
@@ -227,6 +228,11 @@ Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2
 template <typename Kernel1, typename Kernel2, typename InsertOperator>
 void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, InsertOperator ins)
   {
+    // get regulator variable; we can remove this after taking Wick products
+    const auto& eps = this->sf.get_regulator();
+    GiNaC::exmap eps_to_zero;
+    eps_to_zero[eps] = 0;
+    
     // multiply out all terms in ker1 and ker2, using the insertion operator 'ins'
     // to store the results in a suitable Pk database
     
@@ -250,8 +256,36 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Insert
             for(const auto& W : Wicks)
               {
                 const auto& data = *W;
-            
-                ins(tm1 * tm2, K1 * K2, data.get_Wick_string(), data.get_loop_momenta(), data.get_Rayleigh_momenta());
+                
+                // before taking the product K1*K2 we must relabel indices in K2 if they clash with
+                // K1, otherwise we will get nonsensical results
+                const auto& subs_maps = data.get_substitution_rules();
+                if(subs_maps.size() != 2)
+                  throw exception(ERROR_INCORRECT_SUBMAP_SIZE, exception_code::Pk_error);
+                
+                using detail::relabel_index_product;
+                auto K = relabel_index_product(K1.subs(subs_maps[0]), K2.subs(subs_maps[1]), this->sf);
+    
+                // remove regulator, which should no longer be needed
+                auto K_red = K.subs(eps_to_zero);
+                
+                // simplify dot products where possible
+                GiNaC::scalar_products dotp;
+                dotp.add(this->k, this->k, this->k*this->k);
+                
+                const auto& loops = data.get_loop_momenta();
+                for(const auto& l : loops)
+                  {
+                    dotp.add(l, l, l*l);
+                  }
+                
+                auto K_dotp = simplify_index(K_red, dotp);
+                
+                if(static_cast<bool>(K_dotp != 0))
+                  {
+                    ins(tm1 * tm2, K_dotp,
+                        data.get_Wick_string(), loops, data.get_Rayleigh_momenta());
+                  }
               }
           }
       }

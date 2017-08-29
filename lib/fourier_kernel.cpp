@@ -28,6 +28,7 @@
 #include <sstream>
 
 #include "fourier_kernel.h"
+#include "detail/relabel_product.h"
 #include "utilities/GiNaC_utils.h"
 
 
@@ -160,23 +161,6 @@ namespace fourier_kernel_impl
             
             mma_map[label] = relabel;
           }
-
-        // build a substitution rule for all indices in rhs that also occur for us
-        GiNaC::exmap idx_map;
-        
-        const auto& our_idxs = get_expr_indices(this->K);
-        const auto& their_idxs = get_expr_indices(rhs.K);
-        
-        for(const auto& idx : their_idxs)
-          {
-            // does this index exist in our set also? if not, nothing to do
-            if(our_idxs.find(idx) == our_idxs.end()) continue;
-            
-            // otherwise, manufacture a new index
-            // not that we remap the index *value* (=symbol), not the index itself
-            const auto relabel = this->sf.make_unique_index();
-            idx_map[idx] = GiNaC::ex_to<GiNaC::symbol>(relabel.get_value());
-          }
     
         // merge RHS substitution list with ours
         this->compose_substitution_rules(rhs, mma_map);
@@ -197,8 +181,9 @@ namespace fourier_kernel_impl
               }
           }
 
-        // build final expression, performing any necessary relabellings on RHS
-        auto temp = simplify_index(this->K * rhs.K.subs(mma_map).subs(idx_map));
+        // build final expression, performing any necessary index (or other) relabellings on RHS
+        using detail::relabel_index_product;
+        auto temp = simplify_index(relabel_index_product(this->K, rhs.K.subs(mma_map), this->sf));
         this->K = temp;
 
         return *this;
@@ -280,9 +265,15 @@ namespace fourier_kernel_impl
     kernel& kernel::multiply_kernel(GiNaC::ex f, GiNaC::symbol s, GiNaC::ex rule)
       {
         const auto& our_syms = this->iv.get_momenta();
+        const auto& eps = this->sf.get_regulator();
 
-        // ensure that f only involves symbols in the initial value set or s
+        // ensure that f only involves symbols in the initial value set or s (or the regulator epsilon)
         auto expr_syms = get_expr_symbols(f);
+    
+        // remove regulator epsilon from the used set
+        auto t = expr_syms.find(eps);
+        if(t != expr_syms.end()) expr_syms.erase(t);
+
         for(const auto& sym : expr_syms)
           {
             if(our_syms.find(sym) != our_syms.end()) continue;
@@ -420,12 +411,12 @@ void validate_structure(const GiNaC::ex& K)
   }
 
 
-void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs,
-                      const GiNaC::ex& K, bool silent)
+void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs, const GiNaC::ex& K,
+                      const GiNaC::symbol& eps, bool silent)
   {
     using fourier_kernel_impl::subs_list;
     
-    const auto used = get_expr_symbols(K);
+    auto used = get_expr_symbols(K);
     auto avail = s.get_momenta();
     
     // insert any symbols from the substitution list vs into the available set
@@ -437,6 +428,10 @@ void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::sub
     
     GiNaC_symbol_set used_not_avail;
     GiNaC_symbol_set avail_not_used;
+    
+    // remove regulator epsilon from the used set
+    auto t = used.find(eps);
+    if(t != used.end()) used.erase(t);
     
     // perform set differencing to find mismatch between available and used symbols
     std::set_difference(used.cbegin(), used.cend(), avail.cbegin(), avail.cend(),

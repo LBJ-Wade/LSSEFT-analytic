@@ -463,7 +463,7 @@ namespace detail
 
             // generate replacement rules for the momenta we have paired up
             mma_map[clust1][iv1.get_momentum()] = l;
-            mma_map[clust1][iv2.get_momentum()] = -l;
+            mma_map[clust2][iv2.get_momentum()] = -l;
             
             // insert the label l in the list of loop momenta
             loop_momenta.insert(l);
@@ -583,10 +583,7 @@ namespace detail
         
         // STEP 3. Convert Ps to a GiNaC product corresponding to the outcome of all Wick contractions
         GiNaC::ex W = 1;
-        for(const auto& factor : Ps)
-          {
-            W *= factor.first;
-          }
+        std::for_each(Ps.begin(), Ps.end(), [&](const auto& f) -> void { W *= f.first; });
 
         // STEP 4. Store all this data
         this->items->emplace_back(std::make_unique<Wick_data>(W, mma_map, loop_momenta, Rayleigh_momenta));

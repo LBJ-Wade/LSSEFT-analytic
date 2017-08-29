@@ -568,8 +568,8 @@ void validate_subslist(const initial_value_set& s, const fourier_kernel_impl::su
 void validate_structure(const GiNaC::ex& K);
 
 //! validate that a kernel and set of initial values match (no unknown momenta in kernel)
-void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs,
-                      const GiNaC::ex& K, bool silent);
+void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs, const GiNaC::ex& K,
+                      const GiNaC::symbol& eps, bool silent);
 
 
 template <unsigned int N>
@@ -591,7 +591,7 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
     validate_structure(K);
     
     // validate that momentum variables used in K match those listed in the stochastic terms
-    validate_momenta(s, vs, K, silent);
+    validate_momenta(s, vs, K, this->sf.get_regulator(), silent);
     
     // check whether an entry with this key already exists
     auto ker = std::make_unique<kernel_type>(std::move(K), std::move(s), std::move(t), std::move(vs), this->sf);
@@ -855,7 +855,7 @@ fourier_kernel<N> Laplacian(const fourier_kernel<N>& a)
     return transform_kernel(a, [](kernel b) -> kernel
       {
         // extract -k^2 for this kernel
-        // it's preferable to avoid introducing a new subsitution rule here; those are best kept
+        // it's preferable to avoid introducing a new substitution rule here; those are best kept
         // for factors in the denominator
         auto vsum = b.get_total_momentum();
         auto vsq = -vsum.norm_square();
@@ -887,8 +887,10 @@ fourier_kernel<N> InverseLaplacian(const fourier_kernel<N>& a)
           }
         
         // otherwise, we need to generate a new substitution rule because we are introducing
-        // a non-rotationally invariant denominator
-        auto label_sym = a.sf.make_unique_momentum();
+        // a non-rotationally invariant denominator.
+        // This inverse factor should not need regulating, since it is held out of index substitution
+        // until the very end
+        auto label_sym = a.sf.make_unique_Rayleigh_momentum();
         vector label = a.sf.make_vector(label_sym);
         auto vsq = -label.norm_square();
         b.multiply_kernel(GiNaC::ex(1)/vsq, label_sym, vsum.get_expr());

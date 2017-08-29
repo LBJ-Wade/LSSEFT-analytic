@@ -36,7 +36,8 @@
 
 symbol_factory::symbol_factory(unsigned int d_)
   : index_dimension(d_),
-    z(LSSEFT_REDSHIFT_NAME, LSSEFT_REDSHIFT_LATEX)
+    z(LSSEFT_REDSHIFT_NAME, LSSEFT_REDSHIFT_LATEX),
+    eps(LSSEFT_EPSILON_NAME, LSSEFT_EPSILON_LATEX)
   {
   }
 
@@ -79,6 +80,12 @@ const GiNaC::symbol& symbol_factory::get_z()
   }
 
 
+const GiNaC::symbol& symbol_factory::get_regulator()
+  {
+    return this->eps;
+  }
+
+
 GiNaC::idx symbol_factory::make_unique_index()
   {
     // generate unique name for this dummy index
@@ -111,6 +118,15 @@ GiNaC::symbol symbol_factory::make_unique_loop_momentum()
   }
 
 
+GiNaC::symbol symbol_factory::make_unique_Rayleigh_momentum()
+  {
+    // generate unique name for this Rayleigh momentum
+    std::string name = LSSEFT_DEFAULT_RAYLEIGH_MOMENTUM_NAME + std::to_string(this->Rayleigh_count++);
+    
+    // generate symbol
+    return GiNaC::symbol{name};
+  }
+
 vector symbol_factory::make_vector(std::string name, boost::optional<std::string> latex_name)
   {
     auto sym = this->make_symbol(std::move(name), std::move(latex_name));
@@ -140,3 +156,4 @@ initial_value symbol_factory::make_initial_value(const GiNaC::symbol& s)
     
     return initial_value{k, s, *this};
   }
+

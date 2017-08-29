@@ -32,22 +32,22 @@
 
 
 //! alpha kernel
-GiNaC::ex alpha(const vector& q, const vector& s);
+GiNaC::ex alpha(const vector& q, const vector& s, const GiNaC::symbol& eps);
 
 //! beta kernel
-GiNaC::ex beta(const vector& q, const vector& s);
+GiNaC::ex beta(const vector& q, const vector& s, const GiNaC::symbol& eps);
 
 //! gamma kernel
-GiNaC::ex gamma(const vector& q, const vector& s);
+GiNaC::ex gamma(const vector& q, const vector& s, const GiNaC::symbol& eps);
 
 //! symmetrized alpha kernel
-GiNaC::ex alpha_bar(const vector& q, const vector& s);
+GiNaC::ex alpha_bar(const vector& q, const vector& s, const GiNaC::symbol& eps);
 
 //! symmetrized beta kernel
-GiNaC::ex beta_bar(const vector& q, const vector& s);
+GiNaC::ex beta_bar(const vector& q, const vector& s, const GiNaC::symbol& eps);
 
 //! symmetrized gamma kernel
-GiNaC::ex gamma_bar(const vector& q, const vector& s);
+GiNaC::ex gamma_bar(const vector& q, const vector& s, const GiNaC::symbol& eps);
 
 
 #endif //LSSEFT_ANALYTIC_ONE_LOOP_KERNELS_H

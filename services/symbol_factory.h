@@ -81,6 +81,9 @@ class symbol_factory
     //! get GiNaC symbol representing redshift z
     const GiNaC::symbol& get_z();
     
+    //! get GiNaC symbol for denominator regulator
+    const GiNaC::symbol& get_regulator();
+    
     //! manufacture a GiNaC symbol corresponding to a given name
     const GiNaC::symbol& make_symbol(std::string name, boost::optional<std::string> latex_name = boost::none);
     
@@ -119,6 +122,9 @@ class symbol_factory
     //! make a unique loop momentum variable
     GiNaC::symbol make_unique_loop_momentum();
     
+    //! make a unique Rayleigh variable
+    GiNaC::symbol make_unique_Rayleigh_momentum();
+    
     
     // INTERNAL DATA
     
@@ -139,11 +145,17 @@ class symbol_factory
     //! counter for unique loop momentum symbols
     unsigned int loop_count{0};
     
+    //! counter for unique Rayleigh momentum symbols
+    unsigned int Rayleigh_count{0};
+    
     
     // RESERVED SYMBOLS
     
     //! redshift z
     GiNaC::symbol z;
+    
+    //! regulator for denominators
+    GiNaC::symbol eps;
   
   };
 

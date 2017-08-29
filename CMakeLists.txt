@@ -40,6 +40,7 @@ ADD_EXECUTABLE(LSSEFT_analytic
   lib/vector.cpp
   lib/Pk_one_loop.cpp
   lib/detail/contractions.cpp
+  lib/detail/relabel_product.cpp
   services/symbol_factory.cpp
   shared/error.cpp
   shared/exceptions.cpp
@@ -75,6 +76,8 @@ SET(LIBRARY_FILES
 SET(LIBRARY_DETAIL_FILES
   lib/detail/contractions.cpp
   lib/detail/contractions.h
+  lib/detail/relabel_product.cpp
+  lib/detail/relabel_product.h
   )
 
 SET(LOCALIZATIONS_FILES

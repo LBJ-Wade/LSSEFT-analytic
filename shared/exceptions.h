@@ -37,7 +37,8 @@ enum class exception_code
     symbol_error,
     kernel_error,
     initial_value_error,
-    contraction_error
+    contraction_error,
+    Pk_error
   };
 
 
