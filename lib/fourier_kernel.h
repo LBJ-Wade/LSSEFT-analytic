@@ -76,11 +76,23 @@ namespace fourier_kernel_impl
     //! unary - for kernel
     kernel operator-(const kernel& a);
     
+    //! addition of kernels
+    kernel operator+(const kernel& a, const kernel& b);
+    
+    //! subtraction of kernels
+    kernel operator-(const kernel& a, const kernel& b);
+    
     //! multiplication by arbitrary expression
     kernel operator*(const GiNaC::ex a, const kernel& b);
     
+    //! multiplication by arbitrary expression, other way ground
+    kernel operator*(const kernel& a, const GiNaC::ex b);
+    
     //! multiplication of kernels
     kernel operator*(const kernel& a, const kernel& b);
+    
+    //! division by arbitrary expression
+    kernel operator/(const kernel& a, const GiNaC::ex b);
     
     //! differentiation with respect to redshift z
     kernel diff_z(const kernel& a);
@@ -493,11 +505,17 @@ class fourier_kernel
     fourier_kernel&
     add(time_function t, initial_value_set s, GiNaC::ex K, subs_list vs = subs_list{});
     
+    //! add a kernel
+    fourier_kernel& add(kernel_type ker);
+    
   protected:
     
     //! implementation: add a kernel
     fourier_kernel&
     add(time_function t, initial_value_set s, GiNaC::ex K, subs_list vs, bool silent);
+    
+    //! implementation: add a kernel
+    fourier_kernel& add(kernel_type ker, bool silent);
     
     
     // OPERATIONS
@@ -563,8 +581,22 @@ void validate_subslist(const initial_value_set& s, const fourier_kernel_impl::su
 void validate_structure(const GiNaC::ex& K);
 
 //! validate that a kernel and set of initial values match (no unknown momenta in kernel)
-void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs, const GiNaC::ex& K,
-                      const GiNaC::symbol& eps, bool silent);
+void
+validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs, const GiNaC::ex& K, bool silent);
+
+
+template <unsigned int N>
+fourier_kernel<N>& fourier_kernel<N>::add(kernel_type k)
+  {
+    return this->add(k.get_time_function(), k.get_initial_value_set(), k.get_kernel(), k.get_substitution_list(), false);
+  }
+
+
+template <unsigned int N>
+fourier_kernel<N>& fourier_kernel<N>::add(kernel_type k, bool silent)
+  {
+    return this->add(k.get_time_function(), k.get_initial_value_set(), k.get_kernel(), k.get_substitution_list(), silent);
+  }
 
 
 template <unsigned int N>
@@ -586,7 +618,7 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
     validate_structure(K);
     
     // validate that momentum variables used in K match those listed in the stochastic terms
-    validate_momenta(s, vs, K, this->sf.get_regulator(), silent);
+    validate_momenta(s, vs, K, silent);
     
     // check whether an entry with this key already exists
     auto ker = std::make_unique<kernel_type>(std::move(K), std::move(s), std::move(t), std::move(vs), this->sf);
@@ -680,7 +712,7 @@ fourier_kernel<N> fourier_kernel_impl::transform_kernel(const fourier_kernel<N>&
         auto new_ker = op(old_ker);
         
         // insert new kernel
-        r.add(new_ker.get_time_function(), new_ker.get_initial_value_set(), new_ker.get_kernel(), new_ker.get_substitution_list(), true);
+        r.add(new_ker, true);
       }
     
     return r;
@@ -702,7 +734,7 @@ fourier_kernel<N> fourier_kernel_impl::transform_kernel(const fourier_kernel<N>&
         auto new_ker = op(old_ker);
         
         // insert this new kernel
-        r.add(new_ker.get_time_function(), new_ker.get_initial_value_set(), new_ker.get_kernel(), new_ker.get_substitution_list(), true);
+        r.add(new_ker, true);
       }
     
     return r;
@@ -811,7 +843,7 @@ fourier_kernel<N> operator*(const fourier_kernel<N>& a, const fourier_kernel<N>&
       {
         auto k = c*d;
         
-        r.add(k.get_time_function(), k.get_initial_value_set(), k.get_kernel(), k.get_substitution_list(), true);
+        r.add(k, true);
       };
     
     KernelProduct(a, b, ins);
@@ -869,20 +901,9 @@ fourier_kernel<N> InverseLaplacian(const fourier_kernel<N>& a)
       {
         // extract -k^2 for this kernel
         auto vsum = b.get_total_momentum();
-
-        // if this is a term of O(delta) then the inverse Laplacian is rotationally invariant and
-        // we need do nothing special
-        if(b.order() == 1)
-          {
-            auto vsq = -vsum.norm_square();
-            b.multiply_kernel(GiNaC::ex(1)/vsq);
-            return b;
-          }
         
-        // otherwise, we need to generate a new substitution rule because we are introducing
-        // a non-rotationally invariant denominator.
-        // This inverse factor should not need regulating, since it is held out of index substitution
-        // until the very end
+        // generate a new substitution rule because we are introducing
+        // a potentially non-rotationally invariant denominator
         auto label_sym = a.sf.make_unique_Rayleigh_momentum();
         vector label = a.sf.make_vector(label_sym);
 
@@ -919,7 +940,7 @@ fourier_kernel<N> gradgrad(const fourier_kernel<N>& a, const fourier_kernel<N>& 
         
         auto k = c*d;
         
-        r.add(k.get_time_function(), k.get_initial_value_set(), k.get_kernel(), k.get_substitution_list(), true);
+        r.add(k, true);
       };
     
     KernelProduct(a, b, ins);

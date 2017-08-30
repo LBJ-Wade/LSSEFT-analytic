@@ -45,9 +45,6 @@ int main(int argc, char* argv[])
     // redshift z is the time variable
     auto z = sf.get_z();
     
-    // epsilon is a common regulator for denominators that can go to zero
-    auto eps = sf.get_regulator();
-    
     // manufacture placeholder stochastic initial values delta*_q, delta*_s, delta*_t
     // (recall we skip delta*_r because r is also the line-of-sight variable)
     auto deltaq = sf.make_initial_value("delta");
@@ -55,13 +52,14 @@ int main(int argc, char* argv[])
     auto deltat = sf.make_initial_value("delta");
     
     // linear set is delta*_q
-    initial_value_set iv1{deltaq};
+    initial_value_set iv_q{deltaq};
     
-    // quadratic set is delta*_q delta*_s
-    initial_value_set iv2{deltaq, deltas};
+    // quadratic set is delta*_q delta*_s or delta*_s delta*_t
+    initial_value_set iv_qs{deltaq, deltas};
+    initial_value_set iv_st{deltas, deltat};
     
     // cubic set is delta*_q delta*_s delta*_t
-    initial_value_set iv3{deltaq, deltas, deltat};
+    initial_value_set iv_qst{deltaq, deltas, deltat};
 
     // extract momentum vectors from these initial value placeholders
     vector q = deltaq;
@@ -73,18 +71,19 @@ int main(int argc, char* argv[])
     auto delta = sf.make_fourier_kernel<3>();
 
     // linear order
-    delta.add(SPT::D(z), iv1, 1);
+    delta.add(SPT::D(z), iv_q, 1);
     
     // second order
-    delta.add(SPT::DA(z), iv2, alpha(q, s, eps));
-    delta.add(SPT::DB(z), iv2, gamma(q, s, eps));
+    delta.add(SPT::DA(z) * alpha(q, s, iv_qs, sf));
+    delta.add(SPT::DB(z) * gamma(q, s, iv_qs, sf));
     
     // quadratic order
-    delta.add(SPT::DD(z) - SPT::DJ(z), iv3, 2*gamma_bar(s+t, q, eps)*alpha_bar(s, t, eps));
-    delta.add(SPT::DE(z),              iv3, 2*gamma_bar(s+t, q, eps)*gamma_bar(s, t, eps));
-    delta.add(SPT::DF(z) + SPT::DJ(z), iv3, 2*alpha_bar(s+t, q, eps)*alpha_bar(s, t, eps));
-    delta.add(SPT::DG(z),              iv3, 2*alpha_bar(s+t, q, eps)*gamma_bar(s, t, eps));
-    delta.add(SPT::DJ(z),              iv3, alpha(s+t, q, eps)*gamma_bar(s, t, eps) - 2*alpha(s+t, q, eps)*alpha_bar(s, t, eps));
+    delta.add((SPT::DD(z) - SPT::DJ(z)) * 2*gamma_bar(s+t, q, iv_qst, sf)*alpha_bar(s, t, iv_st, sf));
+    delta.add(SPT::DE(z)                * 2*gamma_bar(s+t, q, iv_qst, sf)*gamma_bar(s, t, iv_st, sf));
+    delta.add((SPT::DF(z) + SPT::DJ(z)) * 2*alpha_bar(s+t, q, iv_qst, sf)*alpha_bar(s, t, iv_st, sf));
+    delta.add(SPT::DG(z)                * 2*alpha_bar(s+t, q, iv_qst, sf)*gamma_bar(s, t, iv_st, sf));
+    delta.add(SPT::DJ(z)                * (alpha(s+t, q, iv_qst, sf)*gamma_bar(s, t, iv_st, sf)
+                                           - 2*alpha(s+t, q, iv_qst, sf)*alpha_bar(s, t, iv_st, sf)));
     
     
     // compute kernels for the velocity potential \phi, v = grad phi -> v(k) = i k phi

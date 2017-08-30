@@ -237,11 +237,6 @@ Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2
 template <typename Kernel1, typename Kernel2, typename InsertOperator>
 void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, InsertOperator ins)
   {
-    // get regulator variable; we can remove this after taking Wick products
-    const auto& eps = this->sf.get_regulator();
-    GiNaC::exmap eps_to_zero;
-    eps_to_zero[eps] = 0;
-    
     // multiply out all terms in ker1 and ker2, using the insertion operator 'ins'
     // to store the results in a suitable Pk database
     
@@ -299,9 +294,6 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Insert
                 using detail::remove_Rayleigh_trivial;
                 auto Rayleigh_triv = remove_Rayleigh_trivial(Rayleigh_list);
                 K = K.subs(Rayleigh_triv);
-    
-                // remove regulator, which should no longer be needed
-                K = K.subs(eps_to_zero);
                 
                 // simplify dot products where possible
                 GiNaC::scalar_products dotp;
@@ -311,8 +303,19 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Insert
                     dotp.add(*loops.begin(), *loops.begin(), this->L*this->L);
                     dotp.add(*loops.begin(), this->k, this->k*this->L*this->ckL);
                   }
+                for(const auto& rule : Rayleigh_list)
+                  {
+                    // add dot-products between Rayleigh momenta to the list
+                    const auto& sym = GiNaC::ex_to<GiNaC::symbol>(rule.first);
+                    dotp.add(sym, sym, sym*sym);
+                  }
 
                 K = simplify_index(K, dotp);
+                
+                // if any indexed quantities are left then something has gone wrong
+                const auto remaining_idxs = get_expr_indices(K);
+                if(!remaining_idxs.empty())
+                  throw exception(ERROR_OUTSTANDING_INDICES, exception_code::Pk_error);
                 
                 // prune Rayleigh list to remove momenta that have dropped out
                 using detail::prune_Rayleigh_list;

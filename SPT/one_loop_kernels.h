@@ -29,25 +29,27 @@
 
 
 #include "lib/vector.h"
+#include "lib/initial_value.h"
+#include "lib/fourier_kernel.h"
 
 
 //! alpha kernel
-GiNaC::ex alpha(const vector& q, const vector& s, const GiNaC::symbol& eps);
+fourier_kernel_impl::kernel alpha(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf);
 
 //! beta kernel
-GiNaC::ex beta(const vector& q, const vector& s, const GiNaC::symbol& eps);
+fourier_kernel_impl::kernel beta(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf);
 
 //! gamma kernel
-GiNaC::ex gamma(const vector& q, const vector& s, const GiNaC::symbol& eps);
+fourier_kernel_impl::kernel gamma(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf);
 
 //! symmetrized alpha kernel
-GiNaC::ex alpha_bar(const vector& q, const vector& s, const GiNaC::symbol& eps);
+fourier_kernel_impl::kernel alpha_bar(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf);
 
 //! symmetrized beta kernel
-GiNaC::ex beta_bar(const vector& q, const vector& s, const GiNaC::symbol& eps);
+fourier_kernel_impl::kernel beta_bar(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf);
 
 //! symmetrized gamma kernel
-GiNaC::ex gamma_bar(const vector& q, const vector& s, const GiNaC::symbol& eps);
+fourier_kernel_impl::kernel gamma_bar(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf);
 
 
 #endif //LSSEFT_ANALYTIC_ONE_LOOP_KERNELS_H

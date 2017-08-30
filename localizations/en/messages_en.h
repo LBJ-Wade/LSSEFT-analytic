@@ -58,13 +58,13 @@ constexpr auto ERROR_COULD_NOT_ASSIGN_EXTERNAL_MOMENTUM = "Internal error: could
 constexpr auto ERROR_COULD_NOT_EVALUATE_WICK_CONTRACTION = "Internal error: cannot (yet) evaluate a Wick contraction between two unassigned momenta";
 
 constexpr auto ERROR_EXPECTED_ONE_LOOP_RESULT = "Internal error: expected one-loop result";
+constexpr auto ERROR_OUTSTANDING_INDICES = "Simplification of some Pk terms was not complete: indices were left over";
 constexpr auto ERROR_INCORRECT_SUBMAP_SIZE = "Internal error: unexpected size for substitution map from Wick contractions";
 
 constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
 constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";
 constexpr auto WARNING_ORDER_ZERO_KERNEL = "Ignoring order-zero kernel";
 constexpr auto WARNING_KERNEL_EXPRESSION = "Kernel expression";
-
 
 
 #endif //LSSEFT_ANALYTIC_MESSAGES_EN_H

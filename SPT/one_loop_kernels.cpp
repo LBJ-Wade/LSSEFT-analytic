@@ -27,37 +27,57 @@
 #include "one_loop_kernels.h"
 
 
-GiNaC::ex alpha(const vector& q, const vector& s, const GiNaC::symbol& eps)
+fourier_kernel_impl::kernel alpha(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf)
   {
-    return dot(q, q+s) / (q.norm_square() + eps);
+    fourier_kernel_impl::subs_list Rayleigh_list;
+    
+    auto R_sym = sf.make_unique_Rayleigh_momentum();
+    auto R = sf.make_vector(R_sym);
+    
+    GiNaC::ex K = dot(q, q+s) / R.norm_square();
+    Rayleigh_list[R_sym] = q.get_expr();
+    
+    return fourier_kernel_impl::kernel{K, iv, GiNaC::ex(1), Rayleigh_list, sf};
   }
 
 
-GiNaC::ex beta(const vector& q, const vector& s, const GiNaC::symbol& eps)
+fourier_kernel_impl::kernel beta(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf)
   {
-    return dot(q, s) * (q+s).norm_square() / (2 * q.norm_square() * s.norm_square() + eps);
+    fourier_kernel_impl::subs_list Rayleigh_list;
+    
+    auto R_sym = sf.make_unique_Rayleigh_momentum();
+    auto R = sf.make_vector(R_sym);
+    
+    auto S_sym = sf.make_unique_Rayleigh_momentum();
+    auto S = sf.make_vector(S_sym);
+
+    GiNaC::ex K = dot(q, s) * (q+s).norm_square() / (2 * R.norm_square() * S.norm_square());
+    Rayleigh_list[R_sym] = q.get_expr();
+    Rayleigh_list[S_sym] = s.get_expr();
+    
+    return fourier_kernel_impl::kernel{K, iv, GiNaC::ex(1), Rayleigh_list, sf};
   }
 
 
-GiNaC::ex gamma(const vector& q, const vector& s, const GiNaC::symbol& eps)
+fourier_kernel_impl::kernel gamma(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf)
   {
-    return alpha(q, s, eps) + beta(q, s, eps);
+    return alpha(q, s, iv, sf) + beta(q, s, iv, sf);
   }
 
 
-GiNaC::ex alpha_bar(const vector& q, const vector& s, const GiNaC::symbol& eps)
+fourier_kernel_impl::kernel alpha_bar(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf)
   {
-    return (alpha(q, s, eps) + alpha(s, q, eps)) / 2;
+    return (alpha(q, s, iv, sf) + alpha(s, q, iv, sf)) / 2;
   }
 
 
-GiNaC::ex beta_bar(const vector& q, const vector& s, const GiNaC::symbol& eps)
+fourier_kernel_impl::kernel beta_bar(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf)
   {
-    return (beta(q, s, eps) + beta(s, q, eps)) / 2;
+    return (beta(q, s, iv, sf) + beta(s, q, iv, sf)) / 2;
   }
 
 
-GiNaC::ex gamma_bar(const vector& q, const vector& s, const GiNaC::symbol& eps)
+fourier_kernel_impl::kernel gamma_bar(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf)
   {
-    return (gamma(q, s, eps) + gamma(s, q, eps)) / 2;
+    return (gamma(q, s, iv, sf) + gamma(s, q, iv, sf)) / 2;
   }

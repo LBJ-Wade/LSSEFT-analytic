@@ -178,6 +178,20 @@ namespace fourier_kernel_impl
       }
     
     
+    kernel operator+(const kernel& a, const kernel& b)
+      {
+        kernel c = a;
+        c += b;
+        return c;
+      }
+    
+    
+    kernel operator-(const kernel& a, const kernel& b)
+      {
+        return a + (-b);
+      }
+    
+    
     kernel operator*(const GiNaC::ex a, const kernel& b)
       {
         kernel c = b;
@@ -186,11 +200,23 @@ namespace fourier_kernel_impl
       }
     
     
+    kernel operator*(const kernel& a, const GiNaC::ex b)
+      {
+        return b*a;
+      }
+    
+    
     kernel operator*(const kernel& a, const kernel& b)
       {
         kernel c = a;
         c *= b;
         return c;
+      }
+    
+    
+    kernel operator/(const kernel& a, const GiNaC::ex b)
+      {
+        return (GiNaC::ex(1)/b) * a;
       }
     
     
@@ -221,14 +247,9 @@ namespace fourier_kernel_impl
     kernel& kernel::multiply_kernel(GiNaC::ex f)
       {
         const auto& our_syms = this->iv.get_momenta();
-        const auto& eps = this->sf.get_regulator();
     
-        // ensure that f only involves symbols in the initial value set or s (or the regulator epsilon)
+        // ensure that f only involves symbols in the initial value set or s
         auto expr_syms = get_expr_symbols(f);
-    
-        // remove regulator epsilon from the used set
-        auto t = expr_syms.find(eps);
-        if(t != expr_syms.end()) expr_syms.erase(t);
     
         for(const auto& sym : expr_syms)
           {
@@ -247,14 +268,9 @@ namespace fourier_kernel_impl
     kernel& kernel::multiply_kernel(GiNaC::ex f, GiNaC::symbol s, GiNaC::ex rule)
       {
         const auto& our_syms = this->iv.get_momenta();
-        const auto& eps = this->sf.get_regulator();
 
-        // ensure that f only involves symbols in the initial value set or s (or the regulator epsilon)
+        // ensure that f only involves symbols in the initial value set or s
         auto expr_syms = get_expr_symbols(f);
-    
-        // remove regulator epsilon from the used set
-        auto t = expr_syms.find(eps);
-        if(t != expr_syms.end()) expr_syms.erase(t);
 
         for(const auto& sym : expr_syms)
           {
@@ -393,8 +409,7 @@ void validate_structure(const GiNaC::ex& K)
   }
 
 
-void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs, const GiNaC::ex& K,
-                      const GiNaC::symbol& eps, bool silent)
+void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs, const GiNaC::ex& K, bool silent)
   {
     using fourier_kernel_impl::subs_list;
     
@@ -410,10 +425,6 @@ void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::sub
     
     GiNaC_symbol_set used_not_avail;
     GiNaC_symbol_set avail_not_used;
-    
-    // remove regulator epsilon from the used set
-    auto t = used.find(eps);
-    if(t != used.end()) used.erase(t);
     
     // perform set differencing to find mismatch between available and used symbols
     std::set_difference(used.cbegin(), used.cend(), avail.cbegin(), avail.cend(),
