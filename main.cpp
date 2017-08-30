@@ -45,6 +45,12 @@ int main(int argc, char* argv[])
     // redshift z is the time variable
     auto z = sf.get_z();
     
+    // r is the unit line-of-sight vector to Earth
+    auto r = sf.make_vector("r");
+    
+    // mu is RSD parameter = r.\hat{k} = r.k / |k|
+    auto mu = sf.make_symbol("mu");
+    
     // manufacture placeholder stochastic initial values delta*_q, delta*_s, delta*_t
     // (recall we skip delta*_r because r is also the line-of-sight variable)
     auto deltaq = sf.make_initial_value("delta");
@@ -103,8 +109,27 @@ int main(int argc, char* argv[])
     // set up momentum label k
     auto k = sf.make_symbol("k");
     
+    // build expression for the redshift-space \delta
+    GiNaC::ex H = FRW::Hub(z);
+    auto k1mu = k*mu;
+    auto k2mu = -k*mu;
+    
+    auto r_dot_v = dotgrad(r, phi);
+
+    auto make_delta_rsd = [&](const decltype(k1mu)& kmu) -> auto
+      {
+        return delta
+               - (GiNaC::I / H) * kmu * r_dot_v
+               - (GiNaC::I / H) * kmu * (r_dot_v * delta)
+               + (GiNaC::ex(1) / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v)
+               + (GiNaC::ex(1) / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v * delta)
+               + (GiNaC::I / (3*H*H*H)) * kmu*kmu*kmu * (r_dot_v * r_dot_v * r_dot_v);
+      };
+    auto delta_rsd_k1 = make_delta_rsd(k1mu);
+    auto delta_rsd_k2 = make_delta_rsd(k2mu);
+    
     // construct 1-loop \delta power spectrum
-    Pk_one_loop Pk_delta{phi, phi, k, sf};
+    Pk_one_loop Pk_delta{delta_rsd_k1, delta_rsd_k2, k, sf};
     
     const auto& tree = Pk_delta.get_tree();
     std::cout << "Tree-level P(k):" << '\n';

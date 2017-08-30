@@ -429,6 +429,12 @@ fourier_kernel<N> InverseLaplacian(const fourier_kernel<N>& a);
 template <unsigned int N>
 fourier_kernel<N> gradgrad(const fourier_kernel<N>& a, const fourier_kernel<N>& b);
 
+//! compute vector.(grad b) for a vector and a Fourier kernel.
+//! The Fourier convention is that f(x) = \int d^3 k (2pi)^-3 f(k) exp(ik.x),
+//! so the gradient will pull down a factor of +ik
+template <unsigned int N>
+fourier_kernel<N> dotgrad(const vector& a, const fourier_kernel<N>& b);
+
 
 //! kernel represents an object defined by an integral kernel and early-time
 //! values for each stochastic quantity such as the density constrast \delta*_k
@@ -567,6 +573,7 @@ class fourier_kernel
     friend fourier_kernel Laplacian<>(const fourier_kernel& a);
     friend fourier_kernel InverseLaplacian<>(const fourier_kernel& a);
     friend fourier_kernel gradgrad<>(const fourier_kernel& a, const fourier_kernel& b);
+    friend fourier_kernel dotgrad<>(const vector& a, const fourier_kernel& b);
     
   };
 
@@ -946,6 +953,27 @@ fourier_kernel<N> gradgrad(const fourier_kernel<N>& a, const fourier_kernel<N>& 
     KernelProduct(a, b, ins);
     
     return r;
+  }
+
+
+template <unsigned int N>
+fourier_kernel<N> dotgrad(const vector& a, const fourier_kernel<N>& b)
+  {
+    using fourier_kernel_impl::kernel;
+    using fourier_kernel_impl::transform_kernel;
+    
+    // manufacture a blank fourier kernel of max order N
+    auto r = b.sf.template make_fourier_kernel<N>();
+    
+    // insert step should dot each product kernel with i a.kb
+    return transform_kernel(b, [&](kernel c) -> kernel
+      {
+        auto kc = c.get_total_momentum();
+        
+        c.multiply_kernel(GiNaC::I*dot(a, kc));
+        
+        return c;
+      });
   }
 
 
