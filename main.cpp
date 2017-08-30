@@ -46,7 +46,8 @@ int main(int argc, char* argv[])
     auto z = sf.get_z();
     
     // r is the unit line-of-sight vector to Earth
-    auto r = sf.make_vector("r");
+    auto r_sym = sf.make_symbol("r");
+    auto r = sf.make_vector(r_sym);
     
     // mu is RSD parameter = r.\hat{k} = r.k / |k|
     auto mu = sf.make_symbol("mu");
@@ -108,6 +109,10 @@ int main(int argc, char* argv[])
     
     // set up momentum label k
     auto k = sf.make_symbol("k");
+
+    sf.declare_parameter(r_sym);
+    sf.declare_parameter(k);
+    sf.declare_parameter(mu);
     
     // build expression for the redshift-space \delta
     GiNaC::ex H = FRW::Hub(z);
@@ -129,7 +134,7 @@ int main(int argc, char* argv[])
     auto delta_rsd_k2 = make_delta_rsd(k2mu);
     
     // construct 1-loop \delta power spectrum
-    Pk_one_loop Pk_delta{delta_rsd_k1, delta_rsd_k2, k, sf};
+    Pk_one_loop Pk_delta{delta, delta, k, sf};
     
     const auto& tree = Pk_delta.get_tree();
     std::cout << "Tree-level P(k):" << '\n';

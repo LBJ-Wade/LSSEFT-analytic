@@ -31,6 +31,7 @@
 #include <map>
 
 #include "shared/defaults.h"
+#include "utilities/GiNaC_utils.h"
 
 #include "boost/optional.hpp"
 
@@ -80,10 +81,7 @@ class symbol_factory
     
     //! get GiNaC symbol representing redshift z
     const GiNaC::symbol& get_z();
-    
-    //! get GiNaC symbol for denominator regulator
-    const GiNaC::symbol& get_regulator();
-    
+
     //! manufacture a GiNaC symbol corresponding to a given name
     const GiNaC::symbol& make_symbol(std::string name, boost::optional<std::string> latex_name = boost::none);
     
@@ -124,14 +122,33 @@ class symbol_factory
     
     //! make a unique Rayleigh variable
     GiNaC::symbol make_unique_Rayleigh_momentum();
+
+
+    // PARAMETER HANDLING
+
+  public:
+
+    //! declare a symbol to be a parameter
+    void declare_parameter(const GiNaC::symbol& s);
+
+    //! get parameter set
+    const GiNaC_symbol_set& get_parameters() const { return this->parameters; }
     
     
     // INTERNAL DATA
     
   private:
-    
+
+    // DATABASES
+
     //! symbol database
     symbol_db symbols;
+
+    //! parameter database; symbols declared as parameters can be included in momentum kernels
+    GiNaC_symbol_set parameters;
+
+
+    // INTERNAL STATE
     
     //! cache dimension of index space
     unsigned int index_dimension;

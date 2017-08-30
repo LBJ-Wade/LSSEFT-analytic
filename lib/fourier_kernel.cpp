@@ -246,9 +246,11 @@ namespace fourier_kernel_impl
     
     kernel& kernel::multiply_kernel(GiNaC::ex f)
       {
-        const auto& our_syms = this->iv.get_momenta();
+        auto our_syms = this->iv.get_momenta();
+        const auto& params = this->sf.get_parameters();
+        std::copy(params.begin(), params.end(), std::inserter(our_syms, our_syms.begin()));
     
-        // ensure that f only involves symbols in the initial value set or s
+        // ensure that f only involves symbols in the initial value set or s, or declared as parameters
         auto expr_syms = get_expr_symbols(f);
     
         for(const auto& sym : expr_syms)
@@ -267,7 +269,9 @@ namespace fourier_kernel_impl
     
     kernel& kernel::multiply_kernel(GiNaC::ex f, GiNaC::symbol s, GiNaC::ex rule)
       {
-        const auto& our_syms = this->iv.get_momenta();
+        auto our_syms = this->iv.get_momenta();
+        const auto& params = this->sf.get_parameters();
+        std::copy(params.begin(), params.end(), std::inserter(our_syms, our_syms.begin()));
 
         // ensure that f only involves symbols in the initial value set or s
         auto expr_syms = get_expr_symbols(f);
@@ -409,7 +413,8 @@ void validate_structure(const GiNaC::ex& K)
   }
 
 
-void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs, const GiNaC::ex& K, bool silent)
+void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs, const GiNaC::ex& K,
+                      const GiNaC_symbol_set& params, bool silent)
   {
     using fourier_kernel_impl::subs_list;
     
@@ -422,6 +427,9 @@ void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::sub
         auto sym = GiNaC::ex_to<GiNaC::symbol>(v.first);
         avail.insert(sym);
       });
+
+    // also insert any symbols that have been declared as parameters
+    std::copy(params.begin(), params.end(), std::inserter(avail, avail.begin()));
     
     GiNaC_symbol_set used_not_avail;
     GiNaC_symbol_set avail_not_used;

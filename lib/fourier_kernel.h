@@ -589,7 +589,8 @@ void validate_structure(const GiNaC::ex& K);
 
 //! validate that a kernel and set of initial values match (no unknown momenta in kernel)
 void
-validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs, const GiNaC::ex& K, bool silent);
+validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs, const GiNaC::ex& K,
+                 const GiNaC_symbol_set& params, bool silent);
 
 
 template <unsigned int N>
@@ -625,7 +626,7 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
     validate_structure(K);
     
     // validate that momentum variables used in K match those listed in the stochastic terms
-    validate_momenta(s, vs, K, silent);
+    validate_momenta(s, vs, K, this->sf.get_parameters(), silent);
     
     // check whether an entry with this key already exists
     auto ker = std::make_unique<kernel_type>(std::move(K), std::move(s), std::move(t), std::move(vs), this->sf);

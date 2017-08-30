@@ -311,12 +311,7 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Insert
                   }
 
                 K = simplify_index(K, dotp);
-                
-                // if any indexed quantities are left then something has gone wrong
-                const auto remaining_idxs = get_expr_indices(K);
-                if(!remaining_idxs.empty())
-                  throw exception(ERROR_OUTSTANDING_INDICES, exception_code::Pk_error);
-                
+
                 // prune Rayleigh list to remove momenta that have dropped out
                 using detail::prune_Rayleigh_list;
                 prune_Rayleigh_list(Rayleigh_list, K);

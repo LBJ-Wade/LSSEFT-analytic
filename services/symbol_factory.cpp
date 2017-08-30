@@ -79,12 +79,6 @@ const GiNaC::symbol& symbol_factory::get_z()
   }
 
 
-const GiNaC::symbol& symbol_factory::get_regulator()
-  {
-    return this->eps;
-  }
-
-
 GiNaC::idx symbol_factory::make_unique_index()
   {
     // generate unique name for this dummy index
@@ -154,5 +148,11 @@ initial_value symbol_factory::make_initial_value(const GiNaC::symbol& s)
     auto k = this->make_unique_momentum();
     
     return initial_value{k, s, *this};
+  }
+
+void symbol_factory::declare_parameter(const GiNaC::symbol& s)
+  {
+    // TODO: could perhaps perform more checking to ensure that momenta are not declared as parameters ...
+    this->parameters.insert(s);
   }
 
