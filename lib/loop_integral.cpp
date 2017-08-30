@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 25/08/2017.
+// Created by David Seery on 30/08/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,19 +24,35 @@
 // --@@
 //
 
-#include "Pk_one_loop.h"
+#include "loop_integral.h"
 
 
-std::ostream& operator<<(std::ostream& str, const Pk_one_loop_impl::Pk_db& obj)
+std::ostream& operator<<(std::ostream& str, const loop_integral& obj)
   {
-    size_t count = 0;
-    for(const auto& item : obj)
-      {
-        std::cout << "Element " << count << "." << '\n';
-        std::cout << *item << '\n';
-
-        ++count;
-      }
-
+    obj.write(str);
     return str;
+  }
+
+
+void loop_integral::write(std::ostream& out) const
+  {
+    std::cout << "  time function = " << this->tm << '\n';
+    std::cout << "  momentum kernel = " << this->K << '\n';
+    std::cout << "  Wick product = " << this->WickString << '\n';
+
+    std::cout << "  loop momenta =";
+    for(const auto& sym : this->loop_momenta)
+      {
+        std::cout << " " << sym;
+      }
+    if(this->loop_momenta.empty()) std::cout << " <none>";
+    std::cout << '\n';
+
+    std::cout << "  Rayleigh momenta =";
+    for(const auto& rule : this->Rayleigh_momenta)
+      {
+        std::cout << " " << rule.first << " -> " << rule.second << ";";
+      }
+    if(this->Rayleigh_momenta.empty()) std::cout << " <none>";
+    std::cout << '\n';
   }

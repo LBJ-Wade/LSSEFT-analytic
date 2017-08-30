@@ -544,6 +544,9 @@ class fourier_kernel
     
     //! extract list of elements of fixed order as a new Fourier kernel
     fourier_kernel order(unsigned int ord) const;
+
+    //! get size
+    size_t size() const { return this->kernels.size(); }
     
     
     // SERVICES

@@ -49,12 +49,6 @@ constexpr auto LSSEFT_DEFAULT_ONE_LOOP_MOMENTUM_NAME = "L";
 //! default LaTeX name for one-loop loop momentum
 constexpr auto LSSEFT_DEFAULT_ONE_LOOP_MOMENTUM_LATEX = "L";
 
-//! default name for cos \theta, the cos of the angle between k and L
-constexpr auto LSSEFT_DEFAULT_ONE_LOOP_COS_NAME = "cTheta";
-
-//! default LaTeX name for cos \theta
-constexpr auto LSSEFT_DEFAULT_ONE_LOOP_COS_LATEX = "\\cos\\theta";
-
 //! default text name for redshift variable
 constexpr auto LSSEFT_REDSHIFT_NAME = "z";
 

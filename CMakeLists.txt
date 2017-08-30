@@ -35,8 +35,9 @@ ENDIF()
 
 ADD_EXECUTABLE(LSSEFT_analytic
   main.cpp
-  lib/initial_value.cpp
   lib/fourier_kernel.cpp
+  lib/initial_value.cpp
+               lib/loop_integral.cpp
   lib/vector.cpp
   lib/Pk_one_loop.cpp
   lib/detail/contractions.cpp
@@ -72,6 +73,8 @@ SET(LIBRARY_FILES
   lib/initial_value.h
   lib/Pk_one_loop.cpp
   lib/Pk_one_loop.h
+    lib/loop_integral.cpp
+    lib/loop_integral.h
   )
 
 SET(LIBRARY_DETAIL_FILES
