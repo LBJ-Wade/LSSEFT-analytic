@@ -236,16 +236,23 @@ void loop_integral::inner_products_to_cos()
 void loop_integral::canonicalize_momenta()
   {
     GiNaC_symbol_set new_momenta;
-    GiNaC::exmap rules;
+    GiNaC::exmap relabel;
 
     unsigned int count = 0;
     for(const auto& l : this->loop_momenta)
       {
         const auto L = this->sf.make_canonical_loop_momentum(count++);
-        rules[l] = L;
+        relabel[l] = L;
         new_momenta.insert(L);
       }
 
-    this->K = this->K.subs(rules);
+    this->K = this->K.subs(relabel);
+    this->WickString = this->WickString.subs(relabel);
+
+    for(auto& rule : this->Rayleigh_momenta)
+      {
+        rule.second = rule.second.subs(relabel);
+      }
+
     this->loop_momenta = new_momenta;
   }
