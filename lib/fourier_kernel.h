@@ -674,13 +674,13 @@ fourier_kernel<N> fourier_kernel_impl::transform_kernel(const fourier_kernel<N>&
     // copy elements from a into this blank kernel, applying op as we go
     for(const auto& t : a.kernels)
       {
-        const auto& value = *t.second;
+        const auto& old_ker = *t.second;
         
         // apply operator to kernel
-        auto ker = op(value);
+        auto new_ker = op(old_ker);
         
         // insert new kernel
-        r.add(value.get_time_function(), value.get_initial_value_set(), value.get_kernel(), value.get_substitution_list(), true);
+        r.add(new_ker.get_time_function(), new_ker.get_initial_value_set(), new_ker.get_kernel(), new_ker.get_substitution_list(), true);
       }
     
     return r;
@@ -696,13 +696,13 @@ fourier_kernel<N> fourier_kernel_impl::transform_kernel(const fourier_kernel<N>&
     // now copy elements from b into this kernel, applying op
     for(const auto& t : b.kernels)
       {
-        const auto& value = *t.second;
+        const auto& old_ker = *t.second;
         
         // apply operator to kernel
-        auto ker = op(value);
+        auto new_ker = op(old_ker);
         
         // insert this new kernel
-        r.add(value.get_time_function(), value.get_initial_value_set(), value.get_kernel(), value.get_substitution_list(), true);
+        r.add(new_ker.get_time_function(), new_ker.get_initial_value_set(), new_ker.get_kernel(), new_ker.get_substitution_list(), true);
       }
     
     return r;
@@ -885,8 +885,9 @@ fourier_kernel<N> InverseLaplacian(const fourier_kernel<N>& a)
         // until the very end
         auto label_sym = a.sf.make_unique_Rayleigh_momentum();
         vector label = a.sf.make_vector(label_sym);
-        auto vsq = -label.norm_square();
-        b.multiply_kernel(GiNaC::ex(1)/vsq, label_sym, vsum.get_expr());
+
+        auto rsq = -label.norm_square();
+        b.multiply_kernel(GiNaC::ex(1)/rsq, label_sym, vsum.get_expr());
 
         return b;
       });

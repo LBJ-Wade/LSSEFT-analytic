@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
                                  - gradgrad(phi1, delta2) - gradgrad(phi2, delta1));
     
     auto phi = phi1 + phi2 + phi3;
-
+    
     
     // set up momentum label k
     auto k = sf.make_symbol("k");
@@ -108,14 +108,13 @@ int main(int argc, char* argv[])
     Pk_one_loop Pk_delta{phi, phi, k, sf};
     
     const auto& tree = Pk_delta.get_tree();
-
     std::cout << "Tree-level P(k):" << '\n';
     std::cout << tree << '\n';
-    
+
     const auto& P13 = Pk_delta.get_13();
     std::cout << "Loop-level 13 P(k):" << '\n';
     std::cout << P13 << '\n';
-    
+
     const auto& P22 = Pk_delta.get_22();
     std::cout << "Loop-level 22 P(k):" << '\n';
     std::cout << P22 << '\n';
