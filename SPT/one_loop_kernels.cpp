@@ -27,57 +27,57 @@
 #include "one_loop_kernels.h"
 
 
-fourier_kernel_impl::kernel alpha(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf)
+kernel alpha(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
   {
-    fourier_kernel_impl::subs_list Rayleigh_list;
+    auto Q_sym = sf.make_unique_Rayleigh_momentum();
+    auto Q = sf.make_vector(Q_sym);
     
-    auto R_sym = sf.make_unique_Rayleigh_momentum();
-    auto R = sf.make_vector(R_sym);
-    
-    GiNaC::ex K = dot(q, q+s) / R.norm_square();
-    Rayleigh_list[R_sym] = q.get_expr();
-    
-    return fourier_kernel_impl::kernel{K, iv, GiNaC::ex(1), Rayleigh_list, sf};
+    GiNaC::ex K = dot(q, q+s) / Q.norm_square();
+
+    ker.multiply_kernel(K, Q_sym, q.get_expr());
+    return ker;
   }
 
 
-fourier_kernel_impl::kernel beta(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf)
+kernel beta(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
   {
-    fourier_kernel_impl::subs_list Rayleigh_list;
-    
-    auto R_sym = sf.make_unique_Rayleigh_momentum();
-    auto R = sf.make_vector(R_sym);
+    auto Q_sym = sf.make_unique_Rayleigh_momentum();
+    auto Q = sf.make_vector(Q_sym);
     
     auto S_sym = sf.make_unique_Rayleigh_momentum();
     auto S = sf.make_vector(S_sym);
 
-    GiNaC::ex K = dot(q, s) * (q+s).norm_square() / (2 * R.norm_square() * S.norm_square());
-    Rayleigh_list[R_sym] = q.get_expr();
-    Rayleigh_list[S_sym] = s.get_expr();
-    
-    return fourier_kernel_impl::kernel{K, iv, GiNaC::ex(1), Rayleigh_list, sf};
+    GiNaC::ex K = dot(q, s) * (q+s).norm_square() / 2;
+    ker.multiply_kernel(K);
+    ker.multiply_kernel(GiNaC::ex(1) / Q.norm_square(), Q_sym, q.get_expr());
+    ker.multiply_kernel(GiNaC::ex(1) / S.norm_square(), S_sym, s.get_expr());
+    return ker;
   }
 
 
-fourier_kernel_impl::kernel gamma(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf)
+kernel gamma(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
   {
-    return alpha(q, s, iv, sf) + beta(q, s, iv, sf);
+    kernel ker_copy = ker;
+    return alpha(q, s, ker, sf) + beta(q, s, ker_copy, sf);
   }
 
 
-fourier_kernel_impl::kernel alpha_bar(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf)
+kernel alpha_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
   {
-    return (alpha(q, s, iv, sf) + alpha(s, q, iv, sf)) / 2;
+    kernel ker_copy = ker;
+    return (alpha(q, s, ker, sf) + alpha(s, q, ker_copy, sf)) / 2;
   }
 
 
-fourier_kernel_impl::kernel beta_bar(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf)
+kernel beta_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
   {
-    return (beta(q, s, iv, sf) + beta(s, q, iv, sf)) / 2;
+    kernel ker_copy = ker;
+    return (beta(q, s, ker, sf) + beta(s, q, ker_copy, sf)) / 2;
   }
 
 
-fourier_kernel_impl::kernel gamma_bar(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf)
+kernel gamma_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
   {
-    return (gamma(q, s, iv, sf) + gamma(s, q, iv, sf)) / 2;
+    kernel ker_copy = ker;
+    return (gamma(q, s, ker, sf) + gamma(s, q, ker_copy, sf)) / 2;
   }

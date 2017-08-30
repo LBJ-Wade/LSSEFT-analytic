@@ -126,6 +126,16 @@ namespace fourier_kernel_impl
             sf(sf_)
           {
           }
+
+        //! alternative constructor accepts just an initial_value_set and a symbol factory refernce;
+        //! sets momentum kernel and time function to unity
+        kernel(initial_value_set iv_, symbol_factory& sf_)
+          : K(1),
+            tm(1),
+            iv(std::move(iv_)),
+            sf(sf_)
+          {
+          }
         
         //! destructor us default
         ~kernel() = default;
@@ -356,6 +366,10 @@ namespace std
       };
     
   }   // namespace std
+
+
+// pull in 'kernel' concept since it has wider utility
+using fourier_kernel_impl::kernel;
 
 
 // forward-declare class fourier_kernel

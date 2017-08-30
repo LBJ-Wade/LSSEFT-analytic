@@ -34,22 +34,22 @@
 
 
 //! alpha kernel
-fourier_kernel_impl::kernel alpha(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf);
+kernel alpha(const vector& q, const vector& s, kernel ker, symbol_factory& sf);
 
 //! beta kernel
-fourier_kernel_impl::kernel beta(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf);
+kernel beta(const vector& q, const vector& s, kernel ker, symbol_factory& sf);
 
 //! gamma kernel
-fourier_kernel_impl::kernel gamma(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf);
+kernel gamma(const vector& q, const vector& s, kernel ker, symbol_factory& sf);
 
 //! symmetrized alpha kernel
-fourier_kernel_impl::kernel alpha_bar(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf);
+kernel alpha_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf);
 
 //! symmetrized beta kernel
-fourier_kernel_impl::kernel beta_bar(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf);
+kernel beta_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf);
 
 //! symmetrized gamma kernel
-fourier_kernel_impl::kernel gamma_bar(const vector& q, const vector& s, const initial_value_set& iv, symbol_factory& sf);
+kernel gamma_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf);
 
 
 #endif //LSSEFT_ANALYTIC_ONE_LOOP_KERNELS_H
