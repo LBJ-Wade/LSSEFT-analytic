@@ -52,7 +52,7 @@ namespace detail
             
             const auto& label_symbol = GiNaC::ex_to<GiNaC::symbol>(label);
             
-            // search for an existing remap rule which matches this one
+            // search for an existing remap rule which matches this one (or its negative)
             auto u = std::find_if(dest.begin(), dest.end(), [&](const GiNaC::exmap::value_type& a) -> bool
               { return static_cast<bool>(a.second == value); });
             
@@ -63,8 +63,19 @@ namespace detail
                 mma_map[label_symbol] = u->first;
                 continue;
               }
+
+            u = std::find_if(dest.begin(), dest.end(), [&](const GiNaC::exmap::value_type& a) -> bool
+              { return static_cast<bool>(a.second == -value); });
+
+            // if one exists, just add a relabelling rule that will redirect this Rayleigh symbol
+            // to the existing definition
+            if(u != dest.end())
+              {
+                mma_map[label_symbol] = -u->first;
+                continue;
+              }
             
-            // otherwise need to add a new relabelling rule
+            // there was no match, so need to add a new relabelling rule
             
             // first, is there a symbol collision?
             bool collision = false;

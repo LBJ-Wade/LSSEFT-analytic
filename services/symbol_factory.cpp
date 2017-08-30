@@ -120,6 +120,17 @@ GiNaC::symbol symbol_factory::make_unique_Rayleigh_momentum()
     return GiNaC::symbol{name};
   }
 
+
+GiNaC::symbol symbol_factory::make_canonical_loop_momentum(unsigned int count)
+  {
+    // generate canonicalized name
+    std::string name = LSSEFT_CANONICAL_LOOP_MOMENTUM_NAME + std::to_string(count);
+
+    // generate symbol
+    return this->make_symbol(name);
+  }
+
+
 vector symbol_factory::make_vector(std::string name, boost::optional<std::string> latex_name)
   {
     auto sym = this->make_symbol(std::move(name), std::move(latex_name));

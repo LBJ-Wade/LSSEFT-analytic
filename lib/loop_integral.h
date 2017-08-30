@@ -29,6 +29,7 @@
 
 
 #include <iostream>
+#include <services/symbol_factory.h>
 
 #include "utilities/GiNaC_utils.h"
 
@@ -72,17 +73,30 @@ class loop_integral
   public:
 
     //! constructor
-    loop_integral(time_function tm_, GiNaC::ex K_, GiNaC::ex ws_, GiNaC_symbol_set lm_, subs_list rm_)
+    loop_integral(time_function tm_, GiNaC::ex K_, GiNaC::ex ws_, GiNaC_symbol_set lm_, subs_list rm_,
+                  symbol_factory& sf_)
       : tm(std::move(tm_)),
         K(std::move(K_)),
         WickString(std::move(ws_)),
         loop_momenta(std::move(lm_)),
-        Rayleigh_momenta(std::move(rm_))
+        Rayleigh_momenta(std::move(rm_)),
+        sf(sf_)
       {
       }
 
     //! destructor is default
     ~loop_integral() = default;
+
+
+    // TRANSFORMATIONS
+
+  public:
+
+    //! convert loop momenta to a canonical form
+    void canonicalize_momenta();
+
+    //! convert dot products to cosines
+    void inner_products_to_cos();
 
 
     // SERVICES
@@ -96,6 +110,14 @@ class loop_integral
     // INTERNAL DATA
 
   private:
+
+    // DELEGATES
+
+    //! cache reference to symbol factory
+    symbol_factory& sf;
+
+
+    // DATA
 
     //! time function
     time_function tm;

@@ -305,9 +305,30 @@ namespace fourier_kernel_impl
             msg << ERROR_SUBSTITUTION_RULE_ALREADY_EXISTS << " '" << s << "'";
             throw exception(msg.str(), exception_code::kernel_error);
           }
+
+        // check whether another rule with the same (or equivalent) RHS already exists
+        auto t = this->vs.begin();
+        for(; t != this->vs.end(); ++t)
+          {
+            if(static_cast<bool>(t->second == rule))
+              {
+                GiNaC::exmap map;
+                map[s] = t->first;
+                f = f.subs(map);
+                break;
+              }
+
+            if(static_cast<bool>(t->second == -rule))
+              {
+                GiNaC::exmap map;
+                map[s] = -t->first;
+                f = f.subs(map);
+                break;
+              }
+          }
         
         this->K *= f;
-        this->vs[s] = rule;
+        if(t == this->vs.end()) this->vs[s] = rule;
         
         return *this;
       }

@@ -135,16 +135,17 @@ int main(int argc, char* argv[])
     
     // construct 1-loop \delta power spectrum
     Pk_one_loop Pk_delta{delta, delta, k, sf};
+    Pk_delta.reduce_angular_integrals();
     
-    const auto& tree = Pk_delta.get_tree();
+    auto& tree = Pk_delta.get_tree();
     std::cout << "Tree-level P(k):" << '\n';
     std::cout << tree << '\n';
 
-    const auto& P13 = Pk_delta.get_13();
+    auto& P13 = Pk_delta.get_13();
     std::cout << "Loop-level 13 P(k):" << '\n';
     std::cout << P13 << '\n';
 
-    const auto& P22 = Pk_delta.get_22();
+    auto& P22 = Pk_delta.get_22();
     std::cout << "Loop-level 22 P(k):" << '\n';
     std::cout << P22 << '\n';
     

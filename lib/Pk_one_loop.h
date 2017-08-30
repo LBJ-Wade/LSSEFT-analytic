@@ -36,6 +36,7 @@
 #include "detail/contractions.h"
 #include "detail/relabel_product.h"
 #include "detail/Rayleigh_momenta.h"
+#include "detail/special_functions.h"
 
 #include "services/symbol_factory.h"
 
@@ -43,8 +44,69 @@
 namespace Pk_one_loop_impl
   {
 
-    //! Pk_db is a database of loop integrals
-    using Pk_db = std::vector< std::unique_ptr<loop_integral> >;
+    //! a Pk_db is a container to the loop integrals generated as part of a power spectrum computation
+    class Pk_db
+      {
+
+        // TYPES
+
+      protected:
+
+        //! database
+        using db_type = std::vector< std::unique_ptr<loop_integral> >;
+
+
+        // CONSTRUCTOR, DESTRUCTOR
+
+      public:
+
+        //! constructor is default
+        Pk_db() = default;
+
+        //! destructor is default
+        ~Pk_db() = default;
+
+
+        // EMPLACE AN ELEMENT
+
+      public:
+
+        //! emplace an element
+        template <typename... Args>
+        void emplace(Args&&... args);
+
+
+        // TRANSFORMATIONS
+
+      public:
+
+        //! reduce angular integrals
+        void reduce_angular_integrals();
+
+
+        // SERVICES
+
+      public:
+
+        //! write self to steam
+        void write(std::ostream& out) const;
+
+
+        // INTERNAL DATA
+
+      protected:
+
+        //! database of loop integrals
+        db_type db;
+
+      };
+
+
+    template <typename... Args>
+    void Pk_db::emplace(Args&& ... args)
+      {
+        this->db.emplace_back(std::forward<Args>(args)...);
+      }
 
   }   // namespace Pk_one_loop_impl
 
@@ -99,8 +161,16 @@ class Pk_one_loop
     template <typename Kernel1, typename Kernel2>
     void build_22(const Kernel1& ker1, const Kernel2& ker2);
 
+
+    // APPLY TRANSFORMATIONS
+
+  public:
+
+    //! reduce angular parts of each loop integral
+    void reduce_angular_integrals();
+
     
-    // EXTRACT RAW EXPRESSIONS
+    // EXTRACT EXPRESSIONS
     
   public:
     
@@ -227,18 +297,18 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Insert
                 // simplify dot products where possible
                 GiNaC::scalar_products dotp;
                 dotp.add(this->k, this->k, this->k*this->k);
-                if(!loops.empty())
-                  {
-                    dotp.add(*loops.begin(), *loops.begin(), this->L*this->L);
-                  }
-                for(const auto& rule : Rayleigh_list)
-                  {
-                    // add dot-products between Rayleigh momenta to the list
-                    // (these should only appear in the denominator as perfect squares;
-                    // there should not be any cross-products)
-                    const auto& sym = GiNaC::ex_to<GiNaC::symbol>(rule.first);
-                    dotp.add(sym, sym, sym*sym);
-                  }
+                // k.l, l.l and other inner products are supposed to be picked up later by
+                // loop integral transformations
+//                if(!loops.empty())
+//                  {
+//                    dotp.add(*loops.begin(), *loops.begin(), (*loops.begin()) * (*loops.begin()));
+//                    dotp.add(*loops.begin(), this->k, (*loops.begin()) * this->k * Angular::Cos(*loops.begin(), this->k));
+//                  }
+//                for(const auto& rule : Rayleigh_list)
+//                  {
+//                    const auto sym = GiNaC::ex_to<GiNaC::symbol>(rule.first);
+//                    dotp.add(sym, sym, sym*sym);
+//                  }
 
                 K = simplify_index(K, dotp);
 
@@ -267,7 +337,11 @@ void Pk_one_loop::build_tree(const Kernel1& ker1, const Kernel2& ker2)
     
     auto ins = [&](time_function t, GiNaC::ex K, GiNaC::ex ws, GiNaC_symbol_set lm, subs_list rm) -> void
       {
-        this->Ptree.emplace_back(std::make_unique<loop_integral>(std::move(t), std::move(K), std::move(ws), std::move(lm), std::move(rm)));
+        this->Ptree.emplace(
+          std::make_unique<loop_integral>(
+            std::move(t), std::move(K), std::move(ws), std::move(lm), std::move(rm), this->sf
+          )
+        );
       };
     
     this->cross_product(ker1_db, ker2_db, ins);
@@ -288,7 +362,11 @@ void Pk_one_loop::build_13(const Kernel1& ker1, const Kernel2& ker2)
 
     auto ins = [&](time_function t, GiNaC::ex K, GiNaC::ex ws, GiNaC_symbol_set lm, subs_list rm) -> void
       {
-        this->P13.emplace_back(std::make_unique<loop_integral>(std::move(t), std::move(K), std::move(ws), std::move(lm), std::move(rm)));
+        this->P13.emplace(
+          std::make_unique<loop_integral>(
+            std::move(t), std::move(K), std::move(ws), std::move(lm), std::move(rm), this->sf
+          )
+        );
       };
     
     this->cross_product(ker1_db1, ker2_db3, ins);
@@ -307,11 +385,15 @@ void Pk_one_loop::build_22(const Kernel1& ker1, const Kernel2& ker2)
     
     auto ins = [&](time_function t, GiNaC::ex K, GiNaC::ex ws, GiNaC_symbol_set lm, subs_list rm) -> void
       {
-        this->P22.emplace_back(std::make_unique<loop_integral>(std::move(t), std::move(K), std::move(ws), std::move(lm), std::move(rm)));
+        this->P22.emplace(
+          std::make_unique<loop_integral>(
+            std::move(t), std::move(K), std::move(ws), std::move(lm), std::move(rm), this->sf
+          )
+        );
       };
     
     this->cross_product(ker1_db2, ker2_db2, ins);
-  };
+  }
 
 
 #endif //LSSEFT_ANALYTIC_PK_ONE_LOOP_H

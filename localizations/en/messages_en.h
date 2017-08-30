@@ -61,6 +61,14 @@ constexpr auto ERROR_EXPECTED_ONE_LOOP_RESULT = "Internal error: expected one-lo
 constexpr auto ERROR_OUTSTANDING_INDICES = "Simplification of some Pk terms was not complete: indices were left over";
 constexpr auto ERROR_INCORRECT_SUBMAP_SIZE = "Internal error: unexpected size for substitution map from Wick contractions";
 
+constexpr auto ERROR_CANT_HANDLE_TENSORS = "Cannot yet handle transformations of objects with more than one index";
+constexpr auto ERROR_EXPECTED_INDEX_LABEL = "Expected index label";
+constexpr auto ERROR_COULD_NOT_FIND_PARTNER_INDEX = "Could not find paired index for dummy summation";
+constexpr auto ERROR_EXPECTED_SYMBOL = "Expected dot product factor to be a symbol";
+constexpr auto EXPECTED_EXPONENT_TO_BE_NUMERIC = "Expected exponent to be numeric during loop transformation";
+constexpr auto EXPECTED_EXPONENT_TO_BE_INTEGER = "Expected exponent to be integer during loop transformation";
+constexpr auto EXPECTED_EXPONENT_TO_BE_EVEN_INTEGER = "Expected exponent to be even integer during loop transformation";
+
 constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
 constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";
 constexpr auto WARNING_ORDER_ZERO_KERNEL = "Ignoring order-zero kernel";

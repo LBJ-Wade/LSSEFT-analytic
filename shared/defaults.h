@@ -49,6 +49,9 @@ constexpr auto LSSEFT_DEFAULT_ONE_LOOP_MOMENTUM_NAME = "L";
 //! default LaTeX name for one-loop loop momentum
 constexpr auto LSSEFT_DEFAULT_ONE_LOOP_MOMENTUM_LATEX = "L";
 
+//! name for canonicalized loop momenta
+constexpr auto LSSEFT_CANONICAL_LOOP_MOMENTUM_NAME = "L";
+
 //! default text name for redshift variable
 constexpr auto LSSEFT_REDSHIFT_NAME = "z";
 

@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 25/08/2017.
+// Created by David Seery on 30/08/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,48 +24,32 @@
 // --@@
 //
 
-#include "Pk_one_loop.h"
+#ifndef LSSEFT_ANALYTIC_SPECIAL_FUNCTIONS_H
+#define LSSEFT_ANALYTIC_SPECIAL_FUNCTIONS_H
 
 
-namespace Pk_one_loop_impl
+#include "ginac/ginac.h"
+
+
+namespace special
   {
 
-    void Pk_db::write(std::ostream& out) const
-      {
-        size_t count = 0;
-        for(const auto& item : this->db)
-          {
-            std::cout << "Element " << count << "." << '\n';
-            std::cout << *item << '\n';
+    //! spherical bessel function of order nu
+    DECLARE_FUNCTION_2P(j);
 
-            ++count;
-          }
-      }
+  }   // namespace special
 
 
-    void Pk_db::reduce_angular_integrals()
-      {
-        // walk through each integral in turn
-        for(const auto& ker : this->db)
-          {
-            ker->canonicalize_momenta();
-            ker->inner_products_to_cos();
-          }
-      }
-
-  }   // namespace Pk_one_loop_impl
-
-
-void Pk_one_loop::reduce_angular_integrals()
+namespace Angular
   {
-    // apply reduction algorithm to each loop container
-    this->P13.reduce_angular_integrals();
-    this->P22.reduce_angular_integrals();
-  };
 
+    //! cosine between two vectors
+    DECLARE_FUNCTION_2P(Cos);
 
-std::ostream& operator<<(std::ostream& str, const Pk_one_loop_impl::Pk_db& obj)
-  {
-    obj.write(str);
-    return str;
+    //! Legendre polynomial of order nu
+    DECLARE_FUNCTION_3P(LegP);
+
   }
+
+
+#endif //LSSEFT_ANALYTIC_SPECIAL_FUNCTIONS_H

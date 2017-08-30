@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 25/08/2017.
+// Created by David Seery on 30/08/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,48 +24,21 @@
 // --@@
 //
 
-#include "Pk_one_loop.h"
+#include "special_functions.h"
 
 
-namespace Pk_one_loop_impl
+namespace special
   {
 
-    void Pk_db::write(std::ostream& out) const
-      {
-        size_t count = 0;
-        for(const auto& item : this->db)
-          {
-            std::cout << "Element " << count << "." << '\n';
-            std::cout << *item << '\n';
+    REGISTER_FUNCTION(j, dummy());
 
-            ++count;
-          }
-      }
+  }   // namespace special
 
 
-    void Pk_db::reduce_angular_integrals()
-      {
-        // walk through each integral in turn
-        for(const auto& ker : this->db)
-          {
-            ker->canonicalize_momenta();
-            ker->inner_products_to_cos();
-          }
-      }
-
-  }   // namespace Pk_one_loop_impl
-
-
-void Pk_one_loop::reduce_angular_integrals()
+namespace Angular
   {
-    // apply reduction algorithm to each loop container
-    this->P13.reduce_angular_integrals();
-    this->P22.reduce_angular_integrals();
-  };
 
+    REGISTER_FUNCTION(Cos, dummy());
+    REGISTER_FUNCTION(LegP, dummy());
 
-std::ostream& operator<<(std::ostream& str, const Pk_one_loop_impl::Pk_db& obj)
-  {
-    obj.write(str);
-    return str;
-  }
+  }   // namespace Angular

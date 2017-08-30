@@ -123,6 +123,9 @@ class symbol_factory
     //! make a unique Rayleigh variable
     GiNaC::symbol make_unique_Rayleigh_momentum();
 
+    //! make a canonicalized loop momentum
+    GiNaC::symbol make_canonical_loop_momentum(unsigned int count);
+
 
     // PARAMETER HANDLING
 

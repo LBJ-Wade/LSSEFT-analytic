@@ -500,7 +500,7 @@ namespace detail
             // symbols (recall we define this ourselves to give lexical order on the symbol names)
             GiNaC::symbol l = left_sym;
             GiNaC::symbol r = right_sym;
-            if(std::less<>{}(left_sym, right_sym)) std::swap(l,r);
+            if(std::less<>{}(right_sym, left_sym)) std::swap(l,r);
             
             // we have a choice which momentum to use
             // it's preferable to use either a simple external momentum or a simple loop momentum

@@ -24,6 +24,8 @@
 // --@@
 //
 
+#include <localizations/messages.h>
+#include <shared/exceptions.h>
 #include "GiNaC_utils.h"
 
 
@@ -133,11 +135,11 @@ GiNaC::ex simplify_pow(const GiNaC::ex& expr, const GiNaC::scalar_products& sp)
     const GiNaC::ex& exponent = expr.op(1);
     
     // if the base is not indexed then apply recursively and return
-    if(!GiNaC::is_exactly_a<GiNaC::indexed>(base))
-      {
-        return GiNaC::pow(simplify_index(base, sp), exponent);
-      }
-    
+    if(!GiNaC::is_exactly_a<GiNaC::indexed>(base)) return GiNaC::pow(simplify_index(base, sp), exponent);
+
+    // if base has too many indices then give up
+    if(base.nops() > 2) return expr;
+
     // do nothing if the exponent isn't a number; the expression probably doesn't make sense
     if(!GiNaC::is_exactly_a<GiNaC::numeric>(exponent)) return expr;
     
@@ -150,13 +152,8 @@ GiNaC::ex simplify_pow(const GiNaC::ex& expr, const GiNaC::scalar_products& sp)
     
     // do nothing if the exponent isn't an even number; the expression probably doesn't make sense
     if(std::abs(p) % 2 != 0) return expr;
-    
-    GiNaC::ex expanded = (base*base).simplify_indexed(sp);
-    
-    if(p == 1) return expanded;
-    if(p == -1) return GiNaC::ex{1}/expanded;
-    
-    return GiNaC::pow(expanded, p/2);
+
+    return GiNaC::pow((base*base).simplify_indexed(sp), p/2);
   }
 
 
@@ -277,4 +274,18 @@ bool is_rational(const GiNaC::ex& expr, GiNaC::exvector dummies)
 bool is_rational(const GiNaC::ex& expr)
   {
     return is_rational(expr, GiNaC::exvector{});
+  }
+
+
+GiNaC::exvector to_exvector(const GiNaC::ex& expr)
+  {
+    GiNaC::exvector vec;
+    vec.reserve(expr.nops());
+
+    for(size_t i = 0; i < expr.nops(); ++i)
+      {
+        vec.push_back(expr.op(i));
+      }
+
+    return vec;
   }

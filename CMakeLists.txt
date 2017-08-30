@@ -37,12 +37,13 @@ ADD_EXECUTABLE(LSSEFT_analytic
   main.cpp
   lib/fourier_kernel.cpp
   lib/initial_value.cpp
-               lib/loop_integral.cpp
+  lib/loop_integral.cpp
   lib/vector.cpp
   lib/Pk_one_loop.cpp
   lib/detail/contractions.cpp
   lib/detail/Rayleigh_momenta.cpp
   lib/detail/relabel_product.cpp
+  lib/detail/special_functions.cpp
   services/symbol_factory.cpp
   shared/error.cpp
   shared/exceptions.cpp
@@ -73,8 +74,8 @@ SET(LIBRARY_FILES
   lib/initial_value.h
   lib/Pk_one_loop.cpp
   lib/Pk_one_loop.h
-    lib/loop_integral.cpp
-    lib/loop_integral.h
+  lib/loop_integral.cpp
+  lib/loop_integral.h
   )
 
 SET(LIBRARY_DETAIL_FILES
@@ -84,6 +85,8 @@ SET(LIBRARY_DETAIL_FILES
   lib/detail/relabel_product.h
   lib/detail/Rayleigh_momenta.cpp
   lib/detail/Rayleigh_momenta.h
+  lib/detail/special_functions.cpp
+  lib/detail/special_functions.h
   )
 
 SET(LOCALIZATIONS_FILES

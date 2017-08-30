@@ -73,5 +73,8 @@ GiNaC::ex simplify_index(const GiNaC::ex& expr);
 //! indexed quantities
 bool is_rational(const GiNaC::ex& expr);
 
+//! convert a product to an expression vector
+GiNaC::exvector to_exvector(const GiNaC::ex& expr);
+
 
 #endif //LSSEFT_ANALYTIC_GINAC_UTILS_H
