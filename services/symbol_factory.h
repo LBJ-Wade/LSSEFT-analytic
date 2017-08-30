@@ -153,10 +153,7 @@ class symbol_factory
     
     //! redshift z
     GiNaC::symbol z;
-    
-    //! regulator for denominators
-    GiNaC::symbol eps;
-  
+
   };
 
 

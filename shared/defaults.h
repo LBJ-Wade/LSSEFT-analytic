@@ -61,11 +61,5 @@ constexpr auto LSSEFT_REDSHIFT_NAME = "z";
 //! default LaTeX name for redshift variable
 constexpr auto LSSEFT_REDSHIFT_LATEX = "z";
 
-//! default text name for regulator (needed for denominators that can become zero)
-constexpr auto LSSEFT_EPSILON_NAME = "eps";
-
-//! default LaTeX name for regulator (needed for denominators that can become zero)
-constexpr auto LSSEFT_EPSILON_LATEX = "\epsilon";
-
 
 #endif //LSSEFT_ANALYTIC_DEFAULTS_H

@@ -36,8 +36,7 @@
 
 symbol_factory::symbol_factory(unsigned int d_)
   : index_dimension(d_),
-    z(LSSEFT_REDSHIFT_NAME, LSSEFT_REDSHIFT_LATEX),
-    eps(LSSEFT_EPSILON_NAME, LSSEFT_EPSILON_LATEX)
+    z(LSSEFT_REDSHIFT_NAME, LSSEFT_REDSHIFT_LATEX)
   {
   }
 
