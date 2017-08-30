@@ -33,6 +33,7 @@
 #include "fourier_kernel.h"
 #include "detail/contractions.h"
 #include "detail/relabel_product.h"
+#include "detail/Rayleigh_momenta.h"
 
 #include "services/symbol_factory.h"
 
@@ -282,7 +283,7 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Insert
                 GiNaC::exmap Rayleigh_list;
                 GiNaC_symbol_set reserved{k};
                 std::copy(loops.begin(), loops.end(), std::inserter(reserved, reserved.begin()));
-
+                
                 using detail::merge_Rayleigh_lists;
                 auto Ray_remap1 = merge_Rayleigh_lists(rm1, Rayleigh_list, reserved, subs_maps[0], this->sf);
                 auto Ray_remap2 = merge_Rayleigh_lists(rm2, Rayleigh_list, reserved, subs_maps[1], this->sf);
@@ -312,6 +313,10 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Insert
                   }
 
                 K = simplify_index(K, dotp);
+                
+                // prune Rayleigh list to remove momenta that have dropped out
+                using detail::prune_Rayleigh_list;
+                prune_Rayleigh_list(Rayleigh_list, K);
                 
                 if(static_cast<bool>(K != 0))
                   {

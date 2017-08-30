@@ -38,7 +38,8 @@ enum class exception_code
     kernel_error,
     initial_value_error,
     contraction_error,
-    Pk_error
+    Rayleigh_error,
+    Pk_error,
   };
 
 

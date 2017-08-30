@@ -29,6 +29,7 @@
 
 #include "fourier_kernel.h"
 #include "detail/relabel_product.h"
+#include "detail/Rayleigh_momenta.h"
 #include "utilities/GiNaC_utils.h"
 
 

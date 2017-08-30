@@ -38,21 +38,6 @@ namespace detail
     //! relabel indices in a product
     GiNaC::ex relabel_index_product(const GiNaC::ex& a, const GiNaC::ex& b, symbol_factory& sf);
     
-    //! merge substitution rules from 'source' into an existing map 'dest', applying substitutions in
-    //! 'subs_rules' to the RHS.
-    //! returns a GiNaC::exmap which performs any relabelling needed due to symbol collisions
-    //! with symbols already in map, or in the set 'reserved_symbols'
-    GiNaC::exmap
-    merge_Rayleigh_rules(GiNaC::exmap& dest, const GiNaC::exmap& source, const GiNaC_symbol_set& reserved,
-                         const GiNaC::exmap& subs_rules, symbol_factory& sf);
-    
-    //! convenience wrapper to drive merge_Rayleigh_rules(), updating reserved symbols as we go
-    GiNaC::exmap merge_Rayleigh_lists(const GiNaC::exmap& source, GiNaC::exmap& dest, GiNaC_symbol_set& reserved,
-                                      const GiNaC::exmap& subs_rules, symbol_factory& sf);
-    
-    //! build a replacement rule list for trivial Rayleigh labels
-    GiNaC::exmap remove_Rayleigh_trivial(GiNaC::exmap& rm);
-    
   }   // namespace detail
 
 

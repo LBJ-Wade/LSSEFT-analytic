@@ -48,6 +48,8 @@ constexpr auto ERROR_SUBSTITUTION_RULE_ALREADY_EXISTS = "Redefinition of existin
 
 constexpr auto ERROR_KERNEL_INITIAL_VALUES_DISAGREE = "Internal error: operator += applied to kernels whose initial values disagree";
 
+constexpr auto ERROR_RAYLEIGH_MOMENTUM_IS_ZERO = "Internal error: Rayleigh momentum is zero";
+
 constexpr auto ERROR_ODD_CONTRACTIONS = "Odd number of fields in contraction: result is zero";
 constexpr auto ERROR_UNKNOWN_VERTEX = "Internal error: unknown vertex when traversing graph";
 constexpr auto ERROR_CONTRACTION_FAILURE = "Internal error: mismatch when constructing possible initial value contractions";

@@ -40,6 +40,7 @@ ADD_EXECUTABLE(LSSEFT_analytic
   lib/vector.cpp
   lib/Pk_one_loop.cpp
   lib/detail/contractions.cpp
+  lib/detail/Rayleigh_momenta.cpp
   lib/detail/relabel_product.cpp
   services/symbol_factory.cpp
   shared/error.cpp
@@ -78,6 +79,8 @@ SET(LIBRARY_DETAIL_FILES
   lib/detail/contractions.h
   lib/detail/relabel_product.cpp
   lib/detail/relabel_product.h
+  lib/detail/Rayleigh_momenta.cpp
+  lib/detail/Rayleigh_momenta.h
   )
 
 SET(LOCALIZATIONS_FILES
