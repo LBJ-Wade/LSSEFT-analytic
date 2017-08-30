@@ -56,10 +56,8 @@ GiNaC_symbol_set get_expr_symbols(const GiNaC::ex& expr)
   }
 
 
-GiNaC_symbol_set get_expr_indices(const GiNaC::ex& expr)
+void get_expr_indices_impl(const GiNaC::ex& expr, std::map<GiNaC::symbol, size_t>& sym_list)
   {
-    GiNaC_symbol_set idxs;
-    
     if(GiNaC::is_exactly_a<GiNaC::indexed>(expr))
       {
         // walk through all indices, extracting their symbols
@@ -73,20 +71,31 @@ GiNaC_symbol_set get_expr_indices(const GiNaC::ex& expr)
                 const auto& sym = idx.get_value();
                 if(GiNaC::is_exactly_a<GiNaC::symbol>(sym))
                   {
-                    idxs.insert(GiNaC::ex_to<GiNaC::symbol>(sym));
+                    sym_list[GiNaC::ex_to<GiNaC::symbol>(sym)]++; // safe since values default to zero
                   }
               }
           }
-        
-        return idxs;
       }
     
     size_t nops = expr.nops();
     for(size_t i = 0; i < nops; ++i)
       {
-        auto new_idxs = get_expr_indices(expr.op(i));
-        std::copy(new_idxs.begin(), new_idxs.end(), std::inserter(idxs, idxs.end()));
+        get_expr_indices_impl(expr.op(i), sym_list);
       }
+  }
+
+
+GiNaC_symbol_set get_expr_indices(const GiNaC::ex& expr, size_t min_occurrences)
+  {
+    using symmap = std::map< GiNaC::symbol, size_t >;
+    symmap list;
+    get_expr_indices_impl(expr, list);
+
+    GiNaC_symbol_set idxs;
+    std::for_each(list.begin(), list.end(), [&](const symmap::value_type& v) -> void
+      {
+        if(v.second >= min_occurrences) idxs.insert(v.first);
+      });
     
     return idxs;
   }

@@ -42,6 +42,8 @@
 #include "shared/exceptions.h"
 #include "localizations/messages.h"
 
+#include "relabel_product.h"
+
 #include "ginac/ginac.h"
 
 
@@ -137,7 +139,7 @@ namespace detail
         
         //! constructor captures data
         template <typename RemapContainer>
-        Wick_data(GiNaC::ex Pks_, RemapContainer& mma_, GiNaC_symbol_set lm_, subs_map rm_);
+        Wick_data(GiNaC::ex Pks_, RemapContainer& mma_, GiNaC_symbol_set lm_);
         
         //! destructor is default
         ~Wick_data() = default;
@@ -156,9 +158,6 @@ namespace detail
         //! extract substitution rules for each kernel
         const std::vector<subs_map>& get_substitution_rules() const { return this->mma_map; }
         
-        //! extract replacement rules for Rayleigh momenta
-        const subs_map& get_Rayleigh_momenta() const { return this->Rayleigh_momenta; }
-        
         
         // INTERNAL DATA
         
@@ -170,9 +169,6 @@ namespace detail
         //! list of remaining free (ie. loop) momenta
         GiNaC_symbol_set loop_momenta;
         
-        //! substitution map for Rayleigh momenta
-        subs_map Rayleigh_momenta;
-        
         //! GiNaC expression representing the string of correlation functions
         //! produced by this set of Wick contraction
         GiNaC::ex Pk_string;
@@ -181,10 +177,9 @@ namespace detail
     
     
     template <typename RemapContainer>
-    Wick_data::Wick_data(GiNaC::ex Pks_, RemapContainer& mma_, GiNaC_symbol_set lm_, subs_map rm_)
+    Wick_data::Wick_data(GiNaC::ex Pks_, RemapContainer& mma_, GiNaC_symbol_set lm_)
       : Pk_string(std::move(Pks_)),
-        loop_momenta(std::move(lm_)),
-        Rayleigh_momenta(std::move(rm_))
+        loop_momenta(std::move(lm_))
       {
         // copy contents of mma into remap rules
         std::move(mma_.begin(), mma_.end(), std::back_inserter(this->mma_map));
@@ -586,7 +581,7 @@ namespace detail
         std::for_each(Ps.begin(), Ps.end(), [&](const auto& f) -> void { W *= f.first; });
 
         // STEP 4. Store all this data
-        this->items->emplace_back(std::make_unique<Wick_data>(W, mma_map, loop_momenta, Rayleigh_momenta));
+        this->items->emplace_back(std::make_unique<Wick_data>(W, mma_map, loop_momenta));
       }
     
     

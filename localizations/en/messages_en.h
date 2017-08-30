@@ -55,6 +55,7 @@ constexpr auto ERROR_COULD_NOT_ASSIGN_LOOP_MOMENTUM = "Internal error: could not
 constexpr auto ERROR_COULD_NOT_ASSIGN_EXTERNAL_MOMENTUM = "Internal error: could not assign external momentum";
 constexpr auto ERROR_COULD_NOT_EVALUATE_WICK_CONTRACTION = "Internal error: cannot (yet) evaluate a Wick contraction between two unassigned momenta";
 
+constexpr auto ERROR_EXPECTED_ONE_LOOP_RESULT = "Internal error: expected one-loop result";
 constexpr auto ERROR_INCORRECT_SUBMAP_SIZE = "Internal error: unexpected size for substitution map from Wick contractions";
 
 constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";

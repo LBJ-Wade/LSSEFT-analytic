@@ -58,7 +58,8 @@ using GiNaC_symbol_set = std::set< GiNaC::symbol, std::less<GiNaC::symbol> >;
 GiNaC_symbol_set get_expr_symbols(const GiNaC::ex& expr);
 
 //! extract a set of GiNaC indices from a given expression
-GiNaC_symbol_set get_expr_indices(const GiNaC::ex& expr);
+//! only counts indices that occur >= min_occurrences times
+GiNaC_symbol_set get_expr_indices(const GiNaC::ex& expr, size_t min_occurrences=0);
 
 //! GiNaC's internal simplify_indexed() is broken, because it does not handle
 //! index sums in the denominator or as the argument of powers with exponent other than +2

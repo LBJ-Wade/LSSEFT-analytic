@@ -166,11 +166,6 @@ namespace fourier_kernel_impl
         //! adjust kernel by a factor, generating a new substitution rule
         kernel& multiply_kernel(GiNaC::ex f, GiNaC::symbol s, GiNaC::ex rule);
         
-      protected:
-        
-        //! merge substitution rules from another kernel object, using (and possibly modifying) a given replacement map
-        void compose_substitution_rules(const kernel& rhs, GiNaC::exmap& mma_map);
-        
         
         // SERVICES
         
@@ -681,13 +676,11 @@ fourier_kernel<N> fourier_kernel_impl::transform_kernel(const fourier_kernel<N>&
       {
         const auto& value = *t.second;
         
-        // apply operator to kernel and emplace it in the new list
+        // apply operator to kernel
+        auto ker = op(value);
         
-        auto ker = std::make_unique< typename fourier_kernel<N>::kernel_type >(op(value));
-        typename fourier_kernel<N>::key_type key{*ker};
-        
-        auto res = r.kernels.emplace(std::move(key), std::move(ker));
-        if(!res.second) throw exception(ERROR_KERNEL_TRANSFORM_INSERT_FAILED, exception_code::kernel_error);
+        // insert new kernel
+        r.add(value.get_time_function(), value.get_initial_value_set(), value.get_kernel(), value.get_substitution_list(), true);
       }
     
     return r;
@@ -816,7 +809,7 @@ fourier_kernel<N> operator*(const fourier_kernel<N>& a, const fourier_kernel<N>&
     // insert step is trivial and should just copy each kernel product into the new container r
     auto ins = [&](const kernel& c, const kernel& d) -> void
       {
-        auto k = c * d;
+        auto k = c*d;
         
         r.add(k.get_time_function(), k.get_initial_value_set(), k.get_kernel(), k.get_substitution_list(), true);
       };
@@ -909,13 +902,21 @@ fourier_kernel<N> gradgrad(const fourier_kernel<N>& a, const fourier_kernel<N>& 
     auto r = a.sf.template make_fourier_kernel<N>();
     
     // insert step should multiply each product kernel by -ka.kb
-    auto ins = [&](const kernel& c, const kernel& d) -> void
+    auto ins = [&](kernel c, kernel d) -> void
       {
-        auto kc = c.get_total_momentum();
-        auto kd = d.get_total_momentum();
-        auto kc_dot_kd = -dot(kc, kd);
+        auto idx = a.sf.make_unique_index();
         
-        auto k = kc_dot_kd * c * d;
+        auto kc = c.get_total_momentum();
+        auto kc_idx = GiNaC::indexed(kc.get_expr(), idx);
+        
+        auto kd = d.get_total_momentum();
+        auto kd_idx = -GiNaC::indexed(kd.get_expr(), idx);
+        
+        // this implementation relies on kernels not noticing the dangling index during multiplication
+        c.multiply_kernel(kc_idx);
+        d.multiply_kernel(kd_idx);
+        
+        auto k = c*d;
         
         r.add(k.get_time_function(), k.get_initial_value_set(), k.get_kernel(), k.get_substitution_list(), true);
       };

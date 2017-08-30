@@ -190,10 +190,16 @@ class Pk_one_loop
     symbol_factory& sf;
     
     
-    // POWER SPECTRUM COMPONENTS
+    // RESERVED SYMBOLS
 
     //! cache momentum label k
     GiNaC::symbol k;
+    
+    //! magnitude of loop momentum
+    GiNaC::symbol L;
+    
+    //! cos \theta, angle between k and the loop momentum
+    GiNaC::symbol ckL;
     
     
     // POWER SPECTRUM EXPRESSIONS
@@ -214,7 +220,9 @@ template <unsigned int N1, unsigned int N2>
 Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
                          const GiNaC::symbol& k_, symbol_factory& sf_)
   : k(k_),
-    sf(sf_)
+    sf(sf_),
+    L(sf.make_symbol(LSSEFT_DEFAULT_ONE_LOOP_MOMENTUM_NAME, std::string{LSSEFT_DEFAULT_ONE_LOOP_MOMENTUM_LATEX})),
+    ckL(sf.make_symbol(LSSEFT_DEFAULT_ONE_LOOP_COS_NAME, std::string{LSSEFT_DEFAULT_ONE_LOOP_COS_LATEX}))
   {
     static_assert(N1 >= 3, "To construct a one-loop power spectrum requires a Fourier kernel of third-order or above");
     static_assert(N2 >= 3, "To construct a one-loop power spectrum requires a Fourier kernel of third-order or above");
@@ -248,6 +256,9 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Insert
         
             const auto& iv1 = t1->second->get_initial_value_set();
             const auto& iv2 = t2->second->get_initial_value_set();
+            
+            const auto& rm1 = t1->second->get_substitution_list();
+            const auto& rm2 = t2->second->get_substitution_list();
         
             detail::contractions ctrs(detail::contractions::iv_group<2>{ iv1, iv2 },
                                       detail::contractions::kext_group<2>{ this->k, -this->k }, this->sf);
@@ -256,35 +267,55 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Insert
             for(const auto& W : Wicks)
               {
                 const auto& data = *W;
+                const auto& loops = data.get_loop_momenta();
                 
+                if(loops.size() > 1)
+                  throw exception(ERROR_EXPECTED_ONE_LOOP_RESULT, exception_code::Pk_error);
+    
                 // before taking the product K1*K2 we must relabel indices in K2 if they clash with
                 // K1, otherwise we will get nonsensical results
                 const auto& subs_maps = data.get_substitution_rules();
                 if(subs_maps.size() != 2)
                   throw exception(ERROR_INCORRECT_SUBMAP_SIZE, exception_code::Pk_error);
+    
+                // merge lists of Rayleigh rules together
+                GiNaC::exmap Rayleigh_list;
+                GiNaC_symbol_set reserved{k};
+                std::copy(loops.begin(), loops.end(), std::inserter(reserved, reserved.begin()));
+
+                using detail::merge_Rayleigh_lists;
+                auto Ray_remap1 = merge_Rayleigh_lists(rm1, Rayleigh_list, reserved, subs_maps[0], this->sf);
+                auto Ray_remap2 = merge_Rayleigh_lists(rm2, Rayleigh_list, reserved, subs_maps[1], this->sf);
                 
+                // perform all relabellings
+                auto K1_remap = K1.subs(subs_maps[0]).subs(Ray_remap1);
+                auto K2_remap = K2.subs(subs_maps[1]).subs(Ray_remap2);
+                
+                // relabel indices
                 using detail::relabel_index_product;
-                auto K = relabel_index_product(K1.subs(subs_maps[0]), K2.subs(subs_maps[1]), this->sf);
+                auto K = relabel_index_product(K1_remap, K2_remap, this->sf);
+                
+                using detail::remove_Rayleigh_trivial;
+                auto Rayleigh_triv = remove_Rayleigh_trivial(Rayleigh_list);
+                K = K.subs(Rayleigh_triv);
     
                 // remove regulator, which should no longer be needed
-                auto K_red = K.subs(eps_to_zero);
+                K = K.subs(eps_to_zero);
                 
                 // simplify dot products where possible
                 GiNaC::scalar_products dotp;
                 dotp.add(this->k, this->k, this->k*this->k);
-                
-                const auto& loops = data.get_loop_momenta();
-                for(const auto& l : loops)
+                if(!loops.empty())
                   {
-                    dotp.add(l, l, l*l);
+                    dotp.add(*loops.begin(), *loops.begin(), this->L*this->L);
+                    dotp.add(*loops.begin(), this->k, this->k*this->L*this->ckL);
                   }
+
+                K = simplify_index(K, dotp);
                 
-                auto K_dotp = simplify_index(K_red, dotp);
-                
-                if(static_cast<bool>(K_dotp != 0))
+                if(static_cast<bool>(K != 0))
                   {
-                    ins(tm1 * tm2, K_dotp,
-                        data.get_Wick_string(), loops, data.get_Rayleigh_momenta());
+                    ins(tm1 * tm2, K, data.get_Wick_string(), loops, Rayleigh_list);
                   }
               }
           }

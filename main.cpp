@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
     auto k = sf.make_symbol("k");
     
     // construct 1-loop \delta power spectrum
-    Pk_one_loop Pk_delta{delta, delta, k, sf};
+    Pk_one_loop Pk_delta{phi, phi, k, sf};
     
     const auto& tree = Pk_delta.get_tree();
 

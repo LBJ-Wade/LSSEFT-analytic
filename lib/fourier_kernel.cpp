@@ -50,54 +50,6 @@ namespace fourier_kernel_impl
       }
     
     
-    void kernel::compose_substitution_rules(const kernel& rhs, GiNaC::exmap& mma_map)
-      {
-        // to do this, first check whether any of their substitution rules already exist in ours
-        // if they do, add a suitable relabelling rule to mma_map
-        // otherwise, insert a new rule provided there is no symbol collision
-        for(const auto& v : rhs.vs)
-          {
-            const GiNaC::ex& label = v.first;
-            const GiNaC::ex& value = v.second.subs(mma_map);
-        
-            const auto& label_symbol = GiNaC::ex_to<GiNaC::symbol>(label);
-        
-            // search for an existing remap rule which matches this one
-            auto u = std::find_if(this->vs.begin(), this->vs.end(),
-                                  [&](const subs_list::value_type& a) -> bool
-                                    { return static_cast<bool>(a.second == value); });
-        
-            // if one exists, just add a relabelling rule
-            if(u != this->vs.end())
-              {
-                mma_map[label_symbol] = u->first;
-                break;
-              }
-        
-            // otherwise need to add a new relabelling rule
-        
-            // first, is there a symbol collision?
-            bool collision = false;
-            const auto our_syms = this->iv.get_momenta();
-            if(our_syms.find(label_symbol) != our_syms.end()) collision = true;
-            if(this->vs.find(label_symbol) != this->vs.end()) collision = true;
-        
-            // if no collision, just keep the same symbol to avoid proliferation
-            if(!collision)
-              {
-                this->vs[label_symbol] = value;
-                break;
-              }
-        
-            // otherwise, need to manufacture a new symbol
-            auto relabel = this->sf.make_unique_momentum();
-        
-            mma_map[label_symbol] = relabel;
-            this->vs[relabel] = value;
-          }
-      }
-    
-    
     kernel& kernel::operator+=(const kernel& rhs)
       {
         // we need to relabel momenta in the right-hand-side if they do not match
@@ -118,14 +70,16 @@ namespace fourier_kernel_impl
         for(auto u = our_mma.cbegin(), v = their_mma.cbegin(); u != our_mma.cend() && v != their_mma.cend(); ++u, ++v)
           {
             const GiNaC::symbol& our_q = u->get().get_momentum();
-            const GiNaC::symbol& their_q = u->get().get_momentum();
+            const GiNaC::symbol& their_q = v->get().get_momentum();
 
             // if the momentum labels disagree, then remap theirs
             if(our_q != their_q) mma_map[their_q] = our_q;
           }
         
         // also need to remap and merge any substitution rules in the right-hand side
-        this->compose_substitution_rules(rhs, mma_map);
+        using detail::merge_Rayleigh_rules;
+        auto relabel_map = merge_Rayleigh_rules(this->vs, rhs.vs, this->iv.get_momenta(), mma_map, this->sf);
+        std::copy(relabel_map.begin(), relabel_map.end(), std::inserter(mma_map, mma_map.begin()));
         
         // now perform relabelling in the kernel
         // note there's no need to perform *index* relabelling since this is a sum -- relabelling indices
@@ -162,24 +116,32 @@ namespace fourier_kernel_impl
             mma_map[label] = relabel;
           }
     
-        // merge RHS substitution list with ours
-        this->compose_substitution_rules(rhs, mma_map);
-    
         // merge RHS initial value list with ours
         for(auto t = rhs.iv.value_cbegin(); t != rhs.iv.value_cend(); ++t)
           {
+            // get momentum for this field
             const auto& q = t->get_momentum();
+            
+            // is this momentum being relabelled?
             auto u = mma_map.find(q);
             if(u != mma_map.end())
               {
+                // yes, so merge the relabelled version
                 const auto& u_sym = GiNaC::ex_to<GiNaC::symbol>(u->second);
                 this->iv.insert(t->relabel_momentum(u_sym));
               }
             else
               {
+                // no, so merge the original
                 this->iv.insert(*t);
               }
           }
+    
+        // merge RHS substitution list with ours
+        // (occurs after merging initial value list so all reserved symbols are captured)
+        using detail::merge_Rayleigh_rules;
+        auto relabel_map = merge_Rayleigh_rules(this->vs, rhs.vs, this->iv.get_momenta(), mma_map, this->sf);
+        std::copy(relabel_map.begin(), relabel_map.end(), std::inserter(mma_map, mma_map.begin()));
 
         // build final expression, performing any necessary index (or other) relabellings on RHS
         using detail::relabel_index_product;
@@ -257,6 +219,25 @@ namespace fourier_kernel_impl
     
     kernel& kernel::multiply_kernel(GiNaC::ex f)
       {
+        const auto& our_syms = this->iv.get_momenta();
+        const auto& eps = this->sf.get_regulator();
+    
+        // ensure that f only involves symbols in the initial value set or s (or the regulator epsilon)
+        auto expr_syms = get_expr_symbols(f);
+    
+        // remove regulator epsilon from the used set
+        auto t = expr_syms.find(eps);
+        if(t != expr_syms.end()) expr_syms.erase(t);
+    
+        for(const auto& sym : expr_syms)
+          {
+            if(our_syms.find(sym) != our_syms.end()) continue;
+        
+            std::ostringstream msg;
+            msg << ERROR_MULTIPLY_KERNEL_UNKNOWN_MOMENTUM << " '" << sym << "'";
+            throw exception(msg.str(), exception_code::kernel_error);
+          }
+
         this->K *= f;
         return *this;
       }
@@ -442,6 +423,14 @@ void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::sub
     // raise exception on attempt to use a Fourier momentum that isn't available
     if(!used_not_avail.empty())
       {
+        std::cerr << "Kernel K = " << K << '\n';
+        std::cerr << "Initial values =";
+        for(auto t = s.value_cbegin(); t != s.value_cend(); ++t)
+          {
+            std::cerr << " " << t->get_symbol() << "(" << t->get_momentum() << ")";
+          }
+        std::cerr << '\n';
+        
         std::ostringstream msg;
         msg << (used_not_avail.size() == 1 ? ERROR_UNKNOWN_MOMENTA_SING : ERROR_UNKNOWN_MOMENTA_PLURAL) << " ";
         
