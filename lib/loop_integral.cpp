@@ -28,6 +28,7 @@
 
 #include "detail/special_functions.h"
 #include "detail/legendre_utils.h"
+#include "detail/contractions.h"
 
 #include "shared/exceptions.h"
 #include "localizations/messages.h"
@@ -44,23 +45,27 @@ void loop_integral::write(std::ostream& out) const
   {
     std::cout << "  time function = " << this->tm << '\n';
     std::cout << "  momentum kernel = " << this->K << '\n';
-    std::cout << "  Wick product = " << this->WickString << '\n';
+    std::cout << "  Wick product = " << this->WickProduct << '\n';
 
-    std::cout << "  loop momenta =";
-    for(const auto& sym : this->loop_momenta)
+    if(!this->loop_momenta.empty())
       {
-        std::cout << " " << sym;
+        std::cout << "  loop momenta =";
+        for(const auto& sym : this->loop_momenta)
+          {
+            std::cout << " " << sym;
+          }
+        std::cout << '\n';
       }
-    if(this->loop_momenta.empty()) std::cout << " <none>";
-    std::cout << '\n';
 
-    std::cout << "  Rayleigh momenta =";
-    for(const auto& rule : this->Rayleigh_momenta)
+    if(!this->Rayleigh_momenta.empty())
       {
-        std::cout << " " << rule.first << " -> " << rule.second << ";";
+        std::cout << "  Rayleigh momenta =";
+        for(const auto& rule : this->Rayleigh_momenta)
+          {
+            std::cout << " " << rule.first << " -> " << rule.second << ";";
+          }
+        std::cout << '\n';
       }
-    if(this->Rayleigh_momenta.empty()) std::cout << " <none>";
-    std::cout << '\n';
   }
 
 
@@ -234,7 +239,7 @@ void loop_integral::dot_products_to_cos()
   }
 
 
-void loop_integral::canonicalize_momenta()
+void loop_integral::canonicalize_loop_labels()
   {
     GiNaC_symbol_set new_momenta;
     GiNaC::exmap relabel;
@@ -250,7 +255,7 @@ void loop_integral::canonicalize_momenta()
 
     // propagate this relabelling to the kernel and the Wick product
     this->K = this->K.subs(relabel);
-    this->WickString = this->WickString.subs(relabel);
+    this->WickProduct = this->WickProduct.subs(relabel);
 
     // propagate to any Rayleigh replacement rules in use
     for(auto& rule : this->Rayleigh_momenta)
@@ -259,6 +264,27 @@ void loop_integral::canonicalize_momenta()
       }
 
     this->loop_momenta = new_momenta;
+  }
+
+void loop_integral::canonicalize_Rayleigh_labels()
+  {
+    GiNaC::exmap new_Rayleigh;
+    GiNaC::exmap relabel;
+
+    // step through Rayleigh momenta, relabelling to canonicalized forms
+    unsigned int count = 0;
+    for(const auto& rule : this->Rayleigh_momenta)
+      {
+        const auto S = this->sf.make_canonical_Rayleigh_momentum(count++);
+        relabel[rule.first] = S;
+        new_Rayleigh[S] = rule.second;    // RHS of rules never depend on other Rayleigh momenta, so this is safe
+      }
+
+    // propagate this relabelling to the kernel and Wick product
+    this->K = this->K.subs(relabel);
+    this->WickProduct = this->WickProduct.subs(relabel);
+
+    this->Rayleigh_momenta = new_Rayleigh;
   }
 
 
@@ -415,4 +441,80 @@ void loop_integral::Legendre_to_cosines(const GiNaC::symbol q)
             this->K = this->K.subs(map);
           }
       }
+  }
+
+
+void loop_integral::reduce_angular_integrals()
+  {
+    // STEP 1 - canonicalize all labels
+    this->canonicalize_loop_labels();
+    this->canonicalize_Rayleigh_labels();
+
+    // STEP 2 - convert all dot products to explicit cosines
+    this->dot_products_to_cos();
+
+    // STEP 3 - pair nontrivial arguments in Wick product with Rayleigh momenta
+    this->match_Wick_to_Rayleigh();
+  }
+
+
+void loop_integral::match_Wick_to_Rayleigh()
+  {
+    GiNaC::ex new_Wick{1};
+
+    if(!GiNaC::is_a<GiNaC::mul>(this->WickProduct))
+      throw exception(ERROR_BADLY_FORMED_WICK_PRODUCT, exception_code::loop_transformation_error);
+
+    for(size_t i = 0; i < this->WickProduct.nops(); ++i)
+      {
+        const auto& factor = this->WickProduct.op(i);
+        const auto& f = GiNaC::ex_to<GiNaC::function>(factor);
+
+        if(f.get_name() == "Pk")
+          {
+            const auto& f1 = GiNaC::ex_to<GiNaC::symbol>(f.op(0));
+            const auto& f2 = GiNaC::ex_to<GiNaC::symbol>(f.op(1));
+            const auto& arg = f.op(2);
+
+            // if argument is a simple symbol (a loop momentum or a Rayleigh momentum, or an external momentum) then we have nothing to do
+            if(GiNaC::is_a<GiNaC::symbol>(arg))
+              {
+                const auto& sym = GiNaC::ex_to<GiNaC::symbol>(arg);
+                if(this->loop_momenta.find(sym) != this->loop_momenta.end()) { new_Wick *= cfs::Pk(f1, f2, sym); continue; }
+                if(this->Rayleigh_momenta.find(sym) != this->Rayleigh_momenta.end()) { new_Wick *= cfs::Pk(f1, f2, sym); continue; }
+                if(this->external_momenta.find(sym) != this->external_momenta.end()) { new_Wick *= cfs::Pk(f1, f2, sym); continue; }
+
+                std::cerr << factor << '\n';
+
+                throw exception(ERROR_UNKNOWN_WICK_PRODUCT_LABEL, exception_code::loop_transformation_error);
+              }
+
+            // otherwise, try to match this argument to a Rayleigh momentum (or its negative)
+            auto t = this->Rayleigh_momenta.begin();
+            for(; t != this->Rayleigh_momenta.end(); ++t)
+              {
+                // if a direct match, just relabel the argument; don't need to worry about sign inversion
+                // since the power spectrum just depends on |arg|
+                if(static_cast<bool>(t->second == arg)
+                   || static_cast<bool>(t->second == -arg))
+                  {
+                    new_Wick *= cfs::Pk(f1, f2, t->first);
+                    break;
+                  }
+              }
+
+            if(t == this->Rayleigh_momenta.end() && !this->Rayleigh_momenta.empty())
+              {
+                std::cerr << factor << '\n';
+                throw exception(ERROR_CANT_MATCH_WICK_TO_RAYLEIGH, exception_code::loop_transformation_error);
+              }
+
+            continue;
+          }
+
+        throw exception(ERROR_BADLY_FORMED_WICK_PRODUCT, exception_code::loop_transformation_error);
+      }
+
+    // replace old Wick product with matched version
+    this->WickProduct = new_Wick;
   }

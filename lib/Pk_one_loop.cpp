@@ -48,20 +48,14 @@ namespace Pk_one_loop_impl
         // walk through each integral in turn
         for(const auto& ker : this->db)
           {
-            ker->canonicalize_momenta();
-            ker->dot_products_to_cos();
+            ker->reduce_angular_integrals();
           }
       }
 
   }   // namespace Pk_one_loop_impl
 
 
-void Pk_one_loop::reduce_angular_integrals()
-  {
-    // apply reduction algorithm to each loop container
-    this->P13.reduce_angular_integrals();
-    this->P22.reduce_angular_integrals();
-  };
+;
 
 
 std::ostream& operator<<(std::ostream& str, const Pk_one_loop_impl::Pk_db& obj)

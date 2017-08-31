@@ -131,6 +131,17 @@ GiNaC::symbol symbol_factory::make_canonical_loop_momentum(unsigned int count)
   }
 
 
+GiNaC::symbol symbol_factory::make_canonical_Rayleigh_momentum(unsigned int count)
+  {
+    // generate canonicalized name
+    std::string name = LSSEFT_CANONICAL_RAYLEIGH_MOMENTUM_NAME + std::to_string(count);
+
+    // generate symbol
+    return this->make_symbol(name);
+  }
+
+
+
 vector symbol_factory::make_vector(std::string name, boost::optional<std::string> latex_name)
   {
     auto sym = this->make_symbol(std::move(name), std::move(latex_name));
@@ -166,4 +177,3 @@ void symbol_factory::declare_parameter(const GiNaC::symbol& s)
     // TODO: could perhaps perform more checking to ensure that momenta are not declared as parameters ...
     this->parameters.insert(s);
   }
-

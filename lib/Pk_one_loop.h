@@ -161,14 +161,6 @@ class Pk_one_loop
     void build_22(const Kernel1& ker1, const Kernel2& ker2);
 
 
-    // APPLY TRANSFORMATIONS
-
-  public:
-
-    //! reduce angular parts of each loop integral
-    void reduce_angular_integrals();
-
-    
     // EXTRACT EXPRESSIONS
     
   public:
@@ -197,11 +189,8 @@ class Pk_one_loop
 
     //! cache momentum label k
     GiNaC::symbol k;
-    
-    //! magnitude of loop momentum
-    GiNaC::symbol L;
 
-    
+
     // POWER SPECTRUM EXPRESSIONS
     
     //! expression for tree power spectrum
@@ -220,8 +209,7 @@ template <unsigned int N1, unsigned int N2>
 Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
                          const GiNaC::symbol& k_, symbol_factory& sf_)
   : k(k_),
-    sf(sf_),
-    L(sf.make_symbol(LSSEFT_DEFAULT_ONE_LOOP_MOMENTUM_NAME, std::string{LSSEFT_DEFAULT_ONE_LOOP_MOMENTUM_LATEX}))
+    sf(sf_)
   {
     static_assert(N1 >= 3, "To construct a one-loop power spectrum requires a Fourier kernel of third-order or above");
     static_assert(N2 >= 3, "To construct a one-loop power spectrum requires a Fourier kernel of third-order or above");
@@ -229,6 +217,9 @@ Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2
     this->build_tree(ker1, ker2);
     this->build_13(ker1, ker2);
     this->build_22(ker1, ker2);
+
+    this->P13.reduce_angular_integrals();
+    this->P22.reduce_angular_integrals();
   }
 
 
@@ -328,7 +319,7 @@ void Pk_one_loop::build_tree(const Kernel1& ker1, const Kernel2& ker2)
       {
         this->Ptree.emplace(
           std::make_unique<loop_integral>(
-            std::move(t), std::move(K), std::move(ws), std::move(lm), std::move(rm), this->sf
+            std::move(t), std::move(K), std::move(ws), std::move(lm), GiNaC_symbol_set{this->k}, std::move(rm), this->sf
           )
         );
       };
@@ -353,7 +344,7 @@ void Pk_one_loop::build_13(const Kernel1& ker1, const Kernel2& ker2)
       {
         this->P13.emplace(
           std::make_unique<loop_integral>(
-            std::move(t), std::move(K), std::move(ws), std::move(lm), std::move(rm), this->sf
+            std::move(t), std::move(K), std::move(ws), std::move(lm), GiNaC_symbol_set{this->k}, std::move(rm), this->sf
           )
         );
       };
@@ -376,7 +367,7 @@ void Pk_one_loop::build_22(const Kernel1& ker1, const Kernel2& ker2)
       {
         this->P22.emplace(
           std::make_unique<loop_integral>(
-            std::move(t), std::move(K), std::move(ws), std::move(lm), std::move(rm), this->sf
+            std::move(t), std::move(K), std::move(ws), std::move(lm), GiNaC_symbol_set{this->k}, std::move(rm), this->sf
           )
         );
       };

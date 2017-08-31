@@ -135,8 +135,7 @@ int main(int argc, char* argv[])
     
     // construct 1-loop \delta power spectrum
     Pk_one_loop Pk_delta{delta, delta, k, sf};
-    Pk_delta.reduce_angular_integrals();
-    
+
     auto& tree = Pk_delta.get_tree();
     std::cout << "Tree-level P(k):" << '\n';
     std::cout << tree << '\n';

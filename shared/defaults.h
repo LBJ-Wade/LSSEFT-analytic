@@ -41,16 +41,13 @@ constexpr auto LSSEFT_DEFAULT_MOMENTUM_NAME = "q";
 constexpr auto LSSEFT_DEFAULT_LOOP_MOMENTUM_NAME = "l";
 
 //! default name for Rayliegh momenta
-constexpr auto LSSEFT_DEFAULT_RAYLEIGH_MOMENTUM_NAME = "r";
-
-//! default name for one-loop loop momentum variable
-constexpr auto LSSEFT_DEFAULT_ONE_LOOP_MOMENTUM_NAME = "L";
-
-//! default LaTeX name for one-loop loop momentum
-constexpr auto LSSEFT_DEFAULT_ONE_LOOP_MOMENTUM_LATEX = "L";
+constexpr auto LSSEFT_DEFAULT_RAYLEIGH_MOMENTUM_NAME = "s";
 
 //! name for canonicalized loop momenta
 constexpr auto LSSEFT_CANONICAL_LOOP_MOMENTUM_NAME = "L";
+
+//! name for canonicalized Rayleigh momenta
+constexpr auto LSSEFT_CANONICAL_RAYLEIGH_MOMENTUM_NAME = "S";
 
 //! default text name for redshift variable
 constexpr auto LSSEFT_REDSHIFT_NAME = "z";
