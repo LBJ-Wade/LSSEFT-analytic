@@ -135,7 +135,8 @@ GiNaC::ex simplify_pow(const GiNaC::ex& expr, const GiNaC::scalar_products& sp)
     const GiNaC::ex& exponent = expr.op(1);
     
     // if the base is not indexed then apply recursively and return
-    if(!GiNaC::is_exactly_a<GiNaC::indexed>(base)) return GiNaC::pow(simplify_index(base, sp), exponent);
+    if(!GiNaC::is_exactly_a<GiNaC::indexed>(base))
+      return GiNaC::pow(simplify_index(base.expand(GiNaC::expand_options::expand_indexed), sp), exponent);
 
     // if base has too many indices then give up
     if(base.nops() > 2) return expr;
@@ -159,24 +160,22 @@ GiNaC::ex simplify_pow(const GiNaC::ex& expr, const GiNaC::scalar_products& sp)
 
 GiNaC::ex simplify_index(const GiNaC::ex& expr, const GiNaC::scalar_products& sp)
   {
-    GiNaC::ex expr_expand = expr.expand(GiNaC::expand_options::expand_indexed);
-    
-    if(GiNaC::is_exactly_a<GiNaC::add>(expr_expand))
+    if(GiNaC::is_exactly_a<GiNaC::add>(expr))
       {
-        return simplify_add(expr_expand, sp);
+        return simplify_add(expr, sp);
       }
-    if(GiNaC::is_exactly_a<GiNaC::mul>(expr_expand))
+    if(GiNaC::is_exactly_a<GiNaC::mul>(expr))
       {
-        return simplify_mul(expr_expand, sp);
+        return simplify_mul(expr, sp);
       }
-    if(GiNaC::is_exactly_a<GiNaC::power>(expr_expand))
+    if(GiNaC::is_exactly_a<GiNaC::power>(expr))
       {
-        return simplify_pow(expr_expand, sp);
+        return simplify_pow(expr, sp);
       }
-    if(GiNaC::is_exactly_a<GiNaC::indexed>(expr_expand))
+    if(GiNaC::is_exactly_a<GiNaC::indexed>(expr))
       {
         // exactly an indexed object,
-        return expr_expand.simplify_indexed(sp);
+        return expr.simplify_indexed(sp);
       }
     
     // nothing to do, so return expression unaltered
@@ -186,7 +185,7 @@ GiNaC::ex simplify_index(const GiNaC::ex& expr, const GiNaC::scalar_products& sp
 
 GiNaC::ex simplify_index(const GiNaC::ex& expr)
   {
-    return simplify_index(expr, GiNaC::scalar_products{});
+    return simplify_index(expr.expand(GiNaC::expand_options::expand_indexed), GiNaC::scalar_products{});
   }
 
 
@@ -228,7 +227,8 @@ bool is_rational_pow(const GiNaC::ex& expr)
     if(!GiNaC::is_integer(exp_as_numeric)) return false;
     
     // if the base is not an indexed expression, then the power is rational if the base is
-    if(!GiNaC::is_exactly_a<GiNaC::indexed>(base)) return is_rational(base);
+    if(!GiNaC::is_exactly_a<GiNaC::indexed>(base))
+      return is_rational(base.expand(GiNaC::expand_options::expand_indexed));
     
     // otherwise, this is rational if the power is divisible by two
     int p = exp_as_numeric.to_int();
@@ -238,21 +238,19 @@ bool is_rational_pow(const GiNaC::ex& expr)
 
 bool is_rational(const GiNaC::ex& expr, GiNaC::exvector dummies)
   {
-    GiNaC::ex expr_expand = expr.expand(GiNaC::expand_options::expand_indexed);
-    
-    if(GiNaC::is_exactly_a<GiNaC::add>(expr_expand))
+    if(GiNaC::is_exactly_a<GiNaC::add>(expr))
       {
-        return is_rational_add(expr_expand);
+        return is_rational_add(expr);
       }
-    if(GiNaC::is_exactly_a<GiNaC::mul>(expr_expand))
+    if(GiNaC::is_exactly_a<GiNaC::mul>(expr))
       {
-        return is_rational_mul(expr_expand);
+        return is_rational_mul(expr);
       }
-    if(GiNaC::is_exactly_a<GiNaC::power>(expr_expand))
+    if(GiNaC::is_exactly_a<GiNaC::power>(expr))
       {
-        return is_rational_pow(expr_expand);
+        return is_rational_pow(expr);
       }
-    if(GiNaC::is_exactly_a<GiNaC::indexed>(expr_expand))
+    if(GiNaC::is_exactly_a<GiNaC::indexed>(expr))
       {
         // get indices on this object
         GiNaC::exvector indices = expr.get_free_indices();
@@ -266,14 +264,14 @@ bool is_rational(const GiNaC::ex& expr, GiNaC::exvector dummies)
         return not_dummies.empty();
       }
 
-    return GiNaC::is_exactly_a<GiNaC::symbol>(expr_expand)
-           || GiNaC::is_exactly_a<GiNaC::numeric>(expr_expand);
+    return GiNaC::is_exactly_a<GiNaC::symbol>(expr)
+           || GiNaC::is_exactly_a<GiNaC::numeric>(expr);
   }
 
 
 bool is_rational(const GiNaC::ex& expr)
   {
-    return is_rational(expr, GiNaC::exvector{});
+    return is_rational(expr.expand(GiNaC::expand_options::expand_indexed), GiNaC::exvector{});
   }
 
 

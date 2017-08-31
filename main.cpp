@@ -44,14 +44,36 @@ int main(int argc, char* argv[])
     
     // redshift z is the time variable
     auto z = sf.get_z();
-    
+
+    // H is the Hubble rate
+    GiNaC::ex H = FRW::Hub(z);
+
     // r is the unit line-of-sight vector to Earth
     auto r_sym = sf.make_symbol("r");
     auto r = sf.make_vector(r_sym);
-    
+    sf.declare_parameter(r_sym);
+
     // mu is RSD parameter = r.\hat{k} = r.k / |k|
     auto mu = sf.make_symbol("mu");
-    
+    sf.declare_parameter(mu);
+
+    // define halo bias parameters
+    auto b1 = sf.make_symbol("b1");
+    auto b2 = sf.make_symbol("b2");
+    auto b3 = sf.make_symbol("b3");
+    auto bG2 = sf.make_symbol("bG2");
+    auto bG3 = sf.make_symbol("bG3");
+    auto bdG2 = sf.make_symbol("bdG2");
+    auto bGamma3 = sf.make_symbol("bGamma3");
+
+    sf.declare_parameter(b1);
+    sf.declare_parameter(b2);
+    sf.declare_parameter(b3);
+    sf.declare_parameter(bG2);
+    sf.declare_parameter(bG3);
+    sf.declare_parameter(bdG2);
+    sf.declare_parameter(bGamma3);
+
     // manufacture placeholder stochastic initial values delta*_q, delta*_s, delta*_t
     // (recall we skip delta*_r because r is also the line-of-sight variable)
     auto deltaq = sf.make_initial_value("delta");
@@ -93,7 +115,7 @@ int main(int argc, char* argv[])
                                            - 2*alpha(s+t, q, alpha_bar(s, t, kernel{iv_qst, sf}, sf), sf)));
     
     
-    // compute kernels for the velocity potential \phi, v = grad phi -> v(k) = i k phi
+    // compute kernels for the dark matter velocity potential \phi, v = grad phi -> v(k) = i k phi
     auto delta1 = delta.order(1);
     auto delta2 = delta.order(2);
     auto delta3 = delta.order(3);
@@ -105,23 +127,35 @@ int main(int argc, char* argv[])
                                  - gradgrad(phi1, delta2) - gradgrad(phi2, delta1));
     
     auto phi = phi1 + phi2 + phi3;
-    
-    
-    // set up momentum label k
+
+
+    // build halo overdensity \delta
+    // first, need velocity potentials for the Galileon terms
+    auto Phi_delta = InverseLaplacian(delta);
+    auto Phi_v = -phi/H;
+
+    auto G2 = Galileon2(Phi_delta);
+    std::cout << "G2:" << G2;
+    auto G3 = Galileon3(Phi_delta);
+    std::cout << "G3:" << G3;
+    auto Gamma3 = Galileon2(Phi_delta) - Galileon2(Phi_v);
+    std::cout << "Gamma3:" << Gamma3;
+
+    auto deltah = b1*delta + b2*delta*delta + b3*delta*delta*delta
+                  + bG2*G2 + bdG2*G2*delta + bG3*G3 + bGamma3*Gamma3;
+
+
+    // set up momentum label k, corresponding to external momentum in 2pf
     auto k = sf.make_symbol("k");
-
-    sf.declare_parameter(r_sym);
     sf.declare_parameter(k);
-    sf.declare_parameter(mu);
-    
-    // build expression for the redshift-space \delta
-    GiNaC::ex H = FRW::Hub(z);
-    auto k1mu = k*mu;
-    auto k2mu = -k*mu;
-    
-    auto r_dot_v = dotgrad(r, phi);
 
-    auto make_delta_rsd = [&](const decltype(k1mu)& kmu) -> auto
+    
+    // build expression for the redshift-space overdensities,
+    // for both dark matter and halos
+
+    // utility function to perform the redshift-sopace transformation
+    auto r_dot_v = dotgrad(r, phi);
+    auto make_delta_rsd = [&](const GiNaC::ex& kmu) -> auto
       {
         return delta
                - (GiNaC::I / H) * kmu * r_dot_v
@@ -130,11 +164,18 @@ int main(int argc, char* argv[])
                + (GiNaC::ex(1) / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v * delta)
                + (GiNaC::I / (3*H*H*H)) * kmu*kmu*kmu * (r_dot_v * r_dot_v * r_dot_v);
       };
+
+    // dark matter in redshift-space
+    auto k1mu = k*mu;
+    auto k2mu = -k*mu;
     auto delta_rsd_k1 = make_delta_rsd(k1mu);
     auto delta_rsd_k2 = make_delta_rsd(k2mu);
-    
+
+    // halos in redshift-space
+
+
     // construct 1-loop \delta power spectrum
-    Pk_one_loop Pk_delta{delta, delta, k, sf};
+    Pk_one_loop Pk_delta{deltah, deltah, k, sf};
 
     auto& tree = Pk_delta.get_tree();
     std::cout << "Tree-level P(k):" << '\n';

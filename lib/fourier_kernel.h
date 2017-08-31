@@ -423,6 +423,7 @@ fourier_kernel<N> operator*(const fourier_kernel<N>& a, const GiNaC::ex b);
 template <unsigned int N>
 fourier_kernel<N> operator*(const fourier_kernel<N>& a, const fourier_kernel<N>& b);
 
+
 //! compute t-derivative of a Fourier kernel
 template <unsigned int N>
 fourier_kernel<N> diff_t(const fourier_kernel<N>& a);
@@ -430,6 +431,7 @@ fourier_kernel<N> diff_t(const fourier_kernel<N>& a);
 //! compute z-derivative of a Fourier kernel
 template <unsigned int N>
 fourier_kernel<N> diff_z(const fourier_kernel<N>& a);
+
 
 //! compute Laplacian of a Fourier kernel
 template <unsigned int N>
@@ -448,6 +450,15 @@ fourier_kernel<N> gradgrad(const fourier_kernel<N>& a, const fourier_kernel<N>& 
 //! so the gradient will pull down a factor of +ik
 template <unsigned int N>
 fourier_kernel<N> dotgrad(const vector& a, const fourier_kernel<N>& b);
+
+
+//! compute Galileon-2 operator
+template <unsigned int N>
+fourier_kernel<N> Galileon2(const fourier_kernel<N>& a);
+
+//! compute Galileon-3 operator
+template <unsigned int N>
+fourier_kernel<N> Galileon3(const fourier_kernel<N>& a);
 
 
 //! kernel represents an object defined by an integral kernel and early-time
@@ -591,6 +602,9 @@ class fourier_kernel
     friend fourier_kernel InverseLaplacian<>(const fourier_kernel& a);
     friend fourier_kernel gradgrad<>(const fourier_kernel& a, const fourier_kernel& b);
     friend fourier_kernel dotgrad<>(const vector& a, const fourier_kernel& b);
+
+    friend fourier_kernel Galileon2<>(const fourier_kernel& a);
+    friend fourier_kernel Galileon3<>(const fourier_kernel& b);
     
   };
 
@@ -954,10 +968,10 @@ fourier_kernel<N> gradgrad(const fourier_kernel<N>& a, const fourier_kernel<N>& 
         auto idx = a.sf.make_unique_index();
         
         auto kc = c.get_total_momentum();
-        auto kc_idx = GiNaC::indexed(kc.get_expr(), idx);
+        auto kc_idx = kc[idx];
         
         auto kd = d.get_total_momentum();
-        auto kd_idx = -GiNaC::indexed(kd.get_expr(), idx);
+        auto kd_idx = -kd[idx];
         
         // this implementation relies on kernels not noticing the dangling index during multiplication
         c.multiply_kernel(kc_idx);
@@ -994,6 +1008,86 @@ fourier_kernel<N> dotgrad(const vector& a, const fourier_kernel<N>& b)
       });
   }
 
+
+template <unsigned int N>
+fourier_kernel<N> Galileon2(const fourier_kernel<N>& a)
+  {
+    using fourier_kernel_impl::kernel;
+    using fourier_kernel_impl::transform_kernel;
+
+    // manufacture a blank fourier kernel of max order N
+    auto r = a.sf.template make_fourier_kernel<N>();
+
+    // insert step should dot each product kernel with i a.kb
+    return transform_kernel(a, [&](const kernel& c) -> kernel
+      {
+        auto idx_i = a.sf.make_unique_index();
+        auto idx_j = a.sf.make_unique_index();
+
+        auto kc = c.get_total_momentum();
+        auto kc_i = kc[idx_i];
+        auto kc_j = kc[idx_j];
+
+        auto d = c;
+        d.multiply_kernel(-kc_i*kc_j);
+        std::cerr << d;
+
+        std::cerr << "... starting d^2" << '\n';
+        auto e = d*d;
+        std::cerr << "... completed d^2" << '\n';
+
+        auto f = c;
+        f.multiply_kernel(-kc.norm_square());
+
+        auto g = f*f;
+
+        return e - g;
+      });
+  }
+
+
+template <unsigned int N>
+fourier_kernel<N> Galileon3(const fourier_kernel<N>& a)
+  {
+    using fourier_kernel_impl::kernel;
+    using fourier_kernel_impl::transform_kernel;
+
+    // manufacture a blank fourier kernel of max order N
+    auto r = a.sf.template make_fourier_kernel<N>();
+
+    // insert step should dot each product kernel with i a.kb
+    return transform_kernel(a, [&](const kernel& c) -> kernel
+      {
+        auto idx_i = a.sf.make_unique_index();
+        auto idx_j = a.sf.make_unique_index();
+        auto idx_k = a.sf.make_unique_index();
+
+        auto kc = c.get_total_momentum();
+        auto kc_i = kc[idx_i];
+        auto kc_j = kc[idx_j];
+        auto kc_k = kc[idx_k];
+
+        auto d1 = c;
+        d1.multiply_kernel(-kc_i*kc_j);
+
+        auto d2 = c;
+        d2.multiply_kernel(-kc_j*kc_k);
+
+        auto d3 = c;
+        d3.multiply_kernel(-kc_k*kc_i);
+
+        auto e = 2*d1*d2*d3;
+
+        auto f = c;
+        f.multiply_kernel(-kc.norm_square());
+
+        auto g = f*f*f;
+
+        auto h = 3*d1*d1*f;
+
+        return -(e + g - h)/2;
+      });
+  }
 
 
 #endif //LSSEFT_ANALYTIC_FOURIER_KERNEL_H

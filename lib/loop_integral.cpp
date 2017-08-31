@@ -176,7 +176,7 @@ namespace dot_products_to_cos_impl
 
         // if the base is not an indexed object then apply recursively
         if(!GiNaC::is_a<GiNaC::indexed>(base))
-          return GiNaC::pow(convert(base), exponent);
+          return GiNaC::pow(convert(base).expand(GiNaC::expand_options::expand_indexed), exponent);
 
         // if base has too many indices then complain
         if(base.nops() > 2)
@@ -208,23 +208,21 @@ namespace dot_products_to_cos_impl
 
     GiNaC::ex convert(const GiNaC::ex& expr)
       {
-        auto expr_expand = expr.expand(GiNaC::expand_options::expand_indexed);
-
-        if(GiNaC::is_a<GiNaC::add>(expr_expand))
+        if(GiNaC::is_a<GiNaC::add>(expr))
           {
-            return convert_add(expr_expand);
+            return convert_add(expr);
           }
-        if(GiNaC::is_a<GiNaC::mul>(expr_expand))
+        if(GiNaC::is_a<GiNaC::mul>(expr))
           {
-            return convert_mul(expr_expand);
+            return convert_mul(expr);
           }
-        if(GiNaC::is_a<GiNaC::power>(expr_expand))
+        if(GiNaC::is_a<GiNaC::power>(expr))
           {
-            return convert_power(expr_expand);
+            return convert_power(expr);
           }
 
         // otherwise assume nothing to do, so return
-        return expr_expand;
+        return expr;
       }
 
   }   // namespace dot_products_to_cos_impl
@@ -234,7 +232,7 @@ void loop_integral::dot_products_to_cos()
   {
     // step through the kernel, converting any explicit inner products into cosines;
     // these can later be converted into Legendre polynomials if required
-    GiNaC::ex new_K = dot_products_to_cos_impl::convert(this->K);
+    GiNaC::ex new_K = dot_products_to_cos_impl::convert(this->K.expand(GiNaC::expand_options::expand_indexed));
     this->K = new_K;
   }
 
@@ -446,6 +444,20 @@ void loop_integral::Legendre_to_cosines(const GiNaC::symbol q)
 
 void loop_integral::reduce_angular_integrals()
   {
+    // nothing to do at tree-level
+    if(this->loop_momenta.empty()) return;
+
+    // apply Rayleigh reduction algorithm at one-loop
+    if(this->loop_momenta.size() == 1)
+      {
+        this->reduce_angular_integrals_one_loop();
+        return;
+      }
+  }
+
+
+void loop_integral::reduce_angular_integrals_one_loop()
+  {
     // STEP 1 - canonicalize all labels
     this->canonicalize_loop_labels();
     this->canonicalize_Rayleigh_labels();
@@ -455,6 +467,10 @@ void loop_integral::reduce_angular_integrals()
 
     // STEP 3 - pair nontrivial arguments in Wick product with Rayleigh momenta
     this->match_Wick_to_Rayleigh();
+
+    // STEP 4 - apply Rayleigh plane-wave expansion to the Rayleigh momentum
+    if(this->Rayleigh_momenta.size() > 1)
+      throw exception(ERROR_MULTIPLE_RAYLEIGH_MOMENTA_NOT_IMPLEMENTED, exception_code::loop_transformation_error);
   }
 
 
@@ -503,10 +519,18 @@ void loop_integral::match_Wick_to_Rayleigh()
                   }
               }
 
-            if(t == this->Rayleigh_momenta.end() && !this->Rayleigh_momenta.empty())
+            if(t == this->Rayleigh_momenta.end())
               {
-                std::cerr << factor << '\n';
-                throw exception(ERROR_CANT_MATCH_WICK_TO_RAYLEIGH, exception_code::loop_transformation_error);
+                if(!this->Rayleigh_momenta.empty())
+                  {
+                    std::cerr << factor << '\n';
+                    throw exception(ERROR_CANT_MATCH_WICK_TO_RAYLEIGH, exception_code::loop_transformation_error);
+                  }
+
+                // matching Rayleigh momentum didn't exist, so insert one
+                auto S = this->sf.make_canonical_Rayleigh_momentum(0);
+                new_Wick *= cfs::Pk(f1, f2, S);
+                this->Rayleigh_momenta[S] = arg;
               }
 
             continue;

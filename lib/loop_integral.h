@@ -98,6 +98,9 @@ class loop_integral
 
   protected:
 
+    //! reduce angular integrals -- one loop implementation
+    void reduce_angular_integrals_one_loop();
+
     //! convert loop momenta to a canonical form
     void canonicalize_loop_labels();
 

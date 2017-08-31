@@ -74,6 +74,7 @@ constexpr auto ERROR_LEGENDRE_TRANSFORM_UNEXPECTED_SIZE = "Internal error: resul
 constexpr auto ERROR_BADLY_FORMED_WICK_PRODUCT = "Badly formed Wick product";
 constexpr auto ERROR_UNKNOWN_WICK_PRODUCT_LABEL = "Wick product contains unknown single momentum label";
 constexpr auto ERROR_CANT_MATCH_WICK_TO_RAYLEIGH = "Can't match momentum argument from Wick product to a Rayleigh momentum";
+constexpr auto ERROR_MULTIPLE_RAYLEIGH_MOMENTA_NOT_IMPLEMENTED = "Reduction of multiple Rayleigh momenta is not yet implemented";
 
 constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
 constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";

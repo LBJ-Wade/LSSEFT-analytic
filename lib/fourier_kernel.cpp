@@ -441,22 +441,23 @@ void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::sub
     
     auto used = get_expr_symbols(K);
     auto avail = s.get_momenta();
+    auto avail_plus_params = avail;
     
     // insert any symbols from the substitution list vs into the available set
     std::for_each(vs.begin(), vs.end(), [&](const subs_list::value_type& v) -> void
       {
         auto sym = GiNaC::ex_to<GiNaC::symbol>(v.first);
-        avail.insert(sym);
+        avail_plus_params.insert(sym);
       });
 
     // also insert any symbols that have been declared as parameters
-    std::copy(params.begin(), params.end(), std::inserter(avail, avail.begin()));
+    std::copy(params.begin(), params.end(), std::inserter(avail_plus_params, avail_plus_params.begin()));
     
     GiNaC_symbol_set used_not_avail;
     GiNaC_symbol_set avail_not_used;
     
     // perform set differencing to find mismatch between available and used symbols
-    std::set_difference(used.cbegin(), used.cend(), avail.cbegin(), avail.cend(),
+    std::set_difference(used.cbegin(), used.cend(), avail_plus_params.cbegin(), avail_plus_params.cend(),
                         std::inserter(used_not_avail, used_not_avail.end()), std::less<GiNaC::symbol>{});
     std::set_difference(avail.cbegin(), avail.cend(), used.cbegin(), used.cend(),
                         std::inserter(avail_not_used, avail_not_used.end()), std::less<GiNaC::symbol>{});
