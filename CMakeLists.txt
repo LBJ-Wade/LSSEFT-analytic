@@ -41,6 +41,7 @@ ADD_EXECUTABLE(LSSEFT_analytic
   lib/vector.cpp
   lib/Pk_one_loop.cpp
   lib/detail/contractions.cpp
+  lib/detail/legendre_utils.cpp
   lib/detail/Rayleigh_momenta.cpp
   lib/detail/relabel_product.cpp
   lib/detail/special_functions.cpp
@@ -87,6 +88,8 @@ SET(LIBRARY_DETAIL_FILES
   lib/detail/Rayleigh_momenta.h
   lib/detail/special_functions.cpp
   lib/detail/special_functions.h
+  lib/detail/legendre_utils.cpp
+  lib/detail/legendre_utils.h
   )
 
 SET(LOCALIZATIONS_FILES

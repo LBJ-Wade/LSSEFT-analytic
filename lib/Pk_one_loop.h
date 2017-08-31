@@ -36,7 +36,6 @@
 #include "detail/contractions.h"
 #include "detail/relabel_product.h"
 #include "detail/Rayleigh_momenta.h"
-#include "detail/special_functions.h"
 
 #include "services/symbol_factory.h"
 
@@ -299,16 +298,6 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Insert
                 dotp.add(this->k, this->k, this->k*this->k);
                 // k.l, l.l and other inner products are supposed to be picked up later by
                 // loop integral transformations
-//                if(!loops.empty())
-//                  {
-//                    dotp.add(*loops.begin(), *loops.begin(), (*loops.begin()) * (*loops.begin()));
-//                    dotp.add(*loops.begin(), this->k, (*loops.begin()) * this->k * Angular::Cos(*loops.begin(), this->k));
-//                  }
-//                for(const auto& rule : Rayleigh_list)
-//                  {
-//                    const auto sym = GiNaC::ex_to<GiNaC::symbol>(rule.first);
-//                    dotp.add(sym, sym, sym*sym);
-//                  }
 
                 K = simplify_index(K, dotp);
 

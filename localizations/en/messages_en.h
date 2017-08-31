@@ -69,6 +69,9 @@ constexpr auto EXPECTED_EXPONENT_TO_BE_NUMERIC = "Expected exponent to be numeri
 constexpr auto EXPECTED_EXPONENT_TO_BE_INTEGER = "Expected exponent to be integer during loop transformation";
 constexpr auto EXPECTED_EXPONENT_TO_BE_EVEN_INTEGER = "Expected exponent to be even integer during loop transformation";
 
+constexpr auto ERROR_COULDNT_COLLECT_COS = "Could not collect cosine terms for transformation to Legendre representation";
+constexpr auto ERROR_LEGENDRE_TRANSFORM_UNEXPECTED_SIZE = "Internal error: result matrix has unexpected dimensions during conversion to Legendre representation";
+
 constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
 constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";
 constexpr auto WARNING_ORDER_ZERO_KERNEL = "Ignoring order-zero kernel";

@@ -95,8 +95,14 @@ class loop_integral
     //! convert loop momenta to a canonical form
     void canonicalize_momenta();
 
-    //! convert dot products to cosines
-    void inner_products_to_cos();
+    //! convert all dot products to cosines
+    void dot_products_to_cos();
+    
+    //! convert cosines containing a given vector q to Legendre polynomials
+    void cosines_to_Legendre(const GiNaC::symbol& q);
+
+    //! convert Legendre polynomials containing a given vector q to cosines
+    void Legendre_to_cosines(const GiNaC::symbol q);
 
 
     // SERVICES

@@ -27,6 +27,7 @@
 #include "loop_integral.h"
 
 #include "detail/special_functions.h"
+#include "detail/legendre_utils.h"
 
 #include "shared/exceptions.h"
 #include "localizations/messages.h"
@@ -63,7 +64,7 @@ void loop_integral::write(std::ostream& out) const
   }
 
 
-namespace inner_products_to_cos_impl
+namespace dot_products_to_cos_impl
   {
 
     GiNaC::ex convert(const GiNaC::ex& expr);
@@ -221,14 +222,14 @@ namespace inner_products_to_cos_impl
         return expr_expand;
       }
 
-  }   // namespace inner_products_to_cos_impl
+  }   // namespace dot_products_to_cos_impl
 
 
-void loop_integral::inner_products_to_cos()
+void loop_integral::dot_products_to_cos()
   {
     // step through the kernel, converting any explicit inner products into cosines;
     // these can later be converted into Legendre polynomials if required
-    GiNaC::ex new_K = inner_products_to_cos_impl::convert(this->K);
+    GiNaC::ex new_K = dot_products_to_cos_impl::convert(this->K);
     this->K = new_K;
   }
 
@@ -258,4 +259,160 @@ void loop_integral::canonicalize_momenta()
       }
 
     this->loop_momenta = new_momenta;
+  }
+
+
+namespace cosine_Legendre_impl
+  {
+
+    void find_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr, GiNaC_symbol_set& set,
+                    const std::string& name, unsigned int op1, unsigned int op2)
+      {
+        if(GiNaC::is_a<GiNaC::function>(expr))
+          {
+            const auto& f = GiNaC::ex_to<GiNaC::function>(expr);
+            if(f.get_name() == name)
+              {
+                const auto& p1 = GiNaC::ex_to<GiNaC::symbol>(f.op(op1));
+                const auto& p2 = GiNaC::ex_to<GiNaC::symbol>(f.op(op2));
+                
+                if(p1 == q) set.insert(p2);
+                if(p2 == q) set.insert(p1);
+                return;
+              }
+          }
+
+        // arrive here if expr isn't a function, or the function wasn't what we were looking for
+        for(size_t i = 0; i < expr.nops(); ++i)
+          {
+            find_pairs(q, expr.op(i), set, name, op1, op2);
+          }
+      }
+
+
+    GiNaC_symbol_set get_Cos_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr)
+      {
+        GiNaC_symbol_set pair_set;
+        find_pairs(q, expr, pair_set, "Cos", 0, 1);
+        
+        return pair_set;
+      }
+
+
+    GiNaC_symbol_set get_LegP_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr)
+      {
+        GiNaC_symbol_set pair_set;
+        find_pairs(q, expr, pair_set, "LegP", 1, 2);
+
+        return pair_set;
+      }
+
+
+    unsigned int get_max_LegP_order(const GiNaC::symbol& p1, const GiNaC::symbol& p2, const GiNaC::ex& expr)
+      {
+        if(GiNaC::is_a<GiNaC::function>(expr))
+          {
+            const auto& f = GiNaC::ex_to<GiNaC::function>(expr);
+            if(f.get_name() == "LegP")
+              {
+                const auto& o = GiNaC::ex_to<GiNaC::numeric>(f.op(0));
+                const auto& q1 = GiNaC::ex_to<GiNaC::symbol>(f.op(1));
+                const auto& q2 = GiNaC::ex_to<GiNaC::symbol>(f.op(2));
+
+                if(p1 == q1 && p2 == q2) return static_cast<unsigned int>(o.to_int());
+                return 0;
+              }
+          }
+
+        unsigned int res = 0;
+        for(size_t i = 0; i < expr.nops(); ++i)
+          {
+            res = std::max(res, get_max_LegP_order(p1, p2, expr.op(i)));
+          }
+
+        return res;
+      }
+    
+    
+  }   // namespace cosine_Legendre_impl
+
+
+void loop_integral::cosines_to_Legendre(const GiNaC::symbol& q)
+  {
+    using cosine_Legendre_impl::get_Cos_pairs;
+    
+    // obtain the set of symbols with which q appears in conjunction
+    auto pair_set = get_Cos_pairs(q, this->K);
+    
+    // for each symbol, collect a polynomial in Cos(q,) and exchange it for a Legendre representation
+    for(const auto& p : pair_set)
+      {
+        // arguments will be ordered canonically
+        GiNaC::ex c;
+        GiNaC::symbol p1 = q;
+        GiNaC::symbol p2 = p;
+        if(std::less<GiNaC::symbol>{}(p2, p1)) std::swap(p1, p2);
+        c = Angular::Cos(p1, p2);
+
+        auto deg = static_cast<unsigned int>(this->K.degree(c));
+        if(deg == 0)
+          throw exception(ERROR_COULDNT_COLLECT_COS, exception_code::loop_transformation_error);
+        
+        // collect coefficients of 1, cos, cos^2, ..., cos^deg into a row vector
+        GiNaC::matrix coeffs{1, deg+1};
+        
+        for(unsigned int i = 0; i <= deg; ++i)
+          {
+            coeffs(0, i) = this->K.coeff(c, i);
+          }
+        
+        // set up Cos-to-Legendre matrix of required degree
+        const auto& xfm = Cos_to_Legendre_matrix(deg);
+
+        // build column vector of Legendre polynomials
+        GiNaC::matrix LegP{deg+1, 1};
+
+        for(unsigned int i = 0; i <= deg; ++i)
+          {
+            LegP(i, 0) = Angular::LegP(GiNaC::numeric(i), p1, p2);
+          }
+
+        GiNaC::matrix res = coeffs.mul(xfm).mul(LegP);
+        if(res.cols() != 1)
+          throw exception(ERROR_LEGENDRE_TRANSFORM_UNEXPECTED_SIZE, exception_code::loop_transformation_error);
+        if(res.cols() != 1)
+          throw exception(ERROR_LEGENDRE_TRANSFORM_UNEXPECTED_SIZE, exception_code::loop_transformation_error);
+
+        // store Legendre representation
+        this->K = res(0,0);
+      }
+  }
+
+
+void loop_integral::Legendre_to_cosines(const GiNaC::symbol q)
+  {
+    using cosine_Legendre_impl::get_LegP_pairs;
+    using cosine_Legendre_impl::get_max_LegP_order;
+
+    // obtain the set of symbols with which q appears in conjunction
+    auto pair_set = get_LegP_pairs(q, this->K);
+
+    // for each symbol, substitute for the Legendre polynomials
+    for(const auto& p : pair_set)
+      {
+        // arguments will be ordered canonically
+        GiNaC::symbol p1 = q;
+        GiNaC::symbol p2 = p;
+        if(std::less<GiNaC::symbol>{}(p2, p1)) std::swap(p1, p2);
+
+        // determine maximum order with which this combination occurs
+        unsigned int max_order = get_max_LegP_order(p1, p2, this->K);
+
+        for(unsigned int i = 0; i <= max_order; i++)
+          {
+            GiNaC::exmap map;
+            map[Angular::LegP(GiNaC::numeric(i), p1, p2)] = LegP(i, Angular::Cos(p1, p2));
+            this->K = this->K.subs(map);
+          }
+      }
   }

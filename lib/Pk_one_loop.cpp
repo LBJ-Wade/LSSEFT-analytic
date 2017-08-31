@@ -49,7 +49,7 @@ namespace Pk_one_loop_impl
         for(const auto& ker : this->db)
           {
             ker->canonicalize_momenta();
-            ker->inner_products_to_cos();
+            ker->dot_products_to_cos();
           }
       }
 
