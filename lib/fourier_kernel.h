@@ -388,7 +388,7 @@ namespace fourier_kernel_impl
     //! and then inserting elements from b into a
     template <unsigned int N, typename Operator>
     fourier_kernel<N> transform_kernel(const fourier_kernel<N>& a, const fourier_kernel<N>& b, Operator op);
-    
+
   }   // namespace fourier_kernel_impl
 
 //! unary - on a Fourier kernel
@@ -838,17 +838,20 @@ inline GiNaC::ex BasicKernelProduct(const GiNaC::ex& a, const GiNaC::ex& b,
   }
 
 
-//! generic algorithm to construct a product of kernels, with a parametrizable rule
-//! for constructing the product at a fixed order
-template <unsigned int N, typename ProductRule>
-void KernelProduct(const fourier_kernel<N>& a, const fourier_kernel<N>& b, ProductRule rule)
+//! generic algorithm to construct a product of two kernels, with a parametrizable rule
+//! for constructing the product at each order
+template <unsigned int N, typename InsertionRule>
+void KernelProduct(const fourier_kernel<N>& a, const fourier_kernel<N>& b, InsertionRule rule)
   {
     // work through all orders that can appear in the product;
     // since everything is a perturbation, the product of two perturbations is second order
     // and we should start at 2
+
+    // i labels order in product
     for(unsigned int i = 2; i <= N; ++i)
       {
-        for(unsigned int j = 1; j < i; ++j)
+        // j labels order to extract from first factor
+        for(unsigned int j = 1; j <= i-1; ++j)
           {
             // extract terms of order j from a and order (i-j) from b
             auto a_set = a.order(j);
@@ -859,9 +862,46 @@ void KernelProduct(const fourier_kernel<N>& a, const fourier_kernel<N>& b, Produ
               {
                 for(auto tb = b_set.cbegin(); tb != b_set.cend(); ++tb)
                   {
-                    // apply ProductRule to these factors
+                    // apply InsertionRule to these factors
                     // the rule may customize the kernel before inserting it in a destination container
                     rule(*ta->second, *tb->second);
+                  }
+              }
+          }
+      }
+  }
+
+
+//! generic algorithm to construct a product of three kernels, with a parametrizable rule
+//! for constructing the product at each order
+template <unsigned int N, typename InsertionRule>
+void KernelProduct(const fourier_kernel<N>& a, const fourier_kernel<N>& b, const fourier_kernel<N>& c,
+                   InsertionRule rule)
+  {
+    // i labels order in product
+    for(unsigned int i = 3; i <= N; ++i)
+      {
+        // j1 labels order to extract from first factor
+        for(unsigned int j1 = 1; j1 <= i-2; ++j1)
+          {
+            // j2 labels order to extract from second factor
+            for(unsigned int j2 = 1; j2 <= i-j1-1; ++j2)
+              {
+                // extract terms
+                auto a_set = a.order(j1);
+                auto b_set = b.order(j2);
+                auto c_set = c.order(i-j1-j2);
+
+                // cross-multiply all these terms and insert into r
+                for(auto ta = a_set.cbegin(); ta != a_set.cend(); ++ta)
+                  {
+                    for(auto tb = b_set.cbegin(); tb != b_set.cend(); ++tb)
+                      {
+                        for(auto tc = c_set.cbegin(); tc != c_set.cend(); ++tc)
+                          {
+                            rule(*ta->second, *tb->second, *tc->second);
+                          }
+                      }
                   }
               }
           }
@@ -880,9 +920,8 @@ fourier_kernel<N> operator*(const fourier_kernel<N>& a, const fourier_kernel<N>&
     // insert step is trivial and should just copy each kernel product into the new container r
     auto ins = [&](const kernel& c, const kernel& d) -> void
       {
-        auto k = c*d;
-        
-        r.add(k, true);
+        auto ker = c*d;
+        r.add(ker, true);
       };
     
     KernelProduct(a, b, ins);
@@ -977,9 +1016,8 @@ fourier_kernel<N> gradgrad(const fourier_kernel<N>& a, const fourier_kernel<N>& 
         c.multiply_kernel(kc_idx);
         d.multiply_kernel(kd_idx);
         
-        auto k = c*d;
-        
-        r.add(k, true);
+        auto ker = c*d;
+        r.add(ker, true);
       };
     
     KernelProduct(a, b, ins);
@@ -1018,8 +1056,7 @@ fourier_kernel<N> Galileon2(const fourier_kernel<N>& a)
     // manufacture a blank fourier kernel of max order N
     auto r = a.sf.template make_fourier_kernel<N>();
 
-    // insert step should dot each product kernel with i a.kb
-    return transform_kernel(a, [&](const kernel& c) -> kernel
+    auto ins = [&](kernel c, kernel d) -> void
       {
         auto idx_i = a.sf.make_unique_index();
         auto idx_j = a.sf.make_unique_index();
@@ -1028,21 +1065,29 @@ fourier_kernel<N> Galileon2(const fourier_kernel<N>& a)
         auto kc_i = kc[idx_i];
         auto kc_j = kc[idx_j];
 
-        auto d = c;
-        d.multiply_kernel(-kc_i*kc_j);
-        std::cerr << d;
+        auto kd = d.get_total_momentum();
+        auto kd_i = kd[idx_i];
+        auto kd_j = kd[idx_j];
 
-        std::cerr << "... starting d^2" << '\n';
-        auto e = d*d;
-        std::cerr << "... completed d^2" << '\n';
+        auto e = c;
+        auto f = d;
 
-        auto f = c;
-        f.multiply_kernel(-kc.norm_square());
+        auto ke = e.get_total_momentum();
+        auto kf = f.get_total_momentum();
 
-        auto g = f*f;
+        c.multiply_kernel(-kc_i*kc_j);
+        d.multiply_kernel(-kd_i*kd_j);
 
-        return e - g;
-      });
+        e.multiply_kernel(-ke.norm_square());
+        f.multiply_kernel(-kf.norm_square());
+
+        auto ker = c*d - e*f;
+        r.add(ker, true);
+      };
+
+    KernelProduct(a, a, ins);
+
+    return r;
   }
 
 
@@ -1056,7 +1101,7 @@ fourier_kernel<N> Galileon3(const fourier_kernel<N>& a)
     auto r = a.sf.template make_fourier_kernel<N>();
 
     // insert step should dot each product kernel with i a.kb
-    return transform_kernel(a, [&](const kernel& c) -> kernel
+    auto ins = [&](kernel c, kernel d, kernel e) -> void
       {
         auto idx_i = a.sf.make_unique_index();
         auto idx_j = a.sf.make_unique_index();
@@ -1065,28 +1110,56 @@ fourier_kernel<N> Galileon3(const fourier_kernel<N>& a)
         auto kc = c.get_total_momentum();
         auto kc_i = kc[idx_i];
         auto kc_j = kc[idx_j];
-        auto kc_k = kc[idx_k];
 
-        auto d1 = c;
-        d1.multiply_kernel(-kc_i*kc_j);
+        auto kd = d.get_total_momentum();
+        auto kd_j = kd[idx_j];
+        auto kd_k = kd[idx_k];
 
-        auto d2 = c;
-        d2.multiply_kernel(-kc_j*kc_k);
-
-        auto d3 = c;
-        d3.multiply_kernel(-kc_k*kc_i);
-
-        auto e = 2*d1*d2*d3;
+        auto ke = e.get_total_momentum();
+        auto ke_k = ke[idx_k];
+        auto ke_i = ke[idx_i];
 
         auto f = c;
-        f.multiply_kernel(-kc.norm_square());
+        auto g = d;
+        auto h = e;
 
-        auto g = f*f*f;
+        auto kf = f.get_total_momentum();
+        auto kg = g.get_total_momentum();
+        auto kh = h.get_total_momentum();
 
-        auto h = 3*d1*d1*f;
+        auto i = c;
+        auto j = d;
+        auto k = e;
 
-        return -(e + g - h)/2;
-      });
+        auto ki = i.get_total_momentum();
+        auto ki_i = ki[idx_i];
+        auto ki_j = ki[idx_j];
+
+        auto kj = j.get_total_momentum();
+        auto kj_i = kj[idx_i];
+        auto kj_j = kj[idx_j];
+
+        auto kk = k.get_total_momentum();
+
+        c.multiply_kernel(-kc_i*kc_j);
+        d.multiply_kernel(-kd_j*kd_k);
+        e.multiply_kernel(-ke_k*ke_i);
+
+        f.multiply_kernel(-kf.norm_square());
+        g.multiply_kernel(-kg.norm_square());
+        h.multiply_kernel(-kh.norm_square());
+
+        i.multiply_kernel(-ki_i*ki_j);
+        j.multiply_kernel(-kj_i*kj_j);
+        k.multiply_kernel(-kk.norm_square());
+
+        auto ker = -(2*c*d*e + f*g*h - 3*i*j*k)/2;
+        r.add(ker, true);
+      };
+
+    KernelProduct(a, a, a, ins);
+
+    return r;
   }
 
 

@@ -469,8 +469,8 @@ void loop_integral::reduce_angular_integrals_one_loop()
     this->match_Wick_to_Rayleigh();
 
     // STEP 4 - apply Rayleigh plane-wave expansion to the Rayleigh momentum
-    if(this->Rayleigh_momenta.size() > 1)
-      throw exception(ERROR_MULTIPLE_RAYLEIGH_MOMENTA_NOT_IMPLEMENTED, exception_code::loop_transformation_error);
+//    if(this->Rayleigh_momenta.size() > 1)
+//      throw exception(ERROR_MULTIPLE_RAYLEIGH_MOMENTA_NOT_IMPLEMENTED, exception_code::loop_transformation_error);
   }
 
 

@@ -135,11 +135,8 @@ int main(int argc, char* argv[])
     auto Phi_v = -phi/H;
 
     auto G2 = Galileon2(Phi_delta);
-    std::cout << "G2:" << G2;
     auto G3 = Galileon3(Phi_delta);
-    std::cout << "G3:" << G3;
     auto Gamma3 = Galileon2(Phi_delta) - Galileon2(Phi_v);
-    std::cout << "Gamma3:" << Gamma3;
 
     auto deltah = b1*delta + b2*delta*delta + b3*delta*delta*delta
                   + bG2*G2 + bdG2*G2*delta + bG3*G3 + bGamma3*Gamma3;
