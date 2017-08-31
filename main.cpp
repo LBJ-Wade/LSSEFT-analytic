@@ -169,10 +169,11 @@ int main(int argc, char* argv[])
     auto delta_rsd_k2 = make_delta_rsd(k2mu);
 
     // halos in redshift-space
-
+    auto deltah_rsd_k1 = make_delta_rsd(k1mu);
+    auto deltah_rsd_k2 = make_delta_rsd(k2mu);
 
     // construct 1-loop \delta power spectrum
-    Pk_one_loop Pk_delta{deltah, deltah, k, sf};
+    Pk_one_loop Pk_delta{deltah_rsd_k1, deltah_rsd_k2, k, sf};
 
     auto& tree = Pk_delta.get_tree();
     std::cout << "Tree-level P(k):" << '\n';
