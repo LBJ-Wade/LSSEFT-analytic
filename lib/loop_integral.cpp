@@ -89,7 +89,7 @@ namespace inner_products_to_cos_impl
 
         for(auto t = exvec.begin(); t != exvec.end(); /* intentionally left blank*/)
           {
-            // does this factor carry an index? if not push it to the result and carry on
+            // does this factor carry an index? if not: convert it, push it to the result and carry on
             if(!GiNaC::is_a<GiNaC::indexed>(*t))
               {
                 val *= convert(*t);
@@ -238,6 +238,7 @@ void loop_integral::canonicalize_momenta()
     GiNaC_symbol_set new_momenta;
     GiNaC::exmap relabel;
 
+    // step through loop momenta, relabelling to canonicalized variables
     unsigned int count = 0;
     for(const auto& l : this->loop_momenta)
       {
@@ -246,9 +247,11 @@ void loop_integral::canonicalize_momenta()
         new_momenta.insert(L);
       }
 
+    // propagate this relabelling to the kernel and the Wick product
     this->K = this->K.subs(relabel);
     this->WickString = this->WickString.subs(relabel);
 
+    // propagate to any Rayleigh replacement rules in use
     for(auto& rule : this->Rayleigh_momenta)
       {
         rule.second = rule.second.subs(relabel);

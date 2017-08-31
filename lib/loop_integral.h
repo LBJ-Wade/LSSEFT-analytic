@@ -117,7 +117,7 @@ class loop_integral
     symbol_factory& sf;
 
 
-    // DATA
+    // KERNEL DATA
 
     //! time function
     time_function tm;
@@ -133,6 +133,16 @@ class loop_integral
 
     //! set of momenta requiring Rayleigh expansion
     subs_list Rayleigh_momenta;
+
+
+    // INTEGRATION DATA
+
+    //! set of integration variables
+    GiNaC_symbol_set integration_vars;
+
+    //! integration measures
+    GiNaC::ex measure{1};
+
 
   };
 
