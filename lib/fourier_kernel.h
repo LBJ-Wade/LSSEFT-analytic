@@ -41,6 +41,7 @@
 #include "utilities/hash_combine.h"
 #include "utilities/GiNaC_utils.h"
 
+#include "shared/common.h"
 #include "shared/exceptions.h"
 #include "shared/error.h"
 #include "localizations/messages.h"
@@ -52,17 +53,6 @@
 
 namespace fourier_kernel_impl
   {
-    
-    // set up necessary types
-
-    //! list of GiNaC non-rotationally-invariant vectors that appear in the
-    //! denominator of the kernel, and which will need to be computed
-    //! by Rayleigh expansion in correlation functions
-    using subs_list = GiNaC::exmap;
-    
-    //! type for functions of time
-    using time_function = GiNaC::ex;
-    
     
     //! forward-declare key
     class key;
@@ -118,24 +108,11 @@ namespace fourier_kernel_impl
         //! these will need to be handled by a Rayleigh plane wave expansion when computing
         //! correlation functions
         kernel(GiNaC::ex K_, initial_value_set iv_, time_function tm_, subs_list vs_,
-               symbol_factory& sf_)
-          : K(std::move(K_)),
-            tm(std::move(tm_)),
-            iv(std::move(iv_)),
-            vs(std::move(vs_)),
-            sf(sf_)
-          {
-          }
+               symbol_factory& sf_);
 
         //! alternative constructor accepts just an initial_value_set and a symbol factory refernce;
         //! sets momentum kernel and time function to unity
-        kernel(initial_value_set iv_, symbol_factory& sf_)
-          : K(1),
-            tm(1),
-            iv(std::move(iv_)),
-            sf(sf_)
-          {
-          }
+        kernel(initial_value_set iv_, symbol_factory& sf_);
         
         //! destructor us default
         ~kernel() = default;
@@ -251,38 +228,27 @@ namespace fourier_kernel_impl
       public:
         
         //! constructor accepts a kernel object and captures its data
-        explicit key(kernel& k)
-          : tm(k.tm),
-            iv(k.iv)
-          {
-          }
+        explicit key(kernel& k);
         
         //! alternative constructor accepts explicit references
-        key(const time_function& tm_, const initial_value_set& iv_)
-          : tm(tm_),
-            iv(iv_)
-          {
-          }
+        key(const time_function& tm_, const initial_value_set& iv_);
         
         //! destructor is default
         ~key() = default;
-        
-        
-        // ACCESSORS
-        
-      public:
-        
-        //! get time function
-        const time_function& get_time_function() const { return this->tm; }
-        
-        //! get initial value list
-        const initial_value_set& get_initial_value_set() const { return this->iv; }
-        
+
         
         // SERVICES
         
       public:
-        
+
+        //! hash
+        size_t hash() const;
+
+        //! check for equality
+        bool is_equal(const key& obj) const;
+
+      protected:
+
         //! get lexicographically-ordered list of symbols in the initial value set;
         //! used for ordering and comparison
         std::vector<GiNaC::symbol> get_ordered_iv_symbols() const;
@@ -315,27 +281,7 @@ namespace std
       {
         size_t operator()(const fourier_kernel_impl::key& obj) const
           {
-            std::hash<std::string> string_hasher;
-            
-            // to hash the time expression, expand it completely and print
-            std::ostringstream time_string;
-            time_string << obj.get_time_function().expand();
-            
-            size_t h = string_hasher(time_string.str());
-            
-            // to hash the initial value set, order its symbols lexicographically
-            const auto symbols = obj.get_ordered_iv_symbols();
-    
-            std::string symbol_string;
-            std::for_each(symbols.begin(), symbols.end(),
-                          [&](const GiNaC::symbol& e) -> std::string
-                            { return symbol_string += e.get_name(); });
-            
-            // and hash that. Then we combine both hashes together.
-            hash_impl::hash_combine(h, symbol_string);
-            
-            // return final value
-            return h;
+            return obj.hash();
           }
       };
     
@@ -345,23 +291,7 @@ namespace std
       {
         bool operator()(const fourier_kernel_impl::key& a, const fourier_kernel_impl::key& b) const
           {
-            const auto& at = a.get_time_function();
-            const auto& bt = b.get_time_function();
-            
-            // test for equality of expressions
-            auto rt = (at == bt);
-            if(!static_cast<bool>(rt)) return false;
-            
-            // test for equality of initial-value strings
-            // we do this by ordering their symbol names lexicographically
-            // and testing for equality of those
-            auto a_symbols = a.get_ordered_iv_symbols();
-            auto b_symbols = b.get_ordered_iv_symbols();
-    
-            return std::equal(a_symbols.cbegin(), a_symbols.cend(),
-                              b_symbols.cbegin(), b_symbols.cend(),
-                              [](const GiNaC::symbol& asym, const GiNaC::symbol& bsym) -> bool
-                                { return asym.get_name() == bsym.get_name(); });
+            return a.is_equal(b);
           }
       };
     
@@ -471,10 +401,7 @@ class fourier_kernel
     // TYPES
     
   public:
-    
-    //! pull in time_function
-    using time_function = fourier_kernel_impl::time_function;
-    
+
     //! pull in key_type
     using key_type = fourier_kernel_impl::key;
     
@@ -483,10 +410,7 @@ class fourier_kernel
     
     //! pull in kernel_db
     using kernel_db = fourier_kernel_impl::kernel_db;
-    
-    //! pull in subs_list
-    using subs_list = fourier_kernel_impl::subs_list;
-    
+
     
     // CONSTRUCTOR, DESTRUCTOR
     
@@ -613,15 +537,14 @@ class fourier_kernel
 bool validate_ivset_nonempty(const initial_value_set& s, const GiNaC::ex& K, bool silent);
 
 //! validate that a substitution list doesn't overlap with an initial value list
-void validate_subslist(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs);
+void validate_subslist(const initial_value_set& s, const subs_list& vs);
 
 //! validate that a given kernel has the correct structure (is a scalar, is a rational function of the momenta)
 void validate_structure(const GiNaC::ex& K);
 
 //! validate that a kernel and set of initial values match (no unknown momenta in kernel)
-void
-validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs, const GiNaC::ex& K,
-                 const GiNaC_symbol_set& params, bool silent);
+void validate_momenta(const initial_value_set& s, const subs_list& vs, const GiNaC::ex& K,
+                      const GiNaC_symbol_set& params, bool silent);
 
 
 template <unsigned int N>

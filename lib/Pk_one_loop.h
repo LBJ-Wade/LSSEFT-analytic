@@ -33,6 +33,7 @@
 
 #include "fourier_kernel.h"
 #include "loop_integral.h"
+#include "one_loop_reduced_integral.h"
 #include "detail/contractions.h"
 #include "detail/relabel_product.h"
 #include "detail/Rayleigh_momenta.h"
@@ -51,8 +52,10 @@ namespace Pk_one_loop_impl
 
       protected:
 
-        //! database
-        using db_type = std::vector< std::unique_ptr<loop_integral> >;
+        //! database is a set of pairs that link the raw loop integrals with their
+        //! reduced forms
+        using db_type = std::vector< std::pair< std::unique_ptr<loop_integral>,
+                                                std::unique_ptr<one_loop_reduced_integral> > >;
 
 
         // CONSTRUCTOR, DESTRUCTOR
@@ -104,7 +107,7 @@ namespace Pk_one_loop_impl
     template <typename... Args>
     void Pk_db::emplace(Args&& ... args)
       {
-        this->db.emplace_back(std::forward<Args>(args)...);
+        this->db.emplace_back( std::make_pair(std::forward<Args>(args)..., std::unique_ptr<one_loop_reduced_integral>()) );
       }
 
   }   // namespace Pk_one_loop_impl
@@ -311,10 +314,7 @@ void Pk_one_loop::build_tree(const Kernel1& ker1, const Kernel2& ker2)
   {
     const auto ker1_db = ker1.order(1);
     const auto ker2_db = ker2.order(1);
-    
-    using loop_integral_impl::time_function;
-    using loop_integral_impl::subs_list;
-    
+
     auto ins = [&](time_function t, GiNaC::ex K, GiNaC::ex ws, GiNaC_symbol_set lm, subs_list rm) -> void
       {
         this->Ptree.emplace(
@@ -336,9 +336,6 @@ void Pk_one_loop::build_13(const Kernel1& ker1, const Kernel2& ker2)
     
     const auto ker2_db1 = ker2.order(1);
     const auto ker2_db3 = ker2.order(3);
-    
-    using loop_integral_impl::time_function;
-    using loop_integral_impl::subs_list;
 
     auto ins = [&](time_function t, GiNaC::ex K, GiNaC::ex ws, GiNaC_symbol_set lm, subs_list rm) -> void
       {
@@ -359,10 +356,7 @@ void Pk_one_loop::build_22(const Kernel1& ker1, const Kernel2& ker2)
   {
     const auto ker1_db2 = ker1.order(2);
     const auto ker2_db2 = ker2.order(2);
-    
-    using loop_integral_impl::time_function;
-    using loop_integral_impl::subs_list;
-    
+
     auto ins = [&](time_function t, GiNaC::ex K, GiNaC::ex ws, GiNaC_symbol_set lm, subs_list rm) -> void
       {
         this->P22.emplace(

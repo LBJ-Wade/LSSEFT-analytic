@@ -40,6 +40,7 @@ ADD_EXECUTABLE(LSSEFT_analytic
   lib/loop_integral.cpp
   lib/vector.cpp
   lib/Pk_one_loop.cpp
+               lib/one_loop_reduced_integral.cpp
   lib/detail/contractions.cpp
   lib/detail/legendre_utils.cpp
   lib/detail/Rayleigh_momenta.cpp
@@ -77,6 +78,8 @@ SET(LIBRARY_FILES
   lib/Pk_one_loop.h
   lib/loop_integral.cpp
   lib/loop_integral.h
+    lib/one_loop_reduced_integral.cpp
+    lib/one_loop_reduced_integral.h
   )
 
 SET(LIBRARY_DETAIL_FILES
@@ -103,13 +106,14 @@ SET(SERVICES_FILES
   )
 
 SET(SHARED_FILES
-  shared/ansi_colour_codes.h
-  shared/exceptions.cpp
-  shared/exceptions.h
-  shared/defaults.h
-  shared/error.cpp
-  shared/error.h
-  shared/ansi_colour_codes.h)
+    shared/ansi_colour_codes.h
+    shared/exceptions.cpp
+    shared/exceptions.h
+    shared/defaults.h
+    shared/error.cpp
+    shared/error.h
+    shared/ansi_colour_codes.h
+    shared/common.h)
 
 SET(SPT_FILES
   SPT/time_functions.cpp

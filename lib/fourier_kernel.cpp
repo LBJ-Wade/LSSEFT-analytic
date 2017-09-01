@@ -35,7 +35,21 @@
 
 namespace fourier_kernel_impl
   {
-    
+
+    key::key(kernel& k)
+      : tm(k.tm),
+        iv(k.iv)
+      {
+      }
+
+
+    key::key(const time_function& tm_, const initial_value_set& iv_)
+      : tm(tm_),
+        iv(iv_)
+      {
+      }
+
+
     std::vector<GiNaC::symbol>
     key::get_ordered_iv_symbols() const
       {
@@ -49,8 +63,74 @@ namespace fourier_kernel_impl
         
         return symbols;
       }
-    
-    
+
+
+    size_t key::hash() const
+      {
+        std::hash<std::string> string_hasher;
+
+        // to hash the time expression, expand it completely and print
+        std::ostringstream time_string;
+        time_string << this->tm.expand();
+
+        size_t h = string_hasher(time_string.str());
+
+        // to hash the initial value set, order its symbols lexicographically
+        const auto symbols = this->get_ordered_iv_symbols();
+
+        std::string symbol_string;
+        std::for_each(symbols.begin(), symbols.end(),
+                      [&](const GiNaC::symbol& e) -> std::string
+                        { return symbol_string += e.get_name(); });
+
+        // combine both hashes together
+        hash_impl::hash_combine(h, symbol_string);
+
+        // return final value
+        return h;
+      }
+
+
+    bool key::is_equal(const key& obj) const
+      {
+        const auto& at = this->tm;
+        const auto& bt = obj.tm;
+
+        // test for equality of expressions
+        auto rt = (at == bt);
+        if(!static_cast<bool>(rt)) return false;
+
+        // test for equality of initial-value strings
+        // we do this by ordering their symbol names lexicographically
+        // and testing for equality of those
+        auto a_symbols = this->get_ordered_iv_symbols();
+        auto b_symbols = obj.get_ordered_iv_symbols();
+
+        return std::equal(a_symbols.cbegin(), a_symbols.cend(),
+                          b_symbols.cbegin(), b_symbols.cend(),
+                          [](const GiNaC::symbol& asym, const GiNaC::symbol& bsym) -> bool
+                            { return asym.get_name() == bsym.get_name(); });
+      }
+
+
+    kernel::kernel(GiNaC::ex K_, initial_value_set iv_, time_function tm_, subs_list vs_, symbol_factory& sf_)
+      : K(std::move(K_)),
+        tm(std::move(tm_)),
+        iv(std::move(iv_)),
+        vs(std::move(vs_)),
+        sf(sf_)
+      {
+      }
+
+
+    kernel::kernel(initial_value_set iv_, symbol_factory& sf_)
+      : K(1),
+        tm(1),
+        iv(std::move(iv_)),
+        sf(sf_)
+      {
+      }
+
     kernel& kernel::operator+=(const kernel& rhs)
       {
         // we need to relabel momenta in the right-hand-side if they do not match
@@ -357,8 +437,8 @@ namespace fourier_kernel_impl
     
         out << "  kernel = " << this->K << '\n';
       }
-    
-    
+
+
     std::ostream& operator<<(std::ostream& str, const kernel& a)
       {
         a.write(str);
@@ -390,7 +470,7 @@ bool validate_ivset_nonempty(const initial_value_set& s, const GiNaC::ex& K, boo
   }
   
 
-void validate_subslist(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs)
+void validate_subslist(const initial_value_set& s, const subs_list& vs)
   {
     // ensure that substitution list is a map from plain symbols to expressions, and
     // ensure that this list shares no common symbols with the initial value set
@@ -434,11 +514,9 @@ void validate_structure(const GiNaC::ex& K)
   }
 
 
-void validate_momenta(const initial_value_set& s, const fourier_kernel_impl::subs_list& vs, const GiNaC::ex& K,
+void validate_momenta(const initial_value_set& s, const subs_list& vs, const GiNaC::ex& K,
                       const GiNaC_symbol_set& params, bool silent)
   {
-    using fourier_kernel_impl::subs_list;
-    
     auto used = get_expr_symbols(K);
     auto avail = s.get_momenta();
     auto avail_plus_params = avail;

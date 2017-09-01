@@ -35,8 +35,16 @@ namespace Pk_one_loop_impl
         size_t count = 0;
         for(const auto& item : this->db)
           {
+            const loop_integral& lp = *item.first;
+
             std::cout << "Element " << count << "." << '\n';
-            std::cout << *item << '\n';
+            std::cout << lp << '\n';
+
+            if(item.second)
+              {
+                const one_loop_reduced_integral& rd = *item.second;
+                std::cout << rd << '\n';
+              }
 
             ++count;
           }
@@ -45,10 +53,12 @@ namespace Pk_one_loop_impl
 
     void Pk_db::reduce_angular_integrals()
       {
+        // walk through each subintegral in turn, performing angular reduction on it
         // walk through each integral in turn
-        for(const auto& ker : this->db)
+        for(auto& item : this->db)
           {
-            ker->reduce_angular_integrals();
+            const loop_integral& lp = *item.first;
+            item.second = std::make_unique<one_loop_reduced_integral>(lp);
           }
       }
 

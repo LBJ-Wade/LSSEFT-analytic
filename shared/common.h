@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 31/08/2017.
+// Created by David Seery on 01/09/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,24 +24,18 @@
 // --@@
 //
 
-#ifndef LSSEFT_ANALYTIC_LEGENDRE_UTILS_H
-#define LSSEFT_ANALYTIC_LEGENDRE_UTILS_H
+#ifndef LSSEFT_ANALYTIC_COMMON_H
+#define LSSEFT_ANALYTIC_COMMON_H
 
 
 #include "ginac/ginac.h"
 
 
-//! calculate a given Legendre polynomial
-GiNaC::ex LegP(unsigned int n, const GiNaC::ex& t);
+//! type for a time function
+using time_function = GiNaC::ex;
 
-//! convert all dot products to cosines
-GiNaC::ex dot_products_to_cos(const GiNaC::ex& expr);
-
-//! convert cosines containing a given vector q to Legendre polynomials
-GiNaC::ex cosines_to_Legendre(GiNaC::ex expr, const GiNaC::symbol& q);
-
-//! convert Legendre polynomials containing a given vector q to cosines
-GiNaC::ex Legendre_to_cosines(GiNaC::ex expr, const GiNaC::symbol q);
+//! type for a substitution list
+using subs_list = GiNaC::exmap;
 
 
-#endif //LSSEFT_ANALYTIC_LEGENDRE_UTILS_H
+#endif //LSSEFT_ANALYTIC_COMMON_H

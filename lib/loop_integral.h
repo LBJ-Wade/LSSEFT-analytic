@@ -29,21 +29,10 @@
 
 
 #include <iostream>
-#include <services/symbol_factory.h>
 
+#include "shared/common.h"
+#include "services/symbol_factory.h"
 #include "utilities/GiNaC_utils.h"
-
-
-namespace loop_integral_impl
-  {
-
-    //! substitution list for Rayleigh momenta
-    using subs_list = GiNaC::exmap;
-
-    //! time function
-    using time_function = GiNaC::ex;
-
-  }   // namespace loop_integral_impl
 
 
 //! forward-declare loop_integral
@@ -57,49 +46,49 @@ std::ostream& operator<<(std::ostream& str, const loop_integral& obj);
 class loop_integral
   {
 
-    // TYPES
-
-  public:
-
-    //! pull in time_function
-    using time_function = loop_integral_impl::time_function;
-
-    //! pull in subs_list
-    using subs_list = loop_integral_impl::subs_list;
-
-
     // CONSTRUCTOR, DESTRUCTOR
 
   public:
 
     //! constructor
     loop_integral(time_function tm_, GiNaC::ex K_, GiNaC::ex ws_, GiNaC_symbol_set lm_, GiNaC_symbol_set em_,
-                  subs_list rm_, symbol_factory& sf_)
-      : tm(std::move(tm_)),
-        K(std::move(K_)),
-        WickProduct(std::move(ws_)),
-        loop_momenta(std::move(lm_)),
-        external_momenta(std::move(em_)),
-        Rayleigh_momenta(std::move(rm_)),
-        sf(sf_)
-      {
-      }
+                  subs_list rm_, symbol_factory& sf_);
 
     //! destructor is default
     ~loop_integral() = default;
 
 
-    // TRANSFORMATIONS
+    // METADATA
 
   public:
 
-    //! preform reduction of angular integrals
-    void reduce_angular_integrals();
+    //! get order in the loop expansion
+    unsigned int get_loop_order() const { return static_cast<unsigned int>(this->loop_momenta.size()); }
+
+
+    // INTEGRAND ACCESSORS
+
+  public:
+
+    //! get time function
+    const time_function& get_time_function() const { return this->tm; }
+
+    //! get momentum kernel
+    const GiNaC::ex& get_kernel() const { return this->K; }
+
+    //! get Wick product string
+    const GiNaC::ex& get_Wick_product() const { return this->WickProduct; }
+
+    //! get list of loop momenta
+    const GiNaC_symbol_set& get_loop_momenta() const { return this->loop_momenta; }
+
+    //! get list of Rayleigh momenta
+    const subs_list get_Rayleigh_momenta() const { return this->Rayleigh_momenta; }
+
+
+    // TRANSFORMATIONS
 
   protected:
-
-    //! reduce angular integrals -- one loop implementation
-    void reduce_angular_integrals_one_loop();
 
     //! convert loop momenta to a canonical form
     void canonicalize_loop_labels();
@@ -107,17 +96,8 @@ class loop_integral
     //! convert Rayleigh momenta to a canonical form
     void canonicalize_Rayleigh_labels();
 
-    //! convert all dot products to cosines
-    void dot_products_to_cos();
-
     //! match arguments of Wick products to Rayleigh momenta
     void match_Wick_to_Rayleigh();
-    
-    //! convert cosines containing a given vector q to Legendre polynomials
-    void cosines_to_Legendre(const GiNaC::symbol& q);
-
-    //! convert Legendre polynomials containing a given vector q to cosines
-    void Legendre_to_cosines(const GiNaC::symbol q);
 
 
     // SERVICES
@@ -157,15 +137,6 @@ class loop_integral
 
     //! set of momenta requiring Rayleigh expansion
     subs_list Rayleigh_momenta;
-
-
-    // INTEGRATION DATA
-
-    //! set of integration variables
-    GiNaC_symbol_set integration_vars;
-
-    //! integration measures
-    GiNaC::ex measure{1};
 
 
   };
