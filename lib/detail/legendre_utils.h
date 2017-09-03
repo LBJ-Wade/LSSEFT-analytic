@@ -38,7 +38,7 @@ GiNaC::ex LegP(unsigned int n, const GiNaC::ex& t);
 GiNaC::ex dot_products_to_cos(const GiNaC::ex& expr);
 
 //! convert cosines containing a given vector q to Legendre polynomials
-GiNaC::ex cosines_to_Legendre(GiNaC::ex expr, const GiNaC::symbol& q);
+GiNaC::ex cosines_to_Legendre(const GiNaC::ex& expr, const GiNaC::symbol& q);
 
 //! convert Legendre polynomials containing a given vector q to cosines
 GiNaC::ex Legendre_to_cosines(GiNaC::ex expr, const GiNaC::symbol q);

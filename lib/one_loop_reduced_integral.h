@@ -199,6 +199,12 @@ class one_loop_reduced_integral
     //! apply one-loop reduction to a term with one Rayleigh momentum
     void one_loop_reduce_one_Rayleigh(const GiNaC::ex& term, const GiNaC::symbol& R);
 
+    //! apply Legendre orthogonality formula to integrate a term containing zero, one or two Legendre polynomials
+    GiNaC::ex integrate_Legendre(const GiNaC::ex& term, const GiNaC::ex& q);
+
+    //! -- implementation of above
+    GiNaC::ex apply_Legendre_orthogonality(const GiNaC::ex& expr, const GiNaC::ex& q);
+
 
     // SERVICES
 
@@ -214,6 +220,12 @@ class one_loop_reduced_integral
 
     //! cache reference to original loop integral
     const loop_integral& loop_int;
+
+    //! cache list of Rayleigh momenta
+    const subs_list Rayleigh_momenta;
+
+
+    // REDUCED EXPRESSIONS
 
     //! set up an integrand database
     integrand_db integrand;

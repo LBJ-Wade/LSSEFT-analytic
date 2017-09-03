@@ -38,11 +38,11 @@ namespace one_loop_reduced_integral_impl
 
     integration_element::integration_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
                                              GiNaC_symbol_set vs_)
-      : integrand(ig_),
-        measure(ms_),
-        WickProduct(wp_),
-        tm(tm_),
-        variables(vs_)
+      : integrand(std::move(ig_)),
+        measure(std::move(ms_)),
+        WickProduct(std::move(wp_)),
+        tm(std::move(tm_)),
+        variables(std::move(vs_))
       {
       }
 
@@ -105,28 +105,34 @@ namespace one_loop_reduced_integral_impl
 
 
 one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_)
-  : loop_int(i_)
+  : loop_int(i_),
+    Rayleigh_momenta(i_.get_Rayleigh_momenta())
   {
+    // throw if we were given a tree-level expression
     if(loop_int.get_loop_order() == 0)
       throw exception(ERROR_ONE_LOOP_REDUCE_WITH_TREE, exception_code::loop_transformation_error);
 
+    // throw if we were given a 2+ loop expression
     if(loop_int.get_loop_order() > 1)
       throw exception(ERROR_ONE_LOOP_REDUCE_WITH_MULTIPLE_LOOPS, exception_code::loop_transformation_error);
 
     // extract momentum kernel from integral
     auto K = loop_int.get_kernel();
+
+    // convert explicit dot products to Cos(a,b) format and expand to get a representation
+    // suitable for term-by-term decomposition into a sum of products of Legendre polynomials
     K = dot_products_to_cos(K);
     K = K.expand();
 
     // apply term-by-term decomposition to K
     if(GiNaC::is_a<GiNaC::mul>(K))
       {
-        // just a single product at the top level
+        // just a single product at the top level, so reduce that
         this->reduce(K);
       }
     else if(GiNaC::is_a<GiNaC::add>(K))
       {
-        // a sum of terms at top level; work through each one
+        // a sum of terms at top level; work through each one and reduce them term-by-term
         for(size_t i = 0; i < K.nops(); ++i)
           {
             this->reduce(K.op(i));
@@ -139,13 +145,10 @@ one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_)
 
 void one_loop_reduced_integral::reduce(const GiNaC::ex& term)
   {
-    // get Rayleigh momenta from integral
-    const auto& Rayleigh_momenta = this->loop_int.get_Rayleigh_momenta();
-
     // find which Rayleigh momenta this term depends on, if any
     GiNaC_symbol_set Rayleigh_mma;
 
-    for(const auto& rule : Rayleigh_momenta)
+    for(const auto& rule : this->Rayleigh_momenta)
       {
         const auto& sym = GiNaC::ex_to<GiNaC::symbol>(rule.first);
         if(term.has(sym))
@@ -154,22 +157,19 @@ void one_loop_reduced_integral::reduce(const GiNaC::ex& term)
           }
       }
 
-    // if no Rayleigh momenta then we need only account for the loop momentum
     if(Rayleigh_mma.empty())
       {
+        // if no Rayleigh momenta then we need only account for the loop momentum
         this->one_loop_reduce_zero_Rayleigh(term);
-        return;
       }
-
-    // if exactly one Rayleigh momentum then we know how to reduce it
-    if(Rayleigh_mma.size() == 1)
+    else if(Rayleigh_mma.size() == 1)
       {
+        // if exactly one Rayleigh momentum then we know how to reduce it
         this->one_loop_reduce_one_Rayleigh(term, *Rayleigh_mma.begin());
-        return;
       }
-
-    // currently we don't know how to reduce terms with more than one Rayleigh momentum
-    throw exception(ERROR_MULTIPLE_RAYLEIGH_MOMENTA_NOT_IMPLEMENTED, exception_code::loop_transformation_error);
+    else
+      // currently we don't know how to reduce terms with more than one Rayleigh momentum
+      throw exception(ERROR_MULTIPLE_RAYLEIGH_MOMENTA_NOT_IMPLEMENTED, exception_code::loop_transformation_error);
   }
 
 
@@ -187,22 +187,107 @@ void one_loop_reduced_integral::one_loop_reduce_zero_Rayleigh(const GiNaC::ex& t
 
     // first, convert all angular terms involving the loop momentum to Legendre representation
     auto temp = Legendre_to_cosines(term, L);
-    temp = cosines_to_Legendre(term, L);
+    temp = cosines_to_Legendre(temp, L);
 
-    // construct integration element
-    auto measure = L*L / GiNaC::pow(2*GiNaC::Pi, 3);
+    // step through expression, identifying terms with zero, one, two or more Legendre polynomials
+    temp = this->integrate_Legendre(temp, L);
 
-    using one_loop_reduced_integral_impl::integration_element;
-    using one_loop_reduced_integral_impl::key;
-    auto elt = std::make_unique<integration_element>(temp, measure, WickProduct, tm, GiNaC_symbol_set{L});
+    if(temp != 0)
+      {
+        // construct integration element
+        auto measure = L*L / GiNaC::pow(2*GiNaC::Pi, 3);
 
-    // insert in database
-    this->integrand[key{*elt}].push_back(std::move(elt));
+        using one_loop_reduced_integral_impl::integration_element;
+        using one_loop_reduced_integral_impl::key;
+        auto elt = std::make_unique<integration_element>(temp, measure, WickProduct, tm, GiNaC_symbol_set{L});
+
+        // insert in database
+        this->integrand[key{*elt}].push_back(std::move(elt));
+      }
   }
 
 
 void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& term, const GiNaC::symbol& R)
   {
+  }
+
+
+GiNaC::ex one_loop_reduced_integral::integrate_Legendre(const GiNaC::ex& term, const GiNaC::ex& q)
+  {
+    if(GiNaC::is_a<GiNaC::mul>(term))
+      {
+        return this->apply_Legendre_orthogonality(term, q);
+      }
+
+    if(GiNaC::is_a<GiNaC::add>(term))
+      {
+        GiNaC::ex temp{0};
+        for(size_t i = 0; i < temp.nops(); ++i)
+          {
+            temp += this->apply_Legendre_orthogonality(term.op(i), q);
+          }
+        return temp;
+      }
+
+    throw exception(ERROR_BADLY_FORMED_TOP_LEVEL_LEGENDRE_SUM, exception_code::loop_transformation_error);
+  }
+
+
+GiNaC::ex one_loop_reduced_integral::apply_Legendre_orthogonality(const GiNaC::ex& expr, const GiNaC::ex& q)
+  {
+    GiNaC::ex temp{1};
+
+    if(!GiNaC::is_a<GiNaC::mul>(expr))
+      throw exception(ERROR_BADLY_FORED_LEGENDRE_SUM_TERM, exception_code::loop_transformation_error);
+
+    using Legendre_list = std::vector< std::pair< GiNaC::symbol, unsigned int > >;
+    Legendre_list partner_q;
+
+    for(size_t i = 0; i < expr.nops(); ++i)
+      {
+        const auto term = expr.op(i);
+        if(!GiNaC::is_a<GiNaC::function>(term)) { temp *= term; continue; }
+
+        const auto& fn = GiNaC::ex_to<GiNaC::function>(term);
+        if(fn.get_name() != "LegP") { temp *= term; continue; }
+
+        auto n = static_cast<unsigned int>(GiNaC::ex_to<GiNaC::numeric>(fn.op(0)).to_int());
+        auto p1 = GiNaC::ex_to<GiNaC::symbol>(fn.op(1));
+        auto p2 = GiNaC::ex_to<GiNaC::symbol>(fn.op(2));
+
+        if(p1 == q) { partner_q.emplace_back(p2, n); continue; }
+        if(p2 == q) { partner_q.emplace_back(p1, n); continue; }
+
+        // not a Legendre polynomial involving q, so move on
+        temp *= term;
+      }
+
+    // if no Legendre polynomials, equivalent to LegP(0, x)
+    if(partner_q.empty())
+      {
+        return GiNaC::numeric{4} * GiNaC::Pi * temp;
+      }
+
+    // if one Legendre polynomial, gives nonzero if n=0
+    if(partner_q.size() == 1)
+      {
+        if(partner_q.front().second != 0) return GiNaC::ex{0};
+        return GiNaC::numeric{4} * GiNaC::Pi * temp;
+      }
+
+    // if more than two Legendre polynomials, don't know what to do
+    if(partner_q.size() > 2)
+        throw exception(ERROR_CANT_INTEGRATE_MORE_THAN_TWO_LEGP, exception_code::loop_transformation_error);
+
+    if(partner_q.front().second != partner_q.back().second) return GiNaC::ex{0};
+
+    unsigned int n = partner_q.front().second;
+    auto p1 = partner_q.front().first;
+    auto p2 = partner_q.back().first;
+
+    if(std::less<GiNaC::symbol>{}(p2, p1)) std::swap(p1, p2);
+
+    return GiNaC::numeric{4} * GiNaC::Pi / (2*GiNaC::numeric{n} + 1) * Angular::LegP(n, p1, p2) * temp;
   }
 
 

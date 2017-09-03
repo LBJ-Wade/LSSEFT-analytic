@@ -352,7 +352,7 @@ namespace cosine_Legendre_impl
   }   // namespace cosine_Legendre_impl
 
 
-GiNaC::ex cosines_to_Legendre(GiNaC::ex expr, const GiNaC::symbol& q)
+GiNaC::ex cosines_to_Legendre(const GiNaC::ex& expr, const GiNaC::symbol& q)
   {
     using cosine_Legendre_impl::get_Cos_pairs;
 
@@ -400,10 +400,10 @@ GiNaC::ex cosines_to_Legendre(GiNaC::ex expr, const GiNaC::symbol& q)
           throw exception(ERROR_LEGENDRE_TRANSFORM_UNEXPECTED_SIZE, exception_code::loop_transformation_error);
 
         // store Legendre representation
-        expr = res(0,0);
+        ex_exp = res(0,0).expand();
       }
 
-    return expr;
+    return ex_exp;
   }
 
 

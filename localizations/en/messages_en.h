@@ -78,6 +78,9 @@ constexpr auto ERROR_BADLY_FORMED_TOP_LEVEL_MOMENTUM_KERNEL = "Badly formed top-
 constexpr auto ERROR_MULTIPLE_RAYLEIGH_MOMENTA_NOT_IMPLEMENTED = "Reduction of multiple Rayleigh momenta is not yet implemented";
 constexpr auto ERROR_ONE_LOOP_REDUCE_WITH_TREE = "Internal error: one-loop reduction formula applied to a tree-level term";
 constexpr auto ERROR_ONE_LOOP_REDUCE_WITH_MULTIPLE_LOOPS = "Internal error: one-loop reduction formula applied to a multiple-loop term";
+constexpr auto ERROR_BADLY_FORMED_TOP_LEVEL_LEGENDRE_SUM = "Badly formed Legendre representations";
+constexpr auto ERROR_BADLY_FORED_LEGENDRE_SUM_TERM = "Badly formed term in Legendre representation";
+constexpr auto ERROR_CANT_INTEGRATE_MORE_THAN_TWO_LEGP = "Cannot integrate products of more than two Legendre polynomials";
 
 constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
 constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";
