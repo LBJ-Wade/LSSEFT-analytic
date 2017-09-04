@@ -83,7 +83,7 @@ namespace Pk_one_loop_impl
       public:
 
         //! reduce angular integrals
-        void reduce_angular_integrals();
+        void reduce_angular_integrals(symbol_factory& sf);
 
 
         // SERVICES
@@ -221,8 +221,8 @@ Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2
     this->build_13(ker1, ker2);
     this->build_22(ker1, ker2);
 
-    this->P13.reduce_angular_integrals();
-    this->P22.reduce_angular_integrals();
+    this->P13.reduce_angular_integrals(sf);
+    this->P22.reduce_angular_integrals(sf);
   }
 
 

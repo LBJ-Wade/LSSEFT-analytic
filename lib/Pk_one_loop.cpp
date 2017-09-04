@@ -51,7 +51,7 @@ namespace Pk_one_loop_impl
       }
 
 
-    void Pk_db::reduce_angular_integrals()
+    void Pk_db::reduce_angular_integrals(symbol_factory& sf)
       {
         // walk through each subintegral in turn, performing angular reduction on it
         // walk through each integral in turn
@@ -59,7 +59,7 @@ namespace Pk_one_loop_impl
         for(auto& item : this->db)
           {
             const loop_integral& lp = *item.first;
-            item.second = std::make_unique<one_loop_reduced_integral>(lp);    // will release any previous assignment
+            item.second = std::make_unique<one_loop_reduced_integral>(lp, sf);    // will release any previous assignment
           }
       }
 

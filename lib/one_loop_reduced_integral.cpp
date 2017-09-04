@@ -104,12 +104,14 @@ namespace one_loop_reduced_integral_impl
   }   // namespace one_loop_reduced_integral_impl
 
 
-one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_)
+one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, symbol_factory& sf_)
   : loop_int(i_),
     Rayleigh_momenta(i_.get_Rayleigh_momenta()),
     WickProduct(i_.get_Wick_product()),
     tm(i_.get_time_function()),
-    external_momenta(i_.get_external_momenta())
+    external_momenta(i_.get_external_momenta()),
+    sf(sf_),
+    x(sf_.make_symbol("x"))
   {
     // throw if we were given a tree-level expression
     if(loop_int.get_loop_order() == 0)
@@ -291,13 +293,23 @@ void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& te
     // store result if it is nonzero
     if(temp != 0)
       {
-        // construct integration element
-        auto measure = this->loop_q*this->loop_q / GiNaC::pow(2*GiNaC::Pi, 3) * R*R / GiNaC::pow(2*GiNaC::Pi, 3);
+        // construct integration element, assuming that the Fabrikant integrals imposed the
+        // triangle condition on R, loop_q and kext
+        auto measure = this->loop_q*this->loop_q / GiNaC::pow(2*GiNaC::Pi, 3);
+
+        auto& kext = kext_coeff.begin()->first;
+        GiNaC::ex R_replace = GiNaC::sqrt(kext*kext + this->loop_q*this->loop_q - 2*this->loop_q*kext*this->x);
+        GiNaC::exmap R_map;
+
+        measure *= kext * this->loop_q / R_replace;
+
+        R_map[R] = R_replace;
+        temp = temp.subs(R_map);
 
         using one_loop_reduced_integral_impl::integration_element;
         using one_loop_reduced_integral_impl::key;
         auto elt = std::make_unique<integration_element>(temp, measure, this->WickProduct,
-                                                         this->tm, GiNaC_symbol_set{this->loop_q, R});
+                                                         this->tm, GiNaC_symbol_set{this->loop_q, this->x});
 
         // insert in database
         this->integrand[key{*elt}].push_back(std::move(elt));

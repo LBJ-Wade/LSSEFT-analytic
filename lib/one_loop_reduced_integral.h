@@ -180,7 +180,7 @@ class one_loop_reduced_integral
   public:
 
     //! constructor accepts a loop_integral and performs dimensional reduction on it
-    explicit one_loop_reduced_integral(const loop_integral& i_);
+    explicit one_loop_reduced_integral(const loop_integral& i_, symbol_factory& sf_);
 
     //! destructor is default
     ~one_loop_reduced_integral() = default;
@@ -224,6 +224,14 @@ class one_loop_reduced_integral
 
   private:
 
+    // AGENTS
+
+    //! cache reference to symbol factory
+    symbol_factory& sf;
+
+
+    // DATA
+
     //! cache reference to original loop integral
     const loop_integral& loop_int;
 
@@ -241,6 +249,12 @@ class one_loop_reduced_integral
 
     //! cache external momenta
     const GiNaC_symbol_set& external_momenta;
+
+
+    // SPECIAL SYMBOLS
+
+    //! integration variable x
+    const GiNaC::symbol x;
 
 
     // REDUCED EXPRESSIONS
