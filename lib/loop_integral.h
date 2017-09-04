@@ -83,7 +83,10 @@ class loop_integral
     const GiNaC_symbol_set& get_loop_momenta() const { return this->loop_momenta; }
 
     //! get list of Rayleigh momenta
-    const subs_list get_Rayleigh_momenta() const { return this->Rayleigh_momenta; }
+    const subs_list& get_Rayleigh_momenta() const { return this->Rayleigh_momenta; }
+
+    //! get list of external momenta
+    const GiNaC_symbol_set& get_external_momenta() const { return this->external_momenta; }
 
 
     // TRANSFORMATIONS

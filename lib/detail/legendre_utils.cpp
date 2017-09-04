@@ -30,8 +30,6 @@
 #include "legendre_utils.h"
 #include "special_functions.h"
 
-#include "utilities/GiNaC_utils.h"
-
 #include "shared/exceptions.h"
 #include "localizations/messages.h"
 
@@ -305,24 +303,6 @@ namespace cosine_Legendre_impl
       }
 
 
-    GiNaC_symbol_set get_Cos_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr)
-      {
-        GiNaC_symbol_set pair_set;
-        find_pairs(q, expr, pair_set, "Cos", 0, 1);
-
-        return pair_set;
-      }
-
-
-    GiNaC_symbol_set get_LegP_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr)
-      {
-        GiNaC_symbol_set pair_set;
-        find_pairs(q, expr, pair_set, "LegP", 1, 2);
-
-        return pair_set;
-      }
-
-
     unsigned int get_max_LegP_order(const GiNaC::symbol& p1, const GiNaC::symbol& p2, const GiNaC::ex& expr)
       {
         if(GiNaC::is_a<GiNaC::function>(expr))
@@ -352,10 +332,32 @@ namespace cosine_Legendre_impl
   }   // namespace cosine_Legendre_impl
 
 
+
+GiNaC_symbol_set get_Cos_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr)
+  {
+    using cosine_Legendre_impl::find_pairs;
+
+    GiNaC_symbol_set pair_set;
+    find_pairs(q, expr, pair_set, "Cos", 0, 1);
+
+    return pair_set;
+  }
+
+
+GiNaC_symbol_set get_LegP_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr)
+  {
+    using cosine_Legendre_impl::find_pairs;
+
+    GiNaC_symbol_set pair_set;
+    find_pairs(q, expr, pair_set, "LegP", 1, 2);
+
+    return pair_set;
+  }
+
+
+
 GiNaC::ex cosines_to_Legendre(const GiNaC::ex& expr, const GiNaC::symbol& q)
   {
-    using cosine_Legendre_impl::get_Cos_pairs;
-
     // obtain the set of symbols with which q appears in conjunction
     auto ex_exp = expr.expand();
     auto pair_set = get_Cos_pairs(q, ex_exp);
@@ -409,7 +411,6 @@ GiNaC::ex cosines_to_Legendre(const GiNaC::ex& expr, const GiNaC::symbol& q)
 
 GiNaC::ex Legendre_to_cosines(GiNaC::ex expr, const GiNaC::symbol q)
   {
-    using cosine_Legendre_impl::get_LegP_pairs;
     using cosine_Legendre_impl::get_max_LegP_order;
 
     // obtain the set of symbols with which q appears in conjunction

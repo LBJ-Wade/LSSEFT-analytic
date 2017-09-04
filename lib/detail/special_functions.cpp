@@ -42,3 +42,11 @@ namespace Angular
     REGISTER_FUNCTION(LegP, dummy());
 
   }   // namespace Angular
+
+
+namespace Fabrikant
+  {
+
+    REGISTER_FUNCTION(FabJ, dummy());
+
+  }   // namespace Fabrikant

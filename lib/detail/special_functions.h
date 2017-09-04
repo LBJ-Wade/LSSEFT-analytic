@@ -49,7 +49,16 @@ namespace Angular
     //! Legendre polynomial of order nu
     DECLARE_FUNCTION_3P(LegP);
 
-  }
+  }   // namespace Angular
+
+
+namespace Fabrikant
+  {
+
+    //! declare Fabrikant 3-Bessel integral
+    DECLARE_FUNCTION_6P(FabJ)
+
+  }   // namespace Fabrikant
 
 
 #endif //LSSEFT_ANALYTIC_SPECIAL_FUNCTIONS_H

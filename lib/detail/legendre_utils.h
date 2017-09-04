@@ -28,7 +28,7 @@
 #define LSSEFT_ANALYTIC_LEGENDRE_UTILS_H
 
 
-#include "ginac/ginac.h"
+#include "utilities/GiNaC_utils.h"
 
 
 //! calculate a given Legendre polynomial
@@ -42,6 +42,12 @@ GiNaC::ex cosines_to_Legendre(const GiNaC::ex& expr, const GiNaC::symbol& q);
 
 //! convert Legendre polynomials containing a given vector q to cosines
 GiNaC::ex Legendre_to_cosines(GiNaC::ex expr, const GiNaC::symbol q);
+
+//! get set of symbols appearing in cosine functions with q
+GiNaC_symbol_set get_Cos_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr);
+
+//! get set of symbols appears in LegP functions with q
+GiNaC_symbol_set get_LegP_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr);
 
 
 #endif //LSSEFT_ANALYTIC_LEGENDRE_UTILS_H

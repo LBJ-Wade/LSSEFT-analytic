@@ -55,6 +55,7 @@ namespace Pk_one_loop_impl
       {
         // walk through each subintegral in turn, performing angular reduction on it
         // walk through each integral in turn
+        size_t count = 0;
         for(auto& item : this->db)
           {
             const loop_integral& lp = *item.first;
