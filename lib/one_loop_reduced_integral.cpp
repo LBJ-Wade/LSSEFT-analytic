@@ -360,7 +360,7 @@ GiNaC::ex one_loop_reduced_integral::apply_Legendre_orthogonality(const GiNaC::e
     if(std::less<GiNaC::symbol>{}(p2, p1)) std::swap(p1, p2);
 
     auto cf = GiNaC::numeric{4} * GiNaC::Pi / (2*GiNaC::numeric{n} + 1);
-    return cf*cf * Angular::LegP(n, p1, p2) * temp;
+    return cf*cf * (n > 0 ? Angular::LegP(n, p1, p2).expand() : GiNaC::numeric{1}.expand()) * temp;
   }
 
 
@@ -438,7 +438,7 @@ GiNaC::ex NeumannAdamsSum(const GiNaC::symbol& L, const GiNaC::numeric& Lcoeff, 
         // to keep track of the k and L coefficients, remember that these are attached to the sum from the
         // Rayleigh expansion, so these go *only* with the term Leg(n, k.L)
         expr += cf*cf * coeff * GiNaC::pow(Lcoeff, n) * GiNaC::pow(kcoeff, n) * GiNaC::pow(-1, n)
-                * Angular::LegP(q, p1, p2) * Fabrikant::FabJ(0, n, n, R, L, k);
+                * (q > 0 ? Angular::LegP(q, p1, p2).expand() : GiNaC::numeric{1}.expand()) * Fabrikant::FabJ(0, n, n, R, L, k);
       }
 
     return expr;
@@ -502,7 +502,7 @@ one_loop_reduced_integral::apply_Legendre_orthogonality(const GiNaC::ex& expr, c
 
             auto cf = GiNaC::numeric{4} * GiNaC::Pi / (2*GiNaC::numeric{m} + 1);
             return cf*cf * GiNaC::pow(-1, m) * GiNaC::pow(Lcoeff, m) * GiNaC::pow(kcoeff, m)
-                   * Angular::LegP(m, p1, p2) * temp * Fabrikant::FabJ(0, m, m, R, L, k);
+                   * (m > 0 ? Angular::LegP(m, p1, p2).expand() : GiNaC::numeric{1}.expand()) * temp * Fabrikant::FabJ(0, m, m, R, L, k);
           }
       }
 

@@ -26,6 +26,8 @@
 
 #include "special_functions.h"
 
+#include "shared/exceptions.h"
+#include "localizations/messages.h"
 
 namespace special
   {
@@ -47,6 +49,35 @@ namespace Angular
 namespace Fabrikant
   {
 
-    REGISTER_FUNCTION(FabJ, dummy());
+    GiNaC::ex FabJ_eval(const GiNaC::ex& lambda, const GiNaC::ex& mu, const GiNaC::ex& nu,
+                        const GiNaC::ex& s, const GiNaC::ex& t, const GiNaC::ex& u)
+      {
+        const auto& lambda_num = GiNaC::ex_to<GiNaC::numeric>(lambda);
+        const auto& mu_num = GiNaC::ex_to<GiNaC::numeric>(mu);
+        const auto& nu_num = GiNaC::ex_to<GiNaC::numeric>(nu);
+
+        if(lambda_num.to_int() != 0)
+          throw exception(ERROR_FABJ_FIRST_ARG_NONZERO, exception_code::Fabrikant_error);
+
+        if(mu_num.to_int() != nu_num.to_int())
+          throw exception(ERROR_FABJ_SECOND_ARGS_NOT_EQUAL, exception_code::Fabrikant_error);
+
+        if(mu_num.to_int() < 0)
+          throw exception(ERROR_FABJ_SECOND_ARGS_NEGATIVE, exception_code::Fabrikant_error);
+
+        if(mu_num.to_int() == 0)
+          return GiNaC::Pi/(4*s*t*u);
+
+        if(mu_num.to_int() == 1)
+          return (GiNaC::Pi*(-GiNaC::pow(s,2) + GiNaC::pow(t,2) + GiNaC::pow(u,2)))/(8*s*GiNaC::pow(t,2)*GiNaC::pow(u,2));
+
+        if(mu_num.to_int() == 2)
+          return (GiNaC::Pi*(3*GiNaC::pow(GiNaC::pow(s,2) - GiNaC::pow(t,2),2) + 2*(-3*GiNaC::pow(s,2) + GiNaC::pow(t,2))*GiNaC::pow(u,2) +
+                      3*GiNaC::pow(u,4)))/(32*s*GiNaC::pow(t,3)*GiNaC::pow(u,3));
+
+        return FabJ(lambda, mu, nu, s, t, u).hold();
+      }
+
+    REGISTER_FUNCTION(FabJ, eval_func(FabJ_eval));
 
   }   // namespace Fabrikant

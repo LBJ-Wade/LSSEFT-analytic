@@ -91,6 +91,10 @@ constexpr auto ERROR_KEXT_HAS_WRONG_COEFF_IN_RAYLEIGH = "External momentum appea
 constexpr auto ERROR_KERNEL_DEPENDS_ON_ANGULAR_RAYLEIGH_MOMENTUM = "Momentum kernel depends on angular part of Rayleigh momentum";
 constexpr auto ERROR_TOO_MANY_KEXT_IN_LEGENDRE_SUM = "Too many Legendre polynomials involving loop momentum and external momentum";
 
+constexpr auto ERROR_FABJ_FIRST_ARG_NONZERO = "First argument of FabJ is not zero";
+constexpr auto ERROR_FABJ_SECOND_ARGS_NOT_EQUAL = "Second and third arguments of FabJ are not zero";
+constexpr auto ERROR_FABJ_SECOND_ARGS_NEGATIVE = "Second and third arguments of FabJ are negative";
+
 constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
 constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";
 constexpr auto WARNING_ORDER_ZERO_KERNEL = "Ignoring order-zero kernel";
