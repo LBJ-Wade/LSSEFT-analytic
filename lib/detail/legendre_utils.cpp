@@ -366,11 +366,10 @@ GiNaC::ex cosines_to_Legendre(const GiNaC::ex& expr, const GiNaC::symbol& q)
     for(const auto& p : pair_set)
       {
         // arguments will be ordered canonically
-        GiNaC::ex c;
         GiNaC::symbol p1 = q;
         GiNaC::symbol p2 = p;
         if(std::less<GiNaC::symbol>{}(p2, p1)) std::swap(p1, p2);
-        c = Angular::Cos(p1, p2);
+        auto c = Angular::Cos(p1, p2);
 
         auto deg = static_cast<unsigned int>(ex_exp.degree(c));
         if(deg == 0)
@@ -414,7 +413,7 @@ GiNaC::ex Legendre_to_cosines(GiNaC::ex expr, const GiNaC::symbol q)
     using cosine_Legendre_impl::get_max_LegP_order;
 
     // obtain the set of symbols with which q appears in conjunction
-    auto pair_set = get_LegP_pairs(q, expr);
+    auto pair_set = get_LegP_pairs(q, expr.expand());
 
     // for each symbol, substitute for the Legendre polynomials
     for(const auto& p : pair_set)

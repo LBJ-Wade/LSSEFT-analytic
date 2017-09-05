@@ -32,10 +32,10 @@
 #include "lib/initial_value.h"
 #include "lib/fourier_kernel.h"
 #include "lib/Pk_one_loop.h"
+#include "lib/detail/special_functions.h"
 
 #include "SPT/time_functions.h"
 #include "SPT/one_loop_kernels.h"
-
 
 
 int main(int argc, char* argv[])
@@ -173,7 +173,14 @@ int main(int argc, char* argv[])
     auto deltah_rsd_k2 = make_delta_rsd(k2mu);
 
     // construct 1-loop \delta power spectrum
-    Pk_one_loop Pk_delta{deltah_rsd_k1, deltah_rsd_k2, k, sf};
+    Pk_one_loop Pk_delta{delta_rsd_k1, delta_rsd_k2, k, sf};
+
+    // simplify mu-dependence
+    Pk_delta.canonicalize_external_momenta();
+    Pk_delta.simplify(GiNaC::exmap{ {Angular::Cos(k,r_sym), mu} });
+
+    // remove unwanted r factors
+    Pk_delta.simplify(GiNaC::exmap{ {r_sym, GiNaC::ex{1}} });
 
     auto& tree = Pk_delta.get_tree();
     std::cout << "Tree-level P(k):" << '\n';

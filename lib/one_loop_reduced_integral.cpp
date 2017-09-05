@@ -37,12 +37,13 @@ namespace one_loop_reduced_integral_impl
   {
 
     integration_element::integration_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
-                                             GiNaC_symbol_set vs_)
+                                             GiNaC_symbol_set vs_, GiNaC_symbol_set em_)
       : integrand(std::move(ig_)),
         measure(std::move(ms_)),
         WickProduct(std::move(wp_)),
         tm(std::move(tm_)),
-        variables(std::move(vs_))
+        variables(std::move(vs_)),
+        external_momenta(std::move(em_))
       {
       }
 
@@ -60,6 +61,24 @@ namespace one_loop_reduced_integral_impl
         str << "  measure = " << this->measure << '\n';
         str << "  Wick product = " << this->WickProduct << '\n';
         str << "  integrand = " << this->integrand << '\n';
+      }
+
+
+    void integration_element::simplify(const GiNaC::exmap& map)
+      {
+        this->integrand = this->integrand.subs(map);
+        this->measure = this->measure.subs(map);
+        this->WickProduct = this->WickProduct.subs(map);
+        this->tm = this->tm.subs(map);
+      }
+
+
+    void integration_element::canonicalize_external_momenta()
+      {
+        for(const auto& sym : this->external_momenta)
+          {
+            this->integrand = Legendre_to_cosines(this->integrand, sym);
+          }
       }
 
 
@@ -193,7 +212,7 @@ void one_loop_reduced_integral::one_loop_reduce_zero_Rayleigh(const GiNaC::ex& t
     temp = this->integrate_Legendre(temp, this->loop_q,
       [&](auto temp, auto q) -> auto
         {
-          return this->apply_Legendre_orthogonality(term, q);
+          return this->apply_Legendre_orthogonality(temp, q);
         });
 
     // store result if it is nonzero
@@ -204,8 +223,9 @@ void one_loop_reduced_integral::one_loop_reduce_zero_Rayleigh(const GiNaC::ex& t
 
         using one_loop_reduced_integral_impl::integration_element;
         using one_loop_reduced_integral_impl::key;
-        auto elt = std::make_unique<integration_element>(temp, measure, this->WickProduct,
-                                                         this->tm, GiNaC_symbol_set{this->loop_q});
+        auto elt =
+          std::make_unique<integration_element>(temp, measure, this->WickProduct, this->tm,
+                                                GiNaC_symbol_set{this->loop_q}, this->external_momenta);
 
         // insert in database
         this->integrand[key{*elt}].push_back(std::move(elt));
@@ -301,15 +321,17 @@ void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& te
         GiNaC::ex R_replace = GiNaC::sqrt(kext*kext + this->loop_q*this->loop_q - 2*this->loop_q*kext*this->x);
         GiNaC::exmap R_map;
 
-        measure *= kext * this->loop_q / R_replace;
+        // measure is R^2 dR, and dR -> k q / R
+        measure *= R_replace * kext * this->loop_q;
 
         R_map[R] = R_replace;
         temp = temp.subs(R_map);
 
         using one_loop_reduced_integral_impl::integration_element;
         using one_loop_reduced_integral_impl::key;
-        auto elt = std::make_unique<integration_element>(temp, measure, this->WickProduct,
-                                                         this->tm, GiNaC_symbol_set{this->loop_q, this->x});
+        auto elt =
+          std::make_unique<integration_element>(temp, measure, this->WickProduct, this->tm,
+                                                GiNaC_symbol_set{this->loop_q, this->x}, this->external_momenta);
 
         // insert in database
         this->integrand[key{*elt}].push_back(std::move(elt));
@@ -548,6 +570,40 @@ void one_loop_reduced_integral::write(std::ostream& out) const
           {
             const auto& i = *iptr;
             out << i;
+          }
+      }
+  }
+
+
+void one_loop_reduced_integral::simplify(const GiNaC::exmap& map)
+  {
+    using one_loop_reduced_integral_impl::integration_element;
+
+    for(const auto& record : this->integrand)
+      {
+        const auto& data = record.second;
+
+        for(const auto& iptr : data)
+          {
+            auto& i = *iptr;
+            i.simplify(map);
+          }
+      }
+  }
+
+
+void one_loop_reduced_integral::canonicalize_external_momenta()
+  {
+    using one_loop_reduced_integral_impl::integration_element;
+
+    for(const auto& record : this->integrand)
+      {
+        const auto& data = record.second;
+
+        for(const auto& iptr : data)
+          {
+            auto& i = *iptr;
+            i.canonicalize_external_momenta();
           }
       }
   }

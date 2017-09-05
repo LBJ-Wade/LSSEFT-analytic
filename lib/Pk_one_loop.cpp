@@ -63,10 +63,42 @@ namespace Pk_one_loop_impl
           }
       }
 
+
+    void Pk_db::simplify(const GiNaC::exmap& map)
+      {
+        // walk through each subintegral, applying simplification map to reduced integral if it exists
+        for(auto& item : this->db)
+          {
+            if(item.second) item.second->simplify(map);
+          }
+      }
+
+
+    void Pk_db::canonicalize_external_momenta()
+      {
+        for(auto& item : this->db)
+          {
+            if(item.second) item.second->canonicalize_external_momenta();
+          }
+      }
+
   }   // namespace Pk_one_loop_impl
 
 
-;
+void Pk_one_loop::simplify(const GiNaC::exmap& map)
+  {
+    this->Ptree.simplify(map);
+    this->P13.simplify(map);
+    this->P22.simplify(map);
+  }
+
+
+void Pk_one_loop::canonicalize_external_momenta()
+  {
+    this->Ptree.canonicalize_external_momenta();
+    this->P13.canonicalize_external_momenta();
+    this->P22.canonicalize_external_momenta();
+  }
 
 
 std::ostream& operator<<(std::ostream& str, const Pk_one_loop_impl::Pk_db& obj)

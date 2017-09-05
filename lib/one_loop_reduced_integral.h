@@ -53,8 +53,9 @@ namespace one_loop_reduced_integral_impl
 
       public:
 
-        //! constructor captures integrand, measure, integration variables, Wick product, time factor
-        integration_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_, GiNaC_symbol_set vs_);
+        //! constructor captures integrand, measure, integration variables, Wick product, time factor, external momenta
+        integration_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_, GiNaC_symbol_set vs_,
+                            GiNaC_symbol_set em_);
 
         //! destructor is default
         ~integration_element() = default;
@@ -66,6 +67,17 @@ namespace one_loop_reduced_integral_impl
 
         //! write self to stream
         void write(std::ostream& str) const;
+
+
+        // TRANSFORMATIONS
+
+      public:
+
+        //! apply simplification map
+        void simplify(const GiNaC::exmap& map);
+
+        //! convert external momenta to canonical Cos form
+        void canonicalize_external_momenta();
 
 
         // INTERNAL DATA
@@ -86,6 +98,9 @@ namespace one_loop_reduced_integral_impl
 
         //! set of integration variabkes
         GiNaC_symbol_set variables;
+
+        //! set of external momenta
+        GiNaC_symbol_set external_momenta;
 
 
         friend class key;
@@ -187,6 +202,14 @@ class one_loop_reduced_integral
 
 
     // TRANSFORMATIONS
+
+  public:
+
+    //! apply simplification map
+    void simplify(const GiNaC::exmap& map);
+
+    //! canonicalize external momenta
+    void canonicalize_external_momenta();
 
   protected:
 

@@ -85,6 +85,12 @@ namespace Pk_one_loop_impl
         //! reduce angular integrals
         void reduce_angular_integrals(symbol_factory& sf);
 
+        //! apply simplification map
+        void simplify(const GiNaC::exmap& map);
+
+        //! canonicalize external momenta
+        void canonicalize_external_momenta();
+
 
         // SERVICES
 
@@ -176,6 +182,17 @@ class Pk_one_loop
     
     //! get 22 power spectrum
     const Pk_db& get_22() const { return this->P22; }
+
+
+    // TRANSFORMATIONS
+
+  public:
+
+    //! apply simplifications
+    void simplify(const GiNaC::exmap& map);
+
+    //! canonicalize external momenta
+    void canonicalize_external_momenta();
     
     
     // INTERNAL DATA
