@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
     // build expression for the redshift-space overdensities,
     // for both dark matter and halos
 
-    // utility function to perform the redshift-sopace transformation
+    // utility function to perform the redshift-space transformation
     auto r_dot_v = dotgrad(r, phi);
     auto make_delta_rsd = [&](const GiNaC::ex& kmu) -> auto
       {
@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
     auto deltah_rsd_k2 = make_delta_rsd(k2mu);
 
     // construct 1-loop \delta power spectrum
-    Pk_one_loop Pk_delta{delta_rsd_k1, delta_rsd_k2, k, sf};
+    Pk_one_loop Pk_delta{delta, delta, k, sf};
 
     // simplify mu-dependence
     Pk_delta.canonicalize_external_momenta();
@@ -183,16 +183,28 @@ int main(int argc, char* argv[])
     Pk_delta.simplify(GiNaC::exmap{ {r_sym, GiNaC::ex{1}} });
 
     auto& tree = Pk_delta.get_tree();
-    std::cout << "Tree-level P(k):" << '\n';
-    std::cout << tree << '\n';
+//    std::cout << "Tree-level P(k):" << '\n';
+//    std::cout << tree << '\n';
 
     auto& P13 = Pk_delta.get_13();
-    std::cout << "Loop-level 13 P(k):" << '\n';
-    std::cout << P13 << '\n';
+//    std::cout << "Loop-level 13 P(k):" << '\n';
+//    std::cout << P13 << '\n';
 
     auto& P22 = Pk_delta.get_22();
-    std::cout << "Loop-level 22 P(k):" << '\n';
-    std::cout << P22 << '\n';
+//    std::cout << "Loop-level 22 P(k):" << '\n';
+//    std::cout << P22 << '\n';
+
+    auto P13_UV = P13.get_UV_limit().expand();
+    std::cout << "Loop-level 13 P(k) UV limit:" << '\n';
+    std::cout << "  -- coeff of DD(z) = " << P13_UV.coeff(SPT::DD(z), 1) << '\n';
+    std::cout << "  -- coeff of DE(z) = " << P13_UV.coeff(SPT::DE(z), 1) << '\n';
+    std::cout << "  -- coeff of DF(z) = " << P13_UV.coeff(SPT::DF(z), 1) << '\n';
+    std::cout << "  -- coeff of DG(z) = " << P13_UV.coeff(SPT::DG(z), 1) << '\n';
+    std::cout << "  -- coeff of DJ(z) = " << P13_UV.coeff(SPT::DJ(z), 1) << '\n';
+
+    auto P22_UV = P22.get_UV_limit();
+    std::cout << "Loop-level 22 P(k) UV limit:" << '\n';
+    std::cout << P22_UV << '\n';
     
     return EXIT_SUCCESS;
   }

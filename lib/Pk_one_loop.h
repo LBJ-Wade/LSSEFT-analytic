@@ -92,6 +92,14 @@ namespace Pk_one_loop_impl
         void canonicalize_external_momenta();
 
 
+        // UV LIMIT
+
+      public:
+
+        //! compute UV limit
+        GiNaC::ex get_UV_limit(unsigned int order=2) const;
+
+
         // SERVICES
 
       public:

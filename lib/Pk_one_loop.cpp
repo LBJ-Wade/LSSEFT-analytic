@@ -82,6 +82,19 @@ namespace Pk_one_loop_impl
           }
       }
 
+
+    GiNaC::ex Pk_db::get_UV_limit(unsigned int order) const
+      {
+        GiNaC::ex expr{0};
+
+        for(const auto& item : this->db)
+          {
+            if(item.second) expr += item.second->get_UV_limit(order);
+          }
+
+        return GiNaC::collect_common_factors(expr);
+      }
+
   }   // namespace Pk_one_loop_impl
 
 

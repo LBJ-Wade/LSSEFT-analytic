@@ -61,6 +61,14 @@ namespace one_loop_reduced_integral_impl
         ~integration_element() = default;
 
 
+        // ACCESSORS
+
+      public:
+
+        //! get integration variable list
+        const GiNaC_symbol_set& get_integration_variables() const { return this->variables; }
+
+
         // SERVICES
 
       public:
@@ -78,6 +86,14 @@ namespace one_loop_reduced_integral_impl
 
         //! convert external momenta to canonical Cos form
         void canonicalize_external_momenta();
+
+
+        // UV LIMIT
+
+      public:
+
+        //! construct UV limit
+        GiNaC::ex get_UV_limit(unsigned int order=2) const;
 
 
         // INTERNAL DATA
@@ -190,6 +206,7 @@ class one_loop_reduced_integral
     //! pull in integrand_db
     using integrand_db = one_loop_reduced_integral_impl::integrand_db;
 
+
     // CONSTRUCTOR, DESTRUCTOR
 
   public:
@@ -233,6 +250,14 @@ class one_loop_reduced_integral
     //! L is the loop momentum and k is an external momentum
     GiNaC::ex apply_Legendre_orthogonality(const GiNaC::ex& expr, const GiNaC::symbol& L, const GiNaC::numeric& Lcoeff,
                                            const GiNaC::symbol& k, const GiNaC::numeric& kcoeff, const GiNaC::symbol& R);
+
+
+    // UV LIMIT
+
+  public:
+
+    //! get UV limit
+    GiNaC::ex get_UV_limit(unsigned int order=2) const;
 
 
     // SERVICES

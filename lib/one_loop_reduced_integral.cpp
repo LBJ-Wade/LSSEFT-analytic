@@ -82,6 +82,25 @@ namespace one_loop_reduced_integral_impl
       }
 
 
+    GiNaC::ex integration_element::get_UV_limit(unsigned int order) const
+      {
+        // the total contribution from this element is the product of the integrand, the measure, the
+        // Wick product and the time function,
+        // but we don't want to Taylor expand the Wick product
+        auto prod = this->integrand * this->measure * this->tm;
+
+        // the UV limit occurs when the loop momentum is much greater than any of the external
+        // momenta. We can achieve the same result by making a series expansion
+        // in the limit that all external momenta are small, ie., by making a Taylor expansion in each
+        for(const auto& k : this->external_momenta)
+          {
+            prod = GiNaC::series_to_poly(prod.series(k, order+1));
+          }
+
+        return prod * this->WickProduct;
+      }
+
+
     key::key(const integration_element& elt_)
       : elt(elt_)
       {
@@ -322,7 +341,7 @@ void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& te
         GiNaC::exmap R_map;
 
         // measure is R^2 dR, and dR -> k q / R
-        measure *= R_replace * kext * this->loop_q;
+        measure *= R_replace * kext * this->loop_q / GiNaC::pow(2*GiNaC::Pi, 3);
 
         R_map[R] = R_replace;
         temp = temp.subs(R_map);
@@ -606,6 +625,39 @@ void one_loop_reduced_integral::canonicalize_external_momenta()
             i.canonicalize_external_momenta();
           }
       }
+  }
+
+
+GiNaC::ex one_loop_reduced_integral::get_UV_limit(unsigned int order) const
+  {
+    using one_loop_reduced_integral_impl::integration_element;
+
+    GiNaC::ex expr{0};
+
+    for(const auto& record : this->integrand)
+      {
+        const auto& data = record.second;
+
+        for(const auto& iptr : data)
+          {
+            auto& i = *iptr;
+            auto term = i.get_UV_limit(order);
+
+            const auto& ivars = i.get_integration_variables();
+
+            // if the integration variables for i contain x, then
+            // perform a symbolic integration for it
+            auto t = ivars.find(this->x);
+            if(t != this->external_momenta.end())
+              {
+                term = GiNaC::integral(this->x, -1, 1, term).eval_integ();
+              }
+
+            expr += term;
+          }
+      }
+
+    return expr;
   }
 
 
