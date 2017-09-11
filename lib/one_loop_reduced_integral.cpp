@@ -85,10 +85,10 @@ namespace one_loop_reduced_integral_impl
     GiNaC::ex integration_element::get_UV_limit(unsigned int order) const
       {
         // the total contribution from this element is the product of the integrand, the measure, the
-        // Wick product and the time function, but we don't want to Taylor expand the Wick product.
+        // Wick product.
         // (Since the time function is canonicalized it should probably be independent of the external momenta anyway,
         // but we include it to be safe)
-        auto prod = this->integrand * this->measure * this->tm;
+        auto prod = this->tm * this->integrand * this->measure * this->WickProduct;
 
         // the UV limit occurs when the loop momentum is much greater than any of the external
         // momenta. We can achieve the same result by making a series expansion
@@ -98,7 +98,7 @@ namespace one_loop_reduced_integral_impl
             prod = GiNaC::series_to_poly(prod.expand().series(k, order+1));
           }
 
-        return prod * this->WickProduct;
+        return prod;
       }
 
 
