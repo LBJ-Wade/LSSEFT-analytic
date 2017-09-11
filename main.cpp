@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
 //    std::cout << tree << '\n';
 
     auto& P13 = Pk_delta.get_13();
-    std::cout << "Loop-level 13 P(k):" << '\n';
+//    std::cout << "Loop-level 13 P(k):" << '\n';
 //    std::cout << P13 << '\n';
 
     auto& P22 = Pk_delta.get_22();
@@ -201,6 +201,12 @@ int main(int argc, char* argv[])
     auto P13_UV_k0 = P13_UV.coeff(k, 0).expand();
     auto P13_UV_k2 = P13_UV.coeff(k, 2).expand();
 
+    auto P22_UV = P22.get_UV_limit(4).expand();
+
+    auto P22_UV_k0 = P22_UV.coeff(k, 0).expand();
+    auto P22_UV_k2 = P22_UV.coeff(k, 2).expand();
+    auto P22_UV_k4 = P22_UV.coeff(k, 4).expand();
+
     auto print = [&](const auto& expr) -> void
       {
         std::cout << "  -- coeff of mu^0 = " << GiNaC::collect_common_factors(expr.coeff(mu, 0)) << '\n';
@@ -210,15 +216,22 @@ int main(int argc, char* argv[])
         std::cout << "  -- coeff of mu^8 = " << GiNaC::collect_common_factors(expr.coeff(mu, 8)) << '\n';
       };
 
-    std::cout << "Loop-level 13 P(k) renormalization of k^0:" << '\n';
+    std::cout << "Loop-level 13 P(k) divergences at k^0:" << '\n';
     print(P13_UV_k0);
-
-    std::cout << "Loop-level 13 P(k) renormalization of k^2:" << '\n';
+    std::cout << '\n';
+    std::cout << "Loop-level 13 P(k) divergences at k^2:" << '\n';
     print(P13_UV_k2);
+    std::cout << '\n';
 
-    auto P22_UV = P22.get_UV_limit();
-    std::cout << "Loop-level 22 P(k) UV limit:" << '\n';
-    std::cout << P22_UV << '\n';
-    
+    std::cout << "Loop-level 22 P(k) divergences at k^0" << '\n';
+    print(P22_UV_k0);
+    std::cout << '\n';
+    std::cout << "Loop-level 22 P(k) divergences at k^2" << '\n';
+    print(P22_UV_k2);
+    std::cout << '\n';
+    std::cout << "Loop-level 22 P(k) divergences at k^4" << '\n';
+    print(P22_UV_k4);
+    std::cout << '\n';
+
     return EXIT_SUCCESS;
   }
