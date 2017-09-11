@@ -156,9 +156,9 @@ int main(int argc, char* argv[])
         return delta
                - (GiNaC::I / H) * kmu * r_dot_v
                - (GiNaC::I / H) * kmu * (r_dot_v * delta)
-               + (GiNaC::ex(1) / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v)
-               + (GiNaC::ex(1) / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v * delta)
-               + (GiNaC::I / (3*H*H*H)) * kmu*kmu*kmu * (r_dot_v * r_dot_v * r_dot_v);
+               + (GiNaC::numeric{1} / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v)
+               + (GiNaC::numeric{1} / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v * delta)
+               + (GiNaC::I / (3*2*H*H*H)) * kmu*kmu*kmu * (r_dot_v * r_dot_v * r_dot_v);
       };
 
     // dark matter in redshift-space
@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
     auto deltah_rsd_k2 = make_delta_rsd(k2mu);
 
     // construct 1-loop \delta power spectrum
-    Pk_one_loop Pk_delta{delta, delta, k, sf};
+    Pk_one_loop Pk_delta{delta_rsd_k1, delta_rsd_k2, k, sf};
 
     // simplify mu-dependence
     Pk_delta.canonicalize_external_momenta();
@@ -186,8 +186,8 @@ int main(int argc, char* argv[])
 //    std::cout << tree << '\n';
 
     auto& P13 = Pk_delta.get_13();
-//    std::cout << "Loop-level 13 P(k):" << '\n';
-//    std::cout << P13 << '\n';
+    std::cout << "Loop-level 13 P(k):" << '\n';
+    std::cout << P13 << '\n';
 
     auto& P22 = Pk_delta.get_22();
 //    std::cout << "Loop-level 22 P(k):" << '\n';
@@ -195,11 +195,11 @@ int main(int argc, char* argv[])
 
     auto P13_UV = P13.get_UV_limit().expand();
     std::cout << "Loop-level 13 P(k) UV limit:" << '\n';
-    std::cout << "  -- coeff of DD(z) = " << P13_UV.coeff(SPT::DD(z), 1) << '\n';
-    std::cout << "  -- coeff of DE(z) = " << P13_UV.coeff(SPT::DE(z), 1) << '\n';
-    std::cout << "  -- coeff of DF(z) = " << P13_UV.coeff(SPT::DF(z), 1) << '\n';
-    std::cout << "  -- coeff of DG(z) = " << P13_UV.coeff(SPT::DG(z), 1) << '\n';
-    std::cout << "  -- coeff of DJ(z) = " << P13_UV.coeff(SPT::DJ(z), 1) << '\n';
+    std::cout << "  -- coeff of mu^0 = " << GiNaC::collect_common_factors(P13_UV.coeff(mu, 0)) << '\n';
+    std::cout << "  -- coeff of mu^2 = " << GiNaC::collect_common_factors(P13_UV.coeff(mu, 2)) << '\n';
+    std::cout << "  -- coeff of mu^4 = " << GiNaC::collect_common_factors(P13_UV.coeff(mu, 4)) << '\n';
+    std::cout << "  -- coeff of mu^6 = " << GiNaC::collect_common_factors(P13_UV.coeff(mu, 6)) << '\n';
+    std::cout << "  -- coeff of mu^8 = " << GiNaC::collect_common_factors(P13_UV.coeff(mu, 8)) << '\n';
 
     auto P22_UV = P22.get_UV_limit();
     std::cout << "Loop-level 22 P(k) UV limit:" << '\n';
