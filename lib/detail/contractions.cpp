@@ -30,8 +30,26 @@
 namespace cfs
   {
 
+    //! Taylor expansion of Pk needs special attention, because we don't want to end up doing
+    //! an expansion of something Pk(k).
+    //! On the other hand, Pk(sqrt(k^2 + K^2 - 2kLx)) can certainly be expanded
+    GiNaC::ex Pk_series(const GiNaC::ex& a, const GiNaC::ex& b, const GiNaC::ex& x,
+                        const GiNaC::relational& rel, int order, unsigned options);
+
     // register Pk as a dummy function
-    REGISTER_FUNCTION(Pk, dummy())
+    REGISTER_FUNCTION(Pk, series_func(Pk_series))
+
+    GiNaC::ex Pk_series(const GiNaC::ex& a, const GiNaC::ex& b, const GiNaC::ex& x,
+                        const GiNaC::relational& rel, int order, unsigned options)
+      {
+        // get symbol that we're expanding with respect to
+        const auto& sym = GiNaC::ex_to<GiNaC::symbol>(rel.lhs());
+
+        // if series expansion of argument has no constant term, then we don't want to do a Taylor expansion
+        if(x.coeff(sym, 0) != 0) throw GiNaC::do_taylor();
+
+        return GiNaC::pseries(rel, GiNaC::epvector{ {Pk(a, b, x), 0} });
+      }
 
   }   // namespace cfs = correlation functions
 
