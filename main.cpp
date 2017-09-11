@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
 
     auto& P13 = Pk_delta.get_13();
     std::cout << "Loop-level 13 P(k):" << '\n';
-    std::cout << P13 << '\n';
+//    std::cout << P13 << '\n';
 
     auto& P22 = Pk_delta.get_22();
 //    std::cout << "Loop-level 22 P(k):" << '\n';
