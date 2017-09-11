@@ -45,33 +45,33 @@ namespace detail
         for(const auto& v : source)
           {
             const GiNaC::ex& label = v.first;
+            const auto& label_sym = GiNaC::ex_to<GiNaC::symbol>(label);
+
             const GiNaC::ex& value = v.second.subs(subs_rules);
             
 //            if(static_cast<bool>(value == 0))
 //              throw exception(ERROR_RAYLEIGH_MOMENTUM_IS_ZERO, exception_code::Rayleigh_error);
-            
-            const auto& label_symbol = GiNaC::ex_to<GiNaC::symbol>(label);
-            
+
             // search for an existing remap rule which matches this one (or its negative)
-            auto u = std::find_if(dest.begin(), dest.end(), [&](const GiNaC::exmap::value_type& a) -> bool
-              { return static_cast<bool>(a.second == value); });
+            auto u = std::find_if(dest.begin(), dest.end(),
+                                  [&](const auto& a) -> bool { return static_cast<bool>(a.second == value); });
             
             // if one exists, just add a relabelling rule that will redirect this Rayleigh symbol
             // to the existing definition
             if(u != dest.end())
               {
-                mma_map[label_symbol] = u->first;
+                mma_map[label_sym] = u->first;
                 continue;
               }
 
-            u = std::find_if(dest.begin(), dest.end(), [&](const GiNaC::exmap::value_type& a) -> bool
-              { return static_cast<bool>(a.second == -value); });
+            u = std::find_if(dest.begin(), dest.end(),
+                             [&](const auto& a) -> bool { return static_cast<bool>(a.second == -value); });
 
             // if one exists, just add a relabelling rule that will redirect this Rayleigh symbol
             // to the existing definition
             if(u != dest.end())
               {
-                mma_map[label_symbol] = -u->first;
+                mma_map[label_sym] = -u->first;
                 continue;
               }
             
@@ -80,20 +80,20 @@ namespace detail
             // first, is there a symbol collision?
             bool collision = false;
             
-            if(reserved.find(label_symbol) != reserved.end()) collision = true;
-            if(dest.find(label_symbol) != dest.end()) collision = true;
+            if(reserved.find(label_sym) != reserved.end()) collision = true;
+            if(dest.find(label_sym) != dest.end()) collision = true;
             
             // if no collision, just keep the same symbol to avoid proliferation
             if(!collision)
               {
-                dest[label_symbol] = value;
+                dest[label_sym] = value;
                 continue;
               }
             
             // otherwise, need to manufacture a new symbol
             auto relabel = sf.make_unique_Rayleigh_momentum();
             
-            mma_map[label_symbol] = relabel;
+            mma_map[label_sym] = relabel;
             dest[relabel] = value;
           }
         
@@ -138,8 +138,8 @@ namespace detail
             if(GiNaC::is_a<GiNaC::mul>(rhs) && rhs.nops() == 2)
               {
                 const auto& rhs_mul = GiNaC::ex_to<GiNaC::mul>(rhs);
-                const GiNaC::ex& op1 = rhs_mul.op(0);
-                const GiNaC::ex& op2 = rhs_mul.op(1);
+                const GiNaC::ex op1 = rhs_mul.op(0);
+                const GiNaC::ex op2 = rhs_mul.op(1);
                 
                 if((GiNaC::is_a<GiNaC::symbol>(op1) && GiNaC::is_a<GiNaC::numeric>(op2))
                    || (GiNaC::is_a<GiNaC::symbol>(op2) && GiNaC::is_a<GiNaC::numeric>(op1)))

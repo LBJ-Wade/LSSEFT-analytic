@@ -75,6 +75,12 @@ namespace Fabrikant
           return (GiNaC::Pi*(3*GiNaC::pow(GiNaC::pow(s,2) - GiNaC::pow(t,2),2) + 2*(-3*GiNaC::pow(s,2) + GiNaC::pow(t,2))*GiNaC::pow(u,2) +
                       3*GiNaC::pow(u,4)))/(32*s*GiNaC::pow(t,3)*GiNaC::pow(u,3));
 
+        if(mu_num.to_int() == 3)
+          return (GiNaC::Pi*(-5*GiNaC::pow(GiNaC::pow(s,2) - GiNaC::pow(t,2),3) +
+                      3*(5*GiNaC::pow(s,4) - 6*GiNaC::pow(s,2)*GiNaC::pow(t,2) + GiNaC::pow(t,4))*GiNaC::pow(u,2) +
+                      3*(-5*GiNaC::pow(s,2) + GiNaC::pow(t,2))*GiNaC::pow(u,4) + 5*GiNaC::pow(u,6)))/
+                 (64*s*GiNaC::pow(t,4)*GiNaC::pow(u,4));
+
         return FabJ(lambda, mu, nu, s, t, u).hold();
       }
 

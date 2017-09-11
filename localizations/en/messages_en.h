@@ -90,6 +90,8 @@ constexpr auto ERROR_LOOPQ_HAS_WRONG_COEFF_IN_RAYLEIGH = "Loop momentum appears 
 constexpr auto ERROR_KEXT_HAS_WRONG_COEFF_IN_RAYLEIGH = "External momentum appears with incorrect coefficient in Rayleigh momentum";
 constexpr auto ERROR_KERNEL_DEPENDS_ON_ANGULAR_RAYLEIGH_MOMENTUM = "Momentum kernel depends on angular part of Rayleigh momentum";
 constexpr auto ERROR_TOO_MANY_KEXT_IN_LEGENDRE_SUM = "Too many Legendre polynomials involving loop momentum and external momentum";
+constexpr auto ERROR_FAILED_TO_REDUCE_TRIPLE_PRODUCT_LEGP = "Failed to reduce a triple product of Legendre polynomials";
+constexpr auto ERROR_CANNOT_ADD_KERNELS_WITH_UNEQUAL_TIME_FUNCTIONS = "Cannot add momentum kernels with differing time functions";
 
 constexpr auto ERROR_FABJ_FIRST_ARG_NONZERO = "First argument of FabJ is not zero";
 constexpr auto ERROR_FABJ_SECOND_ARGS_NOT_EQUAL = "Second and third arguments of FabJ are not zero";

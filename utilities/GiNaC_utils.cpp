@@ -66,7 +66,7 @@ void get_expr_indices_impl(const GiNaC::ex& expr, std::map<GiNaC::symbol, size_t
         size_t nops = expr.nops();
         for(size_t i = 1; i < nops; ++i)
           {
-            const auto& idx_raw = expr.op(i);
+            const auto idx_raw = expr.op(i);
             if(GiNaC::is_a<GiNaC::idx>(idx_raw))
               {
                 const auto& idx = GiNaC::ex_to<GiNaC::idx>(idx_raw);
@@ -111,8 +111,9 @@ GiNaC::ex simplify_add(const GiNaC::ex& expr, const GiNaC::scalar_products& sp)
       {
         val += simplify_index(*t, sp);
       }
-    
-    return val;
+
+    // call simplify_indexed() to try to perform index relabelling, if that helps reduce the number of terms
+    return val.simplify_indexed(sp);
   }
 
 
@@ -131,8 +132,8 @@ GiNaC::ex simplify_mul(const GiNaC::ex& expr, const GiNaC::scalar_products& sp)
 
 GiNaC::ex simplify_pow(const GiNaC::ex& expr, const GiNaC::scalar_products& sp)
   {
-    const GiNaC::ex& base = expr.op(0);
-    const GiNaC::ex& exponent = expr.op(1);
+    const GiNaC::ex base = expr.op(0);
+    const GiNaC::ex exponent = expr.op(1);
     
     // if the base is not indexed then apply recursively and return
     if(!GiNaC::is_exactly_a<GiNaC::indexed>(base))
@@ -215,8 +216,8 @@ bool is_rational_mul(const GiNaC::ex& expr)
 
 bool is_rational_pow(const GiNaC::ex& expr)
   {
-    const GiNaC::ex& base = expr.op(0);
-    const GiNaC::ex& exponent = expr.op(1);
+    const GiNaC::ex base = expr.op(0);
+    const GiNaC::ex exponent = expr.op(1);
     
     // if the power is not a number then this is not a rational function
     if(!GiNaC::is_exactly_a<GiNaC::numeric>(exponent)) return false;

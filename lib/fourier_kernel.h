@@ -546,6 +546,10 @@ void validate_structure(const GiNaC::ex& K);
 void validate_momenta(const initial_value_set& s, const subs_list& vs, const GiNaC::ex& K,
                       const GiNaC_symbol_set& params, bool silent);
 
+//! compute normalization factor for a given time function
+//! division by this factor will place the time function into a canonical form
+GiNaC::ex get_normalization_factor(const time_function& tm, symbol_factory& sf);
+
 
 template <unsigned int N>
 fourier_kernel<N>& fourier_kernel<N>::add(kernel_type k)
@@ -573,15 +577,27 @@ template <unsigned int N>
 fourier_kernel<N>&
 fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_list vs, bool silent)
   {
+    // warn if initial value set is empty
     if(!validate_ivset_nonempty(s, K, silent)) return *this;
+
+    // ensure that the substitution list (used to specify remappings for Rayleigh momenta)
+    // is of the correct format
     validate_subslist(s, vs);
-    
+
+    // normalize the time function, redistributing factors into the kernel if needed
+    auto norm = get_normalization_factor(t, this->sf);
+    t /= norm;
+    K *= norm;
+
+    // simplify index structure in K if possible
+    K = simplify_index(K);
+
     // validate that K is structurally OK (scalar, rational)
     validate_structure(K);
     
     // validate that momentum variables used in K match those listed in the stochastic terms
     validate_momenta(s, vs, K, this->sf.get_parameters(), silent);
-    
+
     // check whether an entry with this key already exists
     auto ker = std::make_unique<kernel_type>(std::move(K), std::move(s), std::move(t), std::move(vs), this->sf);
     key_type key{*ker};

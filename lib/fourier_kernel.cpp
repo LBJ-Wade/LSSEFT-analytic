@@ -120,6 +120,10 @@ namespace fourier_kernel_impl
         vs(std::move(vs_)),
         sf(sf_)
       {
+        // normalize the time function, redistributing factors into the kernel if needed
+        auto norm = get_normalization_factor(tm, sf);
+        tm /= norm;
+        K *= norm;
       }
 
 
@@ -133,6 +137,10 @@ namespace fourier_kernel_impl
 
     kernel& kernel::operator+=(const kernel& rhs)
       {
+        // kernels can only be added if their time functions agree
+        if(static_cast<bool>(this->tm != rhs.tm))
+          throw exception(ERROR_CANNOT_ADD_KERNELS_WITH_UNEQUAL_TIME_FUNCTIONS, exception_code::loop_transformation_error);
+
         // we need to relabel momenta in the right-hand-side if they do not match
         // our current labelling
         auto our_mma = this->get_ordered_momenta();
@@ -141,7 +149,7 @@ namespace fourier_kernel_impl
         // check that momenta are compatible in the sense that their (ordered) symbol names agree
         if(!std::equal(our_mma.cbegin(), our_mma.cend(),
                        their_mma.cbegin(), their_mma.cend(),
-                       [](const momenta_list::value_type& a, const momenta_list::value_type& b) -> bool
+                       [](const auto& a, const auto& b) -> bool
                          { return a.get().get_symbol().get_name() == b.get().get_symbol().get_name(); }))
           throw exception(ERROR_KERNEL_INITIAL_VALUES_DISAGREE, exception_code::kernel_error);
         
@@ -150,8 +158,8 @@ namespace fourier_kernel_impl
         
         for(auto u = our_mma.cbegin(), v = their_mma.cbegin(); u != our_mma.cend() && v != their_mma.cend(); ++u, ++v)
           {
-            const GiNaC::symbol& our_q = u->get().get_momentum();
-            const GiNaC::symbol& their_q = v->get().get_momentum();
+            const auto& our_q = u->get().get_momentum();
+            const auto& their_q = v->get().get_momentum();
 
             // if the momentum labels disagree, then remap theirs
             if(our_q != their_q) mma_map[their_q] = our_q;
@@ -161,13 +169,13 @@ namespace fourier_kernel_impl
         using detail::merge_Rayleigh_rules;
         auto relabel_map = merge_Rayleigh_rules(this->vs, rhs.vs, this->iv.get_momenta(), mma_map, this->sf);
         std::copy(relabel_map.begin(), relabel_map.end(), std::inserter(mma_map, mma_map.begin()));
-        
+
         // now perform relabelling in the kernel
         // note there's no need to perform *index* relabelling since this is a sum -- relabelling indices
         // is needed only in a product
         auto temp = simplify_index(this->K + rhs.K.subs(mma_map));
         this->K = temp;
-    
+
         return *this;
       }
     
@@ -229,6 +237,11 @@ namespace fourier_kernel_impl
         auto temp = simplify_index(relabel_index_product(this->K, rhs.K.subs(mma_map), this->sf));
         this->K = temp;
 
+        // renormalize time function
+        auto norm = get_normalization_factor(tm, sf);
+        this->tm /= norm;
+        this->K *= norm;
+
         return *this;
       }
     
@@ -276,6 +289,12 @@ namespace fourier_kernel_impl
       {
         kernel c = b;
         c.tm *= a;
+
+        // renormalize time function
+        auto norm = get_normalization_factor(c.tm, c.sf);
+        c.tm /= norm;
+        c.K *= norm;
+
         return c;
       }
     
@@ -296,7 +315,7 @@ namespace fourier_kernel_impl
     
     kernel operator/(const kernel& a, const GiNaC::ex b)
       {
-        return (GiNaC::ex(1)/b) * a;
+        return (GiNaC::numeric{1}/b) * a;
       }
     
     
@@ -305,7 +324,12 @@ namespace fourier_kernel_impl
         kernel b = a;
         const auto& z = a.sf.get_z();
         b.tm = GiNaC::diff(b.tm, z);
-        
+
+        // renormalize time function
+        auto norm = get_normalization_factor(b.tm, b.sf);
+        b.tm /= norm;
+        b.K *= norm;
+
         return b;
       }
     
@@ -343,6 +367,12 @@ namespace fourier_kernel_impl
           }
 
         this->K *= f;
+
+        // renormalize time function
+        auto norm = get_normalization_factor(tm, sf);
+        this->tm /= norm;
+        this->K *= norm;
+
         return *this;
       }
     
@@ -409,7 +439,12 @@ namespace fourier_kernel_impl
         
         this->K *= f;
         if(t == this->vs.end()) this->vs[s] = rule;
-        
+
+        // renormalize time function
+        auto norm = get_normalization_factor(tm, sf);
+        this->tm /= norm;
+        this->K *= norm;
+
         return *this;
       }
     
@@ -590,4 +625,65 @@ void validate_momenta(const initial_value_set& s, const subs_list& vs, const GiN
         ker << WARNING_KERNEL_EXPRESSION << " = " << K;
         err.info(ker.str());
       }
+  }
+
+
+namespace get_normalization_factor_impl
+  {
+
+    GiNaC::ex compute_normalization(const GiNaC::ex& term, symbol_factory& sf)
+      {
+        if(GiNaC::is_a<GiNaC::numeric>(term)) return term;
+
+        if(GiNaC::is_a<GiNaC::symbol>(term))
+          {
+            // ignore if this symbol is the redshift z
+            const auto& z = sf.get_z();
+            if(static_cast<bool>(z == term)) return GiNaC::numeric{1};
+            return term;
+          }
+
+        if(GiNaC::is_a<GiNaC::power>(term))
+          {
+            auto sub_norm = get_normalization_factor(term.op(0), sf);
+            return GiNaC::pow(sub_norm, term.op(1));
+          }
+
+        return GiNaC::numeric{1};
+      }
+
+  }   // namespace get_normalization_factor_impl
+
+
+GiNaC::ex get_normalization_factor(const time_function& tm, symbol_factory& sf)
+  {
+    // Want to canonicalize the time function.
+    // This can be done by expanding it and collecting the numerical factors associated with the first term.
+    // GiNaC guarantees that all expressions will come in a canonical order (even if we don't know what that
+    // order is), so this will give consistent results for a single run of the code.
+    // It won't necessarily give consistent answers *between* runs
+
+    auto expr = tm.expand();
+
+    using get_normalization_factor_impl::compute_normalization;
+
+    // if expression is an add, extract numerical factors from its first term
+    if(GiNaC::is_a<GiNaC::add>(expr)) return get_normalization_factor(expr.op(0), sf);
+
+    // if expression is a mul, extract numerical factors
+    if(GiNaC::is_a<GiNaC::mul>(expr))
+      {
+        GiNaC::ex norm{1};
+        size_t ops = expr.nops();
+
+        for(size_t i = 0; i < ops; ++i)
+          {
+            norm *= compute_normalization(expr.op(i), sf);
+          }
+
+        return norm;
+      }
+
+    // otherwise, determine normalization directly
+    return compute_normalization(expr, sf);
   }

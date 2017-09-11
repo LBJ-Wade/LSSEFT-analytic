@@ -208,8 +208,8 @@ namespace dot_products_to_cos_impl
 
     GiNaC::ex convert_power(const GiNaC::ex expr)
       {
-        const GiNaC::ex& base = expr.op(0);
-        const GiNaC::ex& exponent = expr.op(1);
+        const GiNaC::ex base = expr.op(0);
+        const GiNaC::ex exponent = expr.op(1);
 
         // if the base is not an indexed object then apply recursively
         if(!GiNaC::is_a<GiNaC::indexed>(base))
@@ -234,7 +234,7 @@ namespace dot_products_to_cos_impl
         if(std::abs(p) % 2 != 0) throw exception(EXPECTED_EXPONENT_TO_BE_EVEN_INTEGER, exception_code::loop_transformation_error);
 
         // strip out kernel from base
-        const GiNaC::ex& symb = base.op(0);
+        const GiNaC::ex symb = base.op(0);
 
         if(!GiNaC::is_a<GiNaC::symbol>(symb))
           throw exception(ERROR_EXPECTED_SYMBOL, exception_code::loop_transformation_error);
@@ -286,8 +286,8 @@ namespace cosine_Legendre_impl
             const auto& f = GiNaC::ex_to<GiNaC::function>(expr);
             if(f.get_name() == name)
               {
-                const auto& p1 = GiNaC::ex_to<GiNaC::symbol>(f.op(op1));
-                const auto& p2 = GiNaC::ex_to<GiNaC::symbol>(f.op(op2));
+                const auto p1 = GiNaC::ex_to<GiNaC::symbol>(f.op(op1));
+                const auto p2 = GiNaC::ex_to<GiNaC::symbol>(f.op(op2));
 
                 if(p1 == q) set.insert(p2);
                 if(p2 == q) set.insert(p1);
@@ -310,9 +310,9 @@ namespace cosine_Legendre_impl
             const auto& f = GiNaC::ex_to<GiNaC::function>(expr);
             if(f.get_name() == "LegP")
               {
-                const auto& o = GiNaC::ex_to<GiNaC::numeric>(f.op(0));
-                const auto& q1 = GiNaC::ex_to<GiNaC::symbol>(f.op(1));
-                const auto& q2 = GiNaC::ex_to<GiNaC::symbol>(f.op(2));
+                const auto o = GiNaC::ex_to<GiNaC::numeric>(f.op(0));
+                const auto q1 = GiNaC::ex_to<GiNaC::symbol>(f.op(1));
+                const auto q2 = GiNaC::ex_to<GiNaC::symbol>(f.op(2));
 
                 if(p1 == q1 && p2 == q2) return static_cast<unsigned int>(o.to_int());
                 return 0;
@@ -344,7 +344,7 @@ GiNaC_symbol_set get_Cos_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr)
   }
 
 
-GiNaC_symbol_set get_LegP_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr)
+GiNaC_symbol_set get_LegP_pairs(const GiNaC::ex& expr, const GiNaC::symbol& q)
   {
     using cosine_Legendre_impl::find_pairs;
 
@@ -413,7 +413,7 @@ GiNaC::ex Legendre_to_cosines(GiNaC::ex expr, const GiNaC::symbol q)
     using cosine_Legendre_impl::get_max_LegP_order;
 
     // obtain the set of symbols with which q appears in conjunction
-    auto pair_set = get_LegP_pairs(q, expr.expand());
+    auto pair_set = get_LegP_pairs(expr.expand(), q);
 
     // for each symbol, substitute for the Legendre polynomials
     for(const auto& p : pair_set)

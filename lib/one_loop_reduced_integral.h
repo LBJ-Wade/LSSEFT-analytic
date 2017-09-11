@@ -212,7 +212,7 @@ class one_loop_reduced_integral
   public:
 
     //! constructor accepts a loop_integral and performs dimensional reduction on it
-    explicit one_loop_reduced_integral(const loop_integral& i_, symbol_factory& sf_);
+    one_loop_reduced_integral(const loop_integral& i_, symbol_factory& sf_);
 
     //! destructor is default
     ~one_loop_reduced_integral() = default;
@@ -316,17 +316,19 @@ class one_loop_reduced_integral
 template <typename VisitorFunction>
 GiNaC::ex one_loop_reduced_integral::integrate_Legendre(const GiNaC::ex& term, const GiNaC::symbol& q, VisitorFunction f)
   {
-    if(GiNaC::is_a<GiNaC::mul>(term))
+    auto term_ex = term.expand();
+
+    if(GiNaC::is_a<GiNaC::mul>(term_ex))
       {
-        return f(term, q);
+        return f(term_ex, q);
       }
 
-    if(GiNaC::is_a<GiNaC::add>(term))
+    if(GiNaC::is_a<GiNaC::add>(term_ex))
       {
         GiNaC::ex temp{0};
-        for(size_t i = 0; i < temp.nops(); ++i)
+        for(size_t i = 0; i < term_ex.nops(); ++i)
           {
-            temp += f(term.op(i), q);
+            temp += f(term_ex.op(i), q);
           }
         return temp;
       }

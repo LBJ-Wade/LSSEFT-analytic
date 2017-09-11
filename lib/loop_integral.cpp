@@ -156,9 +156,9 @@ void loop_integral::match_Wick_to_Rayleigh()
 
         if(f.get_name() == "Pk")
           {
-            const auto& f1 = GiNaC::ex_to<GiNaC::symbol>(f.op(0));
-            const auto& f2 = GiNaC::ex_to<GiNaC::symbol>(f.op(1));
-            const auto& arg = f.op(2);
+            const auto f1 = GiNaC::ex_to<GiNaC::symbol>(f.op(0));
+            const auto f2 = GiNaC::ex_to<GiNaC::symbol>(f.op(1));
+            const auto arg = f.op(2);
 
             // if argument is a simple symbol (a loop momentum or a Rayleigh momentum, or an external momentum) then we have nothing to do
             if(GiNaC::is_a<GiNaC::symbol>(arg))

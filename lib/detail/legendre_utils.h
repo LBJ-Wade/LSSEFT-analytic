@@ -47,7 +47,7 @@ GiNaC::ex Legendre_to_cosines(GiNaC::ex expr, const GiNaC::symbol q);
 GiNaC_symbol_set get_Cos_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr);
 
 //! get set of symbols appears in LegP functions with q
-GiNaC_symbol_set get_LegP_pairs(const GiNaC::symbol& q, const GiNaC::ex& expr);
+GiNaC_symbol_set get_LegP_pairs(const GiNaC::ex& expr, const GiNaC::symbol& q);
 
 
 #endif //LSSEFT_ANALYTIC_LEGENDRE_UTILS_H

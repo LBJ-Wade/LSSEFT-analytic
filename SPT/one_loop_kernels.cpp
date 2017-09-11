@@ -57,27 +57,23 @@ kernel beta(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
 
 kernel gamma(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
   {
-    kernel ker_copy = ker;
-    return alpha(q, s, ker, sf) + beta(q, s, ker_copy, sf);
+    return alpha(q, s, ker, sf) + beta(q, s, ker, sf);
   }
 
 
 kernel alpha_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
   {
-    kernel ker_copy = ker;
-    return (alpha(q, s, ker, sf) + alpha(s, q, ker_copy, sf)) / 2;
+    return (alpha(q, s, ker, sf) + alpha(s, q, ker, sf)) / 2;
   }
 
 
 kernel beta_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
   {
-    kernel ker_copy = ker;
-    return (beta(q, s, ker, sf) + beta(s, q, ker_copy, sf)) / 2;
+    return (beta(q, s, ker, sf) + beta(s, q, ker, sf)) / 2;
   }
 
 
 kernel gamma_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
   {
-    kernel ker_copy = ker;
-    return (gamma(q, s, ker, sf) + gamma(s, q, ker_copy, sf)) / 2;
+    return (gamma(q, s, ker, sf) + gamma(s, q, ker, sf)) / 2;
   }
