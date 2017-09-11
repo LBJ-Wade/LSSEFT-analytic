@@ -352,7 +352,7 @@ void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& te
         using one_loop_reduced_integral_impl::integration_element;
         using one_loop_reduced_integral_impl::key;
         auto elt =
-          std::make_unique<integration_element>(temp, measure, this->WickProduct, this->tm,
+          std::make_unique<integration_element>(temp, measure, this->WickProduct.subs(R_map), this->tm,
                                                 GiNaC_symbol_set{this->loop_q, this->x}, this->external_momenta);
 
         // insert in database
