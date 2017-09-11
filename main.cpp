@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
     symbol_factory sf;
     
     // redshift z is the time variable
-    auto z = sf.get_z();
+    const auto& z = sf.get_z();
 
     // H is the Hubble rate
     GiNaC::ex H = FRW::Hub(z);
@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
     auto phi3 = InverseLaplacian(-diff_t(delta3)
                                  - delta1*Laplacian(phi2) - delta2*Laplacian(phi1)
                                  - gradgrad(phi1, delta2) - gradgrad(phi2, delta1));
-    
+
     auto phi = phi1 + phi2 + phi3;
 
 

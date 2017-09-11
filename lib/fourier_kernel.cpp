@@ -288,7 +288,27 @@ namespace fourier_kernel_impl
     kernel operator*(const GiNaC::ex a, const kernel& b)
       {
         kernel c = b;
-        c.tm *= a;
+
+        // explicitly distribute a over a top-level sum if one is present
+        // this is because GiNaC is very reluctant to simplify cancelling factors in such cases,
+        // meaning that we get uncancelled factors of 1+z in the result, even though they all cancel down to 1
+        if(GiNaC::is_a<GiNaC::add>(c.tm))
+          {
+            GiNaC::ex temp{0};
+            const size_t nops = c.tm.nops();
+
+            for(size_t i = 0; i < nops; ++i)
+              {
+                temp += c.tm.op(i) * a;
+              }
+
+            c.tm = temp;
+          }
+        else
+          {
+            c.tm *= a;
+          }
+
 
         // renormalize time function
         auto norm = get_normalization_factor(c.tm, c.sf);

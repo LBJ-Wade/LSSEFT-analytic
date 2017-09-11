@@ -85,7 +85,9 @@ namespace one_loop_reduced_integral_impl
     GiNaC::ex integration_element::get_UV_limit(unsigned int order) const
       {
         // the total contribution from this element is the product of the integrand, the measure, the
-        // Wick product and the time function, but we don't want to Taylor expand the Wick product
+        // Wick product and the time function, but we don't want to Taylor expand the Wick product.
+        // (Since the time function is canonicalized it should probably be independent of the external momenta anyway,
+        // but we include it to be safe)
         auto prod = this->integrand * this->measure * this->tm;
 
         // the UV limit occurs when the loop momentum is much greater than any of the external

@@ -29,49 +29,49 @@
 
 GiNaC::ex D_deriv(const GiNaC::ex& z, unsigned int diff_param)
   {
-    return -SPT::D(z)*SPT::f(z) / (1+z);
+    return -SPT::D(z)*SPT::f(z) / (GiNaC::numeric{1}+z);
   }
 
 
 GiNaC::ex DA_deriv(const GiNaC::ex& z, unsigned int diff_param)
   {
-    return -SPT::DA(z)*SPT::fA(z) / (1+z);
+    return -SPT::DA(z)*SPT::fA(z) / (GiNaC::numeric{1}+z);
   }
 
 
 GiNaC::ex DB_deriv(const GiNaC::ex& z, unsigned int diff_param)
   {
-    return -SPT::DB(z)*SPT::fB(z) / (1+z);
+    return -SPT::DB(z)*SPT::fB(z) / (GiNaC::numeric{1}+z);
   }
 
 
 GiNaC::ex DD_deriv(const GiNaC::ex& z, unsigned int diff_param)
   {
-    return -SPT::DD(z)*SPT::fD(z) / (1+z);
+    return -SPT::DD(z)*SPT::fD(z) / (GiNaC::numeric{1}+z);
   }
 
 
 GiNaC::ex DE_deriv(const GiNaC::ex& z, unsigned int diff_param)
   {
-    return -SPT::DE(z)*SPT::fE(z) / (1+z);
+    return -SPT::DE(z)*SPT::fE(z) / (GiNaC::numeric{1}+z);
   }
 
 
 GiNaC::ex DF_deriv(const GiNaC::ex& z, unsigned int diff_param)
   {
-    return -SPT::DF(z)*SPT::fF(z) / (1+z);
+    return -SPT::DF(z)*SPT::fF(z) / (GiNaC::numeric{1}+z);
   }
 
 
 GiNaC::ex DG_deriv(const GiNaC::ex& z, unsigned int diff_param)
   {
-    return -SPT::DG(z)*SPT::fG(z) / (1+z);
+    return -SPT::DG(z)*SPT::fG(z) / (GiNaC::numeric{1}+z);
   }
 
 
 GiNaC::ex DJ_deriv(const GiNaC::ex& z, unsigned int diff_param)
   {
-    return -SPT::DJ(z)*SPT::fJ(z) / (1+z);
+    return -SPT::DJ(z)*SPT::fJ(z) / (GiNaC::numeric{1}+z);
   }
 
 

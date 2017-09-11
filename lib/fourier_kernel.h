@@ -874,7 +874,7 @@ fourier_kernel<N> diff_t(const fourier_kernel<N>& a)
   {
     const auto& z = a.sf.get_z();
     
-    return -FRW::Hub(z) * (1+z) * diff_z(a);
+    return -FRW::Hub(z) * (GiNaC::numeric{1}+z) * diff_z(a);
   }
 
 
