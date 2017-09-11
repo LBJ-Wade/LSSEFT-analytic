@@ -150,8 +150,11 @@ int main(int argc, char* argv[])
     // for both dark matter and halos
 
     // utility function to perform the redshift-space transformation
+    // note that we don't have to adjust r_dot_v for the halo power spectrum, so it can just be
+    // captured from the exterior scope.
+    // Of course, delta has to be adjusted.
     auto r_dot_v = dotgrad(r, phi);
-    auto make_delta_rsd = [&](const GiNaC::ex& kmu) -> auto
+    auto make_delta_rsd = [&](const auto& kmu, const auto& delta) -> auto
       {
         return delta
                - (GiNaC::I / H) * kmu * r_dot_v
@@ -164,15 +167,15 @@ int main(int argc, char* argv[])
     // dark matter in redshift-space
     auto k1mu = k*mu;
     auto k2mu = -k*mu;
-    auto delta_rsd_k1 = make_delta_rsd(k1mu);
-    auto delta_rsd_k2 = make_delta_rsd(k2mu);
+    auto delta_rsd_k1 = make_delta_rsd(k1mu, delta);
+    auto delta_rsd_k2 = make_delta_rsd(k2mu, delta);
 
     // halos in redshift-space
-    auto deltah_rsd_k1 = make_delta_rsd(k1mu);
-    auto deltah_rsd_k2 = make_delta_rsd(k2mu);
+    auto deltah_rsd_k1 = make_delta_rsd(k1mu, deltah);
+    auto deltah_rsd_k2 = make_delta_rsd(k2mu, deltah);
 
     // construct 1-loop \delta power spectrum
-    Pk_one_loop Pk_delta{delta_rsd_k1, delta_rsd_k2, k, sf};
+    Pk_one_loop Pk_delta{deltah_rsd_k1, deltah_rsd_k2, k, sf};
 
     // simplify mu-dependence
     Pk_delta.canonicalize_external_momenta();
@@ -194,12 +197,24 @@ int main(int argc, char* argv[])
 //    std::cout << P22 << '\n';
 
     auto P13_UV = P13.get_UV_limit().expand();
-    std::cout << "Loop-level 13 P(k) UV limit:" << '\n';
-    std::cout << "  -- coeff of mu^0 = " << GiNaC::collect_common_factors(P13_UV.coeff(mu, 0)) << '\n';
-    std::cout << "  -- coeff of mu^2 = " << GiNaC::collect_common_factors(P13_UV.coeff(mu, 2)) << '\n';
-    std::cout << "  -- coeff of mu^4 = " << GiNaC::collect_common_factors(P13_UV.coeff(mu, 4)) << '\n';
-    std::cout << "  -- coeff of mu^6 = " << GiNaC::collect_common_factors(P13_UV.coeff(mu, 6)) << '\n';
-    std::cout << "  -- coeff of mu^8 = " << GiNaC::collect_common_factors(P13_UV.coeff(mu, 8)) << '\n';
+
+    auto P13_UV_k0 = P13_UV.coeff(k, 0).expand();
+    auto P13_UV_k2 = P13_UV.coeff(k, 2).expand();
+
+    auto print = [&](const auto& expr) -> void
+      {
+        std::cout << "  -- coeff of mu^0 = " << GiNaC::collect_common_factors(expr.coeff(mu, 0)) << '\n';
+        std::cout << "  -- coeff of mu^2 = " << GiNaC::collect_common_factors(expr.coeff(mu, 2)) << '\n';
+        std::cout << "  -- coeff of mu^4 = " << GiNaC::collect_common_factors(expr.coeff(mu, 4)) << '\n';
+        std::cout << "  -- coeff of mu^6 = " << GiNaC::collect_common_factors(expr.coeff(mu, 6)) << '\n';
+        std::cout << "  -- coeff of mu^8 = " << GiNaC::collect_common_factors(expr.coeff(mu, 8)) << '\n';
+      };
+
+    std::cout << "Loop-level 13 P(k) renormalization of k^0:" << '\n';
+    print(P13_UV_k0);
+
+    std::cout << "Loop-level 13 P(k) renormalization of k^2:" << '\n';
+    print(P13_UV_k2);
 
     auto P22_UV = P22.get_UV_limit();
     std::cout << "Loop-level 22 P(k) UV limit:" << '\n';
