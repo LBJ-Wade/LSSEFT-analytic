@@ -156,8 +156,8 @@ int main(int argc, char* argv[])
         return delta
                - (GiNaC::I / H) * kmu * r_dot_v
                - (GiNaC::I / H) * kmu * (r_dot_v * delta)
-               + (GiNaC::numeric{1} / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v)
-               + (GiNaC::numeric{1} / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v * delta)
+               - (GiNaC::numeric{1} / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v)
+               - (GiNaC::numeric{1} / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v * delta)
                + (GiNaC::I / (3*2*H*H*H)) * kmu*kmu*kmu * (r_dot_v * r_dot_v * r_dot_v);
       };
 
