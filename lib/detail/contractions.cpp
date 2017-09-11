@@ -36,7 +36,7 @@ namespace cfs
     GiNaC::ex Pk_series(const GiNaC::ex& a, const GiNaC::ex& b, const GiNaC::ex& x,
                         const GiNaC::relational& rel, int order, unsigned options);
 
-    // register Pk as a dummy function
+    // register Pk with custom series expansion function
     REGISTER_FUNCTION(Pk, series_func(Pk_series))
 
     GiNaC::ex Pk_series(const GiNaC::ex& a, const GiNaC::ex& b, const GiNaC::ex& x,
