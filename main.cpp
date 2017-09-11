@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
     auto G3 = Galileon3(Phi_delta);
     auto Gamma3 = Galileon2(Phi_delta) - Galileon2(Phi_v);
 
-    auto deltah = b1*delta + b2*delta*delta + b3*delta*delta*delta
+    auto deltah = b1*delta + (b2/2)*delta*delta + (b3/6)*delta*delta*delta
                   + bG2*G2 + bdG2*G2*delta + bG3*G3 + bGamma3*Gamma3;
 
 
