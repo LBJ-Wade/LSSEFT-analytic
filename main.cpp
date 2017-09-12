@@ -39,6 +39,40 @@
 #include "SPT/one_loop_kernels.h"
 
 
+void write_UV_limit(const Pk_rsd& rsd, const GiNaC::symbol& k)
+  {
+    const auto& rsd_13 = rsd.get_13();
+    const auto& rsd_22 = rsd.get_22();
+
+    const auto rsd_13_UV = rsd_13.get_UV_limit();
+    const auto rsd_22_UV = rsd_22.get_UV_limit(4);
+
+    std::cout << "## Loop-level 13 terms:" << '\n';
+    for(unsigned int j = 0; j <= 1; ++j)
+      {
+        std::cout << "@ k^" << 2*j << '\n';
+
+        for(unsigned int i = 0; i <= 4; ++i)
+          {
+            auto expr = GiNaC::collect_common_factors(rsd_13_UV[i].expand().coeff(k, 2*j));
+            std::cout << "   -> mu^" << 2*i << " = " << expr << '\n';
+          }
+      }
+
+    std::cout << "## Loop-level 22 terms:" << '\n';
+    for(unsigned int j = 0; j <= 2; ++j)
+      {
+        std::cout << "@ k^" << 2*j << '\n';
+
+        for(unsigned int i = 0; i <= 4; ++i)
+          {
+            auto expr = GiNaC::collect_common_factors(rsd_22_UV[i].expand().coeff(k, 2*j));
+            std::cout << "   -> mu^" << 2*i << " = " << expr << '\n';
+          }
+      }
+  }
+
+
 int main(int argc, char* argv[])
   {
     symbol_factory sf;
@@ -222,109 +256,34 @@ int main(int argc, char* argv[])
     Pk_rsd Pk_b1bdG2{Pk_delta, mu, filter_list{ {b1,1}, {bdG2,1} }, filter_syms};
     Pk_rsd Pk_b1bGamma3{Pk_delta, mu, filter_list{ {b1,1}, {bGamma3,1} }, filter_syms};
 
-    auto write_UV_limit = [&](const auto& rsd) -> void
+    auto write = [&](std::string name, const Pk_rsd& rsd)
       {
-        const auto& rsd_13 = rsd.get_13();
-        const auto& rsd_22 = rsd.get_22();
-
-        const auto rsd_13_UV = rsd_13.get_UV_limit();
-        const auto rsd_22_UV = rsd_22.get_UV_limit(4);
-
-        std::cout << "## Loop-level 13 terms:" << '\n';
-        for(unsigned int j = 0; j <= 1; ++j)
-          {
-            std::cout << "@ k^" << 2*j << '\n';
-
-            for(unsigned int i = 0; i <= 4; ++i)
-              {
-                auto expr = GiNaC::collect_common_factors(rsd_13_UV[i].expand().coeff(k, 2*j));
-                std::cout << "   -> mu^" << 2*i << " = " << expr << '\n';
-              }
-          }
-
-        std::cout << "## Loop-level 22 terms:" << '\n';
-        for(unsigned int j = 0; j <= 2; ++j)
-          {
-            std::cout << "@ k^" << 2*j << '\n';
-
-            for(unsigned int i = 0; i <= 4; ++i)
-              {
-                auto expr = GiNaC::collect_common_factors(rsd_22_UV[i].expand().coeff(k, 2*j));
-                std::cout << "   -> mu^" << 2*i << " = " << expr << '\n';
-              }
-          }
+        std::cout << "-- " << name << '\n';
+        write_UV_limit(rsd, k);
+        std::cout << '\n';
       };
 
-    std::cout << "-- no bias" << '\n';
-    write_UV_limit(Pk_nobias);
-    std::cout << '\n';
+    write("no bias", Pk_nobias);
 
+    write("b1", Pk_b1);
+    write("b2", Pk_b2);
+    write("b3", Pk_b3);
+    write("bG2", Pk_bG2);
+    // bG3 gives zero
+    write("bdG2", Pk_bdG2);
+    write("bGamma3", Pk_bGamma3);
 
-    std::cout << "-- b1" << '\n';
-    write_UV_limit(Pk_b1);
-    std::cout << '\n';
+    write("b1 x b1", Pk_b1b1);
+    write("b1 x b2", Pk_b1b2);
+    write("b1 x b3", Pk_b1b3);
+    write("b2 x b2", Pk_b2b2);
 
-    std::cout << "-- b2" << '\n';
-    write_UV_limit(Pk_b2);
-    std::cout << '\n';
-
-    std::cout << "-- b3" << '\n';
-    write_UV_limit(Pk_b3);
-    std::cout << '\n';
-
-    std::cout << "-- bG2" << '\n';
-    write_UV_limit(Pk_bG2);
-    std::cout << '\n';
-
-    std::cout << "-- bdG2" << '\n';
-    write_UV_limit(Pk_bG2);
-    std::cout << '\n';
-
-    std::cout << "-- bGamma3" << '\n';
-    write_UV_limit(Pk_bG2);
-    std::cout << '\n';
-
-
-    std::cout << "-- b1 b1" << '\n';
-    write_UV_limit(Pk_b1b1);
-    std::cout << '\n';
-
-    std::cout << "-- b1 b2" << '\n';
-    write_UV_limit(Pk_b1b2);
-    std::cout << '\n';
-
-    std::cout << "-- b1 b3" << '\n';
-    write_UV_limit(Pk_b1b3);
-    std::cout << '\n';
-
-    std::cout << "-- b2 b2" << '\n';
-    write_UV_limit(Pk_b2b2);
-    std::cout << '\n';
-
-
-    std::cout << "-- b1 bG2" << '\n';
-    write_UV_limit(Pk_b1bG2);
-    std::cout << '\n';
-
-    std::cout << "-- bG2 bG2" << '\n';
-    write_UV_limit(Pk_bG2bG2);
-    std::cout << '\n';
-
-    std::cout << "-- b2 bG2" << '\n';
-    write_UV_limit(Pk_b2bG2);
-    std::cout << '\n';
-
-    std::cout << "-- b1 bG3" << '\n';
-    write_UV_limit(Pk_b1bG3);
-    std::cout << '\n';
-
-    std::cout << "-- b1 bdG2" << '\n';
-    write_UV_limit(Pk_b1bdG2);
-    std::cout << '\n';
-
-    std::cout << "-- b1 bGamma3" << '\n';
-    write_UV_limit(Pk_b1bGamma3);
-    std::cout << '\n';
+    write("b1 x bG2", Pk_b1bG2);
+    write("b2 x bG2", Pk_b2bG2);
+    write("bG2 x bG2", Pk_bG2bG2);
+    // b1 x bG3 gives zero
+    write("b1 x bdG2", Pk_b1bdG2);
+    write("b1 x bGamma3", Pk_bGamma3);
 
     return EXIT_SUCCESS;
   }

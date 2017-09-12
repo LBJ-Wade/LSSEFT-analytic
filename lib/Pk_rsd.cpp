@@ -32,6 +32,9 @@ Pk_rsd_group::Pk_rsd_group(GiNaC::symbol mu_, filter_list pt_, GiNaC_symbol_set 
     pattern(std::move(pt_)),
     filter_symbols(std::move(sy_))
   {
+    // set up an exmap that will set all filter_symbols to zero; we use this after pattern matching
+    // to kill any remaining terms; eg. asking for the term linear in b1 from b1(1+b2) will give 1+b2, and we
+    // need to set b2 to zero to get the required result '1'
     for(const auto& sym : filter_symbols)
       {
         filter_map[sym] = 0;
@@ -115,11 +118,11 @@ GiNaC::exvector Pk_rsd_group::get_UV_limit(unsigned int order) const
 
 void Pk_rsd_group::write(std::ostream& out) const
   {
-    std::cout << "-- mu^0" << '\n' << this->mu0 << '\n';
-    std::cout << "-- mu^2" << '\n' << this->mu2 << '\n';
-    std::cout << "-- mu^4" << '\n' << this->mu4 << '\n';
-    std::cout << "-- mu^6" << '\n' << this->mu6 << '\n';
-    std::cout << "-- mu^8" << '\n' << this->mu8 << '\n';
+    out << "-- mu^0" << '\n'; if(!this->mu0.empty()) out << this->mu0 << '\n'; else out << "   <empty>" << '\n';
+    out << "-- mu^2" << '\n'; if(!this->mu0.empty()) out << this->mu2 << '\n'; else out << "   <empty>" << '\n';
+    out << "-- mu^4" << '\n'; if(!this->mu0.empty()) out << this->mu4 << '\n'; else out << "   <empty>" << '\n';
+    out << "-- mu^6" << '\n'; if(!this->mu0.empty()) out << this->mu6 << '\n'; else out << "   <empty>" << '\n';
+    out << "-- mu^8" << '\n'; if(!this->mu0.empty()) out << this->mu8 << '\n'; else out << "   <empty>" << '\n';
   }
 
 
