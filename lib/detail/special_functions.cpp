@@ -24,7 +24,11 @@
 // --@@
 //
 
+#include <sstream>
+
 #include "special_functions.h"
+
+#include "shared/error.h"
 
 #include "shared/exceptions.h"
 #include "localizations/messages.h"
@@ -80,6 +84,18 @@ namespace Fabrikant
                       3*(5*GiNaC::pow(s,4) - 6*GiNaC::pow(s,2)*GiNaC::pow(t,2) + GiNaC::pow(t,4))*GiNaC::pow(u,2) +
                       3*(-5*GiNaC::pow(s,2) + GiNaC::pow(t,2))*GiNaC::pow(u,4) + 5*GiNaC::pow(u,6)))/
                  (64*s*GiNaC::pow(t,4)*GiNaC::pow(u,4));
+        
+        if(mu_num.to_int() == 4)
+          return (GiNaC::Pi*(35*GiNaC::pow(GiNaC::pow(s,2) - GiNaC::pow(t,2),4) -
+                      20*GiNaC::pow(GiNaC::pow(s,2) - GiNaC::pow(t,2),2)*(7*GiNaC::pow(s,2) - GiNaC::pow(t,2))*GiNaC::pow(u,2) +
+                      6*(35*GiNaC::pow(s,4) - 30*GiNaC::pow(s,2)*GiNaC::pow(t,2) + 3*GiNaC::pow(t,4))*GiNaC::pow(u,4) +
+                      20*(-7*GiNaC::pow(s,2) + GiNaC::pow(t,2))*GiNaC::pow(u,6) + 35*GiNaC::pow(u,8)))/
+                 (512*s*GiNaC::pow(t,5)*GiNaC::pow(u,5));
+
+        error_handler handler;
+        std::ostringstream msg;
+        msg << WARNING_UNEVALUATED_FABRIKANT << " " << mu_num.to_int() << '\n';
+        handler.warn(msg.str());
 
         return FabJ(lambda, mu, nu, s, t, u).hold();
       }

@@ -101,6 +101,7 @@ constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on availabl
 constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";
 constexpr auto WARNING_ORDER_ZERO_KERNEL = "Ignoring order-zero kernel";
 constexpr auto WARNING_KERNEL_EXPRESSION = "Kernel expression";
+constexpr auto WARNING_UNEVALUATED_FABRIKANT = "Unevaluated Fabrikant integral of order";
 
 
 #endif //LSSEFT_ANALYTIC_MESSAGES_EN_H
