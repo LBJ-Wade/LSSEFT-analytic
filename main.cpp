@@ -199,19 +199,28 @@ int main(int argc, char* argv[])
 
     // break result into powers of mu, grouped by the bias coefficients involved
     GiNaC_symbol_set filter_syms{b1, b2, b3, bG2, bdG2, bG3, bGamma3};
+
+    Pk_rsd Pk_nobias{Pk_delta, mu, filter_list{}, filter_syms};
+
     Pk_rsd Pk_b1{Pk_delta, mu, filter_list{ {b1,1} }, filter_syms};
     Pk_rsd Pk_b2{Pk_delta, mu, filter_list{ {b2,1} }, filter_syms};
+    Pk_rsd Pk_b3{Pk_delta, mu, filter_list{ {b3,1} }, filter_syms};
     Pk_rsd Pk_bG2{Pk_delta, mu, filter_list{ {bG2,1} }, filter_syms};
+    Pk_rsd Pk_bG3{Pk_delta, mu, filter_list{ {bG3,1} }, filter_syms};                           // zero
+    Pk_rsd Pk_bdG2{Pk_delta, mu, filter_list{ {bdG2,1} }, filter_syms};
+    Pk_rsd Pk_bGamma3{Pk_delta, mu, filter_list{ {bGamma3,1} }, filter_syms};
+
     Pk_rsd Pk_b1b1{Pk_delta, mu, filter_list{ {b1,2} }, filter_syms};
     Pk_rsd Pk_b1b2{Pk_delta, mu, filter_list{ {b1,1}, {b2,1} }, filter_syms};
     Pk_rsd Pk_b1b3{Pk_delta, mu, filter_list{ {b1,1}, {b3,1} }, filter_syms};
     Pk_rsd Pk_b2b2{Pk_delta, mu, filter_list{ {b2,2} }, filter_syms};
+
     Pk_rsd Pk_b1bG2{Pk_delta, mu, filter_list{ {b1,1}, {bG2,1} }, filter_syms};
     Pk_rsd Pk_bG2bG2{Pk_delta, mu, filter_list{ {bG2,2} }, filter_syms};
-    Pk_rsd Pk_b1bG3{Pk_delta, mu, filter_list{ {b1,1}, {bG3,1} }, filter_syms};
+    Pk_rsd Pk_b2bG2{Pk_delta, mu, filter_list{ {b2,1}, {bG2,1} }, filter_syms};
+    Pk_rsd Pk_b1bG3{Pk_delta, mu, filter_list{ {b1,1}, {bG3,1} }, filter_syms};                 // zero
     Pk_rsd Pk_b1bdG2{Pk_delta, mu, filter_list{ {b1,1}, {bdG2,1} }, filter_syms};
     Pk_rsd Pk_b1bGamma3{Pk_delta, mu, filter_list{ {b1,1}, {bGamma3,1} }, filter_syms};
-    Pk_rsd Pk_nobias{Pk_delta, mu, filter_list{}, filter_syms};
 
     auto write_UV_limit = [&](const auto& rsd) -> void
       {
@@ -250,6 +259,7 @@ int main(int argc, char* argv[])
     write_UV_limit(Pk_nobias);
     std::cout << '\n';
 
+
     std::cout << "-- b1" << '\n';
     write_UV_limit(Pk_b1);
     std::cout << '\n';
@@ -258,9 +268,22 @@ int main(int argc, char* argv[])
     write_UV_limit(Pk_b2);
     std::cout << '\n';
 
+    std::cout << "-- b3" << '\n';
+    write_UV_limit(Pk_b3);
+    std::cout << '\n';
+
     std::cout << "-- bG2" << '\n';
     write_UV_limit(Pk_bG2);
     std::cout << '\n';
+
+    std::cout << "-- bdG2" << '\n';
+    write_UV_limit(Pk_bG2);
+    std::cout << '\n';
+
+    std::cout << "-- bGamma3" << '\n';
+    write_UV_limit(Pk_bG2);
+    std::cout << '\n';
+
 
     std::cout << "-- b1 b1" << '\n';
     write_UV_limit(Pk_b1b1);
@@ -278,12 +301,17 @@ int main(int argc, char* argv[])
     write_UV_limit(Pk_b2b2);
     std::cout << '\n';
 
+
     std::cout << "-- b1 bG2" << '\n';
     write_UV_limit(Pk_b1bG2);
     std::cout << '\n';
 
     std::cout << "-- bG2 bG2" << '\n';
     write_UV_limit(Pk_bG2bG2);
+    std::cout << '\n';
+
+    std::cout << "-- b2 bG2" << '\n';
+    write_UV_limit(Pk_b2bG2);
     std::cout << '\n';
 
     std::cout << "-- b1 bG3" << '\n';
