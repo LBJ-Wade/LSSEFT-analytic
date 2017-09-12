@@ -57,6 +57,12 @@ namespace Pk_one_loop_impl
         using db_type = std::vector< std::pair< std::unique_ptr<loop_integral>,
                                                 std::unique_ptr<one_loop_reduced_integral> > >;
 
+      public:
+
+        //! iterator
+        using iterator = db_type::iterator;
+        using const_iterator = db_type::const_iterator;
+
 
         // CONSTRUCTOR, DESTRUCTOR
 
@@ -67,6 +73,20 @@ namespace Pk_one_loop_impl
 
         //! destructor is default
         ~Pk_db() = default;
+
+
+        // ITERATORS
+
+      public:
+
+        //! iterators
+        iterator       begin()        { return this->db.begin(); }
+        iterator       end()          { return this->db.end(); }
+        const_iterator begin()  const { return this->db.cbegin(); }
+        const_iterator end()    const { return this->db.cend(); }
+
+        const_iterator cbegin() const { return this->db.cbegin(); }
+        const_iterator cend()   const { return this->db.cend(); }
 
 
         // EMPLACE AN ELEMENT

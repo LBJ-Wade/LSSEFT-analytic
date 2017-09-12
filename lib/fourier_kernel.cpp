@@ -299,14 +299,15 @@ namespace fourier_kernel_impl
 
             for(size_t i = 0; i < nops; ++i)
               {
-                temp += c.tm.op(i) * a;
+                temp += c.tm.op(i).expand() * a;
               }
 
-            c.tm = temp;
+            c.tm = GiNaC::collect_common_factors(temp);
           }
         else
           {
-            c.tm *= a;
+            auto temp = GiNaC::collect_common_factors(c.tm.expand() * a);
+            c.tm = temp;
           }
 
 

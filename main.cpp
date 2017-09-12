@@ -32,6 +32,7 @@
 #include "lib/initial_value.h"
 #include "lib/fourier_kernel.h"
 #include "lib/Pk_one_loop.h"
+#include "lib/Pk_rsd.h"
 #include "lib/detail/special_functions.h"
 
 #include "SPT/time_functions.h"
@@ -184,53 +185,117 @@ int main(int argc, char* argv[])
     // remove unwanted r factors, which are equal to unity (r is a unit vector)
     Pk_delta.simplify(GiNaC::exmap{ {r_sym, GiNaC::ex{1}} });
 
-    auto& tree = Pk_delta.get_tree();
+//    auto& tree = Pk_delta.get_tree();
 //    std::cout << "Tree-level P(k):" << '\n';
 //    std::cout << tree << '\n';
 
-    auto& P13 = Pk_delta.get_13();
+//    auto& P13 = Pk_delta.get_13();
 //    std::cout << "Loop-level 13 P(k):" << '\n';
 //    std::cout << P13 << '\n';
 
-    auto& P22 = Pk_delta.get_22();
+//    auto& P22 = Pk_delta.get_22();
 //    std::cout << "Loop-level 22 P(k):" << '\n';
 //    std::cout << P22 << '\n';
 
-    auto P13_UV = P13.get_UV_limit().expand();
+    // break result into powers of mu, grouped by the bias coefficients involved
+    GiNaC_symbol_set filter_syms{b1, b2, b3, bG2, bdG2, bG3, bGamma3};
+    Pk_rsd Pk_b1{Pk_delta, mu, filter_list{ {b1,1} }, filter_syms};
+    Pk_rsd Pk_b2{Pk_delta, mu, filter_list{ {b2,1} }, filter_syms};
+    Pk_rsd Pk_bG2{Pk_delta, mu, filter_list{ {bG2,1} }, filter_syms};
+    Pk_rsd Pk_b1b1{Pk_delta, mu, filter_list{ {b1,2} }, filter_syms};
+    Pk_rsd Pk_b1b2{Pk_delta, mu, filter_list{ {b1,1}, {b2,1} }, filter_syms};
+    Pk_rsd Pk_b1b3{Pk_delta, mu, filter_list{ {b1,1}, {b3,1} }, filter_syms};
+    Pk_rsd Pk_b2b2{Pk_delta, mu, filter_list{ {b2,2} }, filter_syms};
+    Pk_rsd Pk_b1bG2{Pk_delta, mu, filter_list{ {b1,1}, {bG2,1} }, filter_syms};
+    Pk_rsd Pk_bG2bG2{Pk_delta, mu, filter_list{ {bG2,2} }, filter_syms};
+    Pk_rsd Pk_b1bG3{Pk_delta, mu, filter_list{ {b1,1}, {bG3,1} }, filter_syms};
+    Pk_rsd Pk_b1bdG2{Pk_delta, mu, filter_list{ {b1,1}, {bdG2,1} }, filter_syms};
+    Pk_rsd Pk_b1bGamma3{Pk_delta, mu, filter_list{ {b1,1}, {bGamma3,1} }, filter_syms};
+    Pk_rsd Pk_nobias{Pk_delta, mu, filter_list{}, filter_syms};
 
-    auto P13_UV_k0 = P13_UV.coeff(k, 0).expand();
-    auto P13_UV_k2 = P13_UV.coeff(k, 2).expand();
-
-    auto P22_UV = P22.get_UV_limit(4).expand();
-
-    auto P22_UV_k0 = P22_UV.coeff(k, 0).expand();
-    auto P22_UV_k2 = P22_UV.coeff(k, 2).expand();
-    auto P22_UV_k4 = P22_UV.coeff(k, 4).expand();
-
-    auto print = [&](const auto& expr) -> void
+    auto write_UV_limit = [&](const auto& rsd) -> void
       {
-        std::cout << "  -- coeff of mu^0 = " << GiNaC::collect_common_factors(expr.coeff(mu, 0)) << '\n';
-        std::cout << "  -- coeff of mu^2 = " << GiNaC::collect_common_factors(expr.coeff(mu, 2)) << '\n';
-        std::cout << "  -- coeff of mu^4 = " << GiNaC::collect_common_factors(expr.coeff(mu, 4)) << '\n';
-        std::cout << "  -- coeff of mu^6 = " << GiNaC::collect_common_factors(expr.coeff(mu, 6)) << '\n';
-        std::cout << "  -- coeff of mu^8 = " << GiNaC::collect_common_factors(expr.coeff(mu, 8)) << '\n';
+        const auto& rsd_13 = rsd.get_13();
+        const auto& rsd_22 = rsd.get_22();
+
+        const auto rsd_13_UV = rsd_13.get_UV_limit();
+        const auto rsd_22_UV = rsd_22.get_UV_limit(4);
+
+        std::cout << "## Loop-level 13 terms:" << '\n';
+        for(unsigned int j = 0; j <= 1; ++j)
+          {
+            std::cout << "@ k^" << 2*j << '\n';
+
+            for(unsigned int i = 0; i <= 4; ++i)
+              {
+                auto expr = GiNaC::collect_common_factors(rsd_13_UV[i].expand().coeff(k, 2*j));
+                std::cout << "   -> mu^" << 2*i << " = " << expr << '\n';
+              }
+          }
+
+        std::cout << "## Loop-level 22 terms:" << '\n';
+        for(unsigned int j = 0; j <= 2; ++j)
+          {
+            std::cout << "@ k^" << 2*j << '\n';
+
+            for(unsigned int i = 0; i <= 4; ++i)
+              {
+                auto expr = GiNaC::collect_common_factors(rsd_22_UV[i].expand().coeff(k, 2*j));
+                std::cout << "   -> mu^" << 2*i << " = " << expr << '\n';
+              }
+          }
       };
 
-    std::cout << "Loop-level 13 P(k) divergences at k^0:" << '\n';
-    print(P13_UV_k0);
-    std::cout << '\n';
-    std::cout << "Loop-level 13 P(k) divergences at k^2:" << '\n';
-    print(P13_UV_k2);
+    std::cout << "-- no bias" << '\n';
+    write_UV_limit(Pk_nobias);
     std::cout << '\n';
 
-    std::cout << "Loop-level 22 P(k) divergences at k^0" << '\n';
-    print(P22_UV_k0);
+    std::cout << "-- b1" << '\n';
+    write_UV_limit(Pk_b1);
     std::cout << '\n';
-    std::cout << "Loop-level 22 P(k) divergences at k^2" << '\n';
-    print(P22_UV_k2);
+
+    std::cout << "-- b2" << '\n';
+    write_UV_limit(Pk_b2);
     std::cout << '\n';
-    std::cout << "Loop-level 22 P(k) divergences at k^4" << '\n';
-    print(P22_UV_k4);
+
+    std::cout << "-- bG2" << '\n';
+    write_UV_limit(Pk_bG2);
+    std::cout << '\n';
+
+    std::cout << "-- b1 b1" << '\n';
+    write_UV_limit(Pk_b1b1);
+    std::cout << '\n';
+
+    std::cout << "-- b1 b2" << '\n';
+    write_UV_limit(Pk_b1b2);
+    std::cout << '\n';
+
+    std::cout << "-- b1 b3" << '\n';
+    write_UV_limit(Pk_b1b3);
+    std::cout << '\n';
+
+    std::cout << "-- b2 b2" << '\n';
+    write_UV_limit(Pk_b2b2);
+    std::cout << '\n';
+
+    std::cout << "-- b1 bG2" << '\n';
+    write_UV_limit(Pk_b1bG2);
+    std::cout << '\n';
+
+    std::cout << "-- bG2 bG2" << '\n';
+    write_UV_limit(Pk_bG2bG2);
+    std::cout << '\n';
+
+    std::cout << "-- b1 bG3" << '\n';
+    write_UV_limit(Pk_b1bG3);
+    std::cout << '\n';
+
+    std::cout << "-- b1 bdG2" << '\n';
+    write_UV_limit(Pk_b1bdG2);
+    std::cout << '\n';
+
+    std::cout << "-- b1 bGamma3" << '\n';
+    write_UV_limit(Pk_b1bGamma3);
     std::cout << '\n';
 
     return EXIT_SUCCESS;

@@ -39,136 +39,150 @@
 #include "localizations/messages.h"
 
 
-namespace one_loop_reduced_integral_impl
+//! forward-declare class key
+class one_loop_element_key;
+
+
+
+//! integration element captures a single integration
+class one_loop_element
   {
 
-    //! forward-declare class key
-    class key;
+    // CONSTRUCTOR, DESTRUCTOR
 
-    //! integration element captures a single integration
-    class integration_element
-      {
+  public:
 
-        // CONSTRUCTOR, DESTRUCTOR
+    //! constructor captures integrand, measure, integration variables, Wick product, time factor, external momenta
+    one_loop_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
+                     GiNaC_symbol_set vs_, GiNaC::symbol ang_, GiNaC_symbol_set em_);
 
-      public:
-
-        //! constructor captures integrand, measure, integration variables, Wick product, time factor, external momenta
-        integration_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_, GiNaC_symbol_set vs_,
-                            GiNaC_symbol_set em_);
-
-        //! destructor is default
-        ~integration_element() = default;
+    //! destructor is default
+    ~one_loop_element() = default;
 
 
-        // ACCESSORS
+    // ACCESSORS
 
-      public:
+  public:
 
-        //! get integration variable list
-        const GiNaC_symbol_set& get_integration_variables() const { return this->variables; }
+    //! get integration variable list
+    const GiNaC_symbol_set& get_integration_variables() const { return this->variables; }
 
-
-        // SERVICES
-
-      public:
-
-        //! write self to stream
-        void write(std::ostream& str) const;
+    //! get external momenta
+    const GiNaC_symbol_set& get_external_momenta() const { return this->external_momenta; }
 
 
-        // TRANSFORMATIONS
+    // SERVICES
 
-      public:
+  public:
 
-        //! apply simplification map
-        void simplify(const GiNaC::exmap& map);
+    //! write self to stream
+    void write(std::ostream& str) const;
 
-        //! convert external momenta to canonical Cos form
-        void canonicalize_external_momenta();
-
-
-        // UV LIMIT
-
-      public:
-
-        //! construct UV limit
-        GiNaC::ex get_UV_limit(unsigned int order=2) const;
+    //! test for nullity
+    bool null() const { return static_cast<bool>(this->integrand == 0); }
 
 
-        // INTERNAL DATA
+    // TRANSFORMATIONS
 
-      private:
+  public:
 
-        //! integrand
-        GiNaC::ex integrand;
+    //! apply simplification map
+    void simplify(const GiNaC::exmap& map);
 
-        //! measure
-        GiNaC::ex measure;
+    //! convert external momenta to canonical Cos form
+    void canonicalize_external_momenta();
 
-        //! Wick product
-        GiNaC::ex WickProduct;
-
-        //! time function
-        time_function tm;
-
-        //! set of integration variabkes
-        GiNaC_symbol_set variables;
-
-        //! set of external momenta
-        GiNaC_symbol_set external_momenta;
+    //! filter integrand
+    void filter(const GiNaC::symbol& pattern, unsigned int order = 1);
 
 
-        friend class key;
+    // UV LIMIT
 
-      };
+  public:
 
-
-    //! perform stream insertion
-    std::ostream& operator<<(std::ostream& str, const integration_element& obj);
-
-
-    //! key is a flyweight class that indexes integration elements by their
-    //! integration variables
-    class key
-      {
-
-        // CONSTRUCTOR, DESTRUCTOR
-
-      public:
-
-        //! constructor accepts a reference to a integration_element
-        explicit key(const integration_element& elt_);
-
-        //! destructor is default
-        ~key() = default;
+    //! construct UV limit
+    GiNaC::ex get_UV_limit(unsigned int order=2) const;
 
 
-        // SERVICES
+    // INTERNAL DATA
 
-      public:
+  private:
 
-        //! hash
-        size_t hash() const;
+    //! integrand
+    GiNaC::ex integrand;
 
-        //! compare for equality
-        bool is_equal(const key& obj) const;
+    //! measure
+    GiNaC::ex measure;
+
+    //! Wick product
+    GiNaC::ex WickProduct;
+
+    //! time function
+    time_function tm;
+
+    //! set of integration variables
+    GiNaC_symbol_set variables;
+
+    //! set of external momenta
+    GiNaC_symbol_set external_momenta;
 
 
-        // INTERNAL DATA
-
-      private:
-
-        //! cache reference to partner class
-        const integration_element& elt;
-
-      };
+    //! cache angular integration variable
+    const GiNaC::symbol angular_dx;
 
 
-    //! an integrand database is a map from integration variables to a list of integrands
-    using integrand_db = std::unordered_map< key, std::vector< std::unique_ptr<integration_element> > >;
+    friend class one_loop_element_key;
 
-  }   // namespace one_loop_reduced_integral
+  };
+
+
+//! perform stream insertion
+std::ostream& operator<<(std::ostream& str, const one_loop_element& obj);
+
+
+//! key is a flyweight class that indexes integration elements by their
+//! integration variables
+class one_loop_element_key
+  {
+
+    // CONSTRUCTOR, DESTRUCTOR
+
+  public:
+
+    //! constructor accepts a reference to a integration_element
+    explicit one_loop_element_key(const one_loop_element& elt_);
+
+    //! destructor is default
+    ~one_loop_element_key() = default;
+
+
+    // SERVICES
+
+  public:
+
+    //! hash
+    size_t hash() const;
+
+    //! compare for equality
+    bool is_equal(const one_loop_element_key& obj) const;
+
+
+    // INTERNAL DATA
+
+  private:
+
+    //! cache reference to partner class
+    const one_loop_element& elt;
+
+  };
+
+
+//! an integrand database is a map from integration variables to a list of integrands, here
+//! represented as a vector for efficiency (and because we don't need any features of eg std::list)
+using one_loop_element_db = std::unordered_map< one_loop_element_key, std::vector< std::unique_ptr<one_loop_element> > >;
+
+//! stream insertion
+std::ostream& operator<<(std::ostream& str, const one_loop_element_db& obj);
 
 
 // specialize std::hash<> and std::is_equal<> to key
@@ -176,18 +190,18 @@ namespace std
   {
 
     template <>
-    struct hash<one_loop_reduced_integral_impl::key>
+    struct hash<one_loop_element_key>
       {
-        size_t operator()(const one_loop_reduced_integral_impl::key& obj) const
+        size_t operator()(const one_loop_element_key& obj) const
           {
             return obj.hash();
           }
       };
 
     template <>
-    struct equal_to<one_loop_reduced_integral_impl::key>
+    struct equal_to<one_loop_element_key>
       {
-        bool operator()(const one_loop_reduced_integral_impl::key& a, const one_loop_reduced_integral_impl::key& b) const
+        bool operator()(const one_loop_element_key& a, const one_loop_element_key& b) const
           {
             return a.is_equal(b);
           }
@@ -199,14 +213,6 @@ namespace std
 class one_loop_reduced_integral
   {
 
-    // TYPES
-
-  protected:
-
-    //! pull in integrand_db
-    using integrand_db = one_loop_reduced_integral_impl::integrand_db;
-
-
     // CONSTRUCTOR, DESTRUCTOR
 
   public:
@@ -216,6 +222,14 @@ class one_loop_reduced_integral
 
     //! destructor is default
     ~one_loop_reduced_integral() = default;
+
+
+    // ACCESSORS
+
+  public:
+
+    //! get database
+    const one_loop_element_db& get_db() const { return this->integrand; }
 
 
     // TRANSFORMATIONS
@@ -308,7 +322,7 @@ class one_loop_reduced_integral
     // REDUCED EXPRESSIONS
 
     //! set up an integrand database
-    integrand_db integrand;
+    one_loop_element_db integrand;
 
   };
 

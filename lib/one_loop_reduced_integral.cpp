@@ -24,6 +24,8 @@
 // --@@
 //
 
+#include <sstream>
+
 #include "one_loop_reduced_integral.h"
 
 #include "detail/special_functions.h"
@@ -33,114 +35,131 @@
 #include "localizations/messages.h"
 
 
-namespace one_loop_reduced_integral_impl
+one_loop_element::one_loop_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
+                                   GiNaC_symbol_set vs_, GiNaC::symbol ang_, GiNaC_symbol_set em_)
+  : integrand(std::move(ig_)),
+    measure(std::move(ms_)),
+    WickProduct(std::move(wp_)),
+    tm(std::move(tm_)),
+    variables(std::move(vs_)),
+    external_momenta(std::move(em_)),
+    angular_dx(std::move(ang_))
   {
+  }
 
-    integration_element::integration_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
-                                             GiNaC_symbol_set vs_, GiNaC_symbol_set em_)
-      : integrand(std::move(ig_)),
-        measure(std::move(ms_)),
-        WickProduct(std::move(wp_)),
-        tm(std::move(tm_)),
-        variables(std::move(vs_)),
-        external_momenta(std::move(em_))
+
+void one_loop_element::write(std::ostream& str) const
+  {
+    str << "integral";
+    for(const auto& sym : this->variables)
       {
+        str << " d" << sym;
+      }
+    str << '\n';
+
+    str << "  time function = " << this->tm << '\n';
+    str << "  measure = " << this->measure << '\n';
+    str << "  Wick product = " << this->WickProduct << '\n';
+    str << "  integrand = " << this->integrand << '\n';
+  }
+
+
+void one_loop_element::simplify(const GiNaC::exmap& map)
+  {
+    this->integrand = this->integrand.subs(map);
+    this->measure = this->measure.subs(map);
+    this->WickProduct = this->WickProduct.subs(map);
+    this->tm = this->tm.subs(map);
+  }
+
+
+void one_loop_element::canonicalize_external_momenta()
+  {
+    for(const auto& sym : this->external_momenta)
+      {
+        this->integrand = Legendre_to_cosines(this->integrand, sym);
+      }
+  }
+
+
+GiNaC::ex one_loop_element::get_UV_limit(unsigned int order) const
+  {
+    // the total contribution from this element is the product of the integrand, the measure, the
+    // Wick product.
+    // (Since the time function is canonicalized it should probably be independent of the external momenta anyway,
+    // but we include it to be safe)
+    auto prod = this->tm * this->integrand * this->measure * this->WickProduct;
+
+    // the UV limit occurs when the loop momentum is much greater than any of the external
+    // momenta. We can achieve the same result by making a series expansion
+    // in the limit that all external momenta are small, ie., by making a Taylor expansion in each
+    for(const auto& k : this->external_momenta)
+      {
+        prod = GiNaC::series_to_poly(prod.expand().series(k, order+1));
       }
 
-
-    void integration_element::write(std::ostream& str) const
+    // if our integration variables contain the angular integral dx,
+    // perform a symbolic integration for it
+    auto t = this->variables.find(this->angular_dx);
+    if(t != this->variables.end())
       {
-        str << "integral";
-        for(const auto& sym : this->variables)
-          {
-            str << " d" << sym;
-          }
-        str << '\n';
-
-        str << "  time function = " << this->tm << '\n';
-        str << "  measure = " << this->measure << '\n';
-        str << "  Wick product = " << this->WickProduct << '\n';
-        str << "  integrand = " << this->integrand << '\n';
+        prod = GiNaC::integral(this->angular_dx, -1, 1, prod).eval_integ();
       }
 
-
-    void integration_element::simplify(const GiNaC::exmap& map)
-      {
-        this->integrand = this->integrand.subs(map);
-        this->measure = this->measure.subs(map);
-        this->WickProduct = this->WickProduct.subs(map);
-        this->tm = this->tm.subs(map);
-      }
+    return prod;
+  }
 
 
-    void integration_element::canonicalize_external_momenta()
-      {
-        for(const auto& sym : this->external_momenta)
-          {
-            this->integrand = Legendre_to_cosines(this->integrand, sym);
-          }
-      }
+void one_loop_element::filter(const GiNaC::symbol& pattern, unsigned int order)
+  {
+    // rewrite integrand as the coefficient of the specified pattern
+    auto temp = this->integrand.expand().coeff(pattern, order);
+    this->integrand = temp;
+  }
 
 
-    GiNaC::ex integration_element::get_UV_limit(unsigned int order) const
-      {
-        // the total contribution from this element is the product of the integrand, the measure, the
-        // Wick product.
-        // (Since the time function is canonicalized it should probably be independent of the external momenta anyway,
-        // but we include it to be safe)
-        auto prod = this->tm * this->integrand * this->measure * this->WickProduct;
-
-        // the UV limit occurs when the loop momentum is much greater than any of the external
-        // momenta. We can achieve the same result by making a series expansion
-        // in the limit that all external momenta are small, ie., by making a Taylor expansion in each
-        for(const auto& k : this->external_momenta)
-          {
-            prod = GiNaC::series_to_poly(prod.expand().series(k, order+1));
-          }
-
-        return prod;
-      }
+one_loop_element_key::one_loop_element_key(const one_loop_element& elt_)
+  : elt(elt_)
+  {
+  }
 
 
-    key::key(const integration_element& elt_)
-      : elt(elt_)
-      {
-      }
+size_t one_loop_element_key::hash() const
+  {
+    // print time function to string and hash it
+    std::ostringstream time_string;
+    time_string << this->elt.tm;
+    std::hash<std::string> hasher;
+    size_t h = hasher(time_string.str());
+
+    // concatenate symbols in integration variable list
+    std::string symbol_string;
+    std::for_each(this->elt.variables.begin(), this->elt.variables.end(),
+                  [&](const GiNaC::symbol& e) -> std::string
+                    { return symbol_string += e.get_name(); });
+
+    // combine both hashes together
+    hash_impl::hash_combine(h, symbol_string);
+
+    // return final value
+    return h;
+  }
 
 
-    size_t key::hash() const
-      {
-        // concatenate symbols in integration variable list
-        std::string symbol_string;
-        std::for_each(this->elt.variables.begin(), this->elt.variables.end(),
-                      [&](const GiNaC::symbol& e) -> std::string
-                        { return symbol_string += e.get_name(); });
-
-        // combine both hashes together
-        size_t h = 0;
-        hash_impl::hash_combine(h, symbol_string);
-
-        // return final value
-        return h;
-      }
+bool one_loop_element_key::is_equal(const one_loop_element_key& obj) const
+  {
+    return std::equal(this->elt.variables.cbegin(), this->elt.variables.cend(),
+                      obj.elt.variables.cbegin(), obj.elt.variables.cend(),
+                      [](const GiNaC::symbol& asym, const GiNaC::symbol& bsym) -> bool
+                        { return asym.get_name() == bsym.get_name(); });
+  }
 
 
-    bool key::is_equal(const key& obj) const
-      {
-        return std::equal(this->elt.variables.cbegin(), this->elt.variables.cend(),
-                          obj.elt.variables.cbegin(), obj.elt.variables.cend(),
-                          [](const GiNaC::symbol& asym, const GiNaC::symbol& bsym) -> bool
-                            { return asym.get_name() == bsym.get_name(); });
-      }
-
-
-    std::ostream& operator<<(std::ostream& str, const integration_element& obj)
-      {
-        obj.write(str);
-        return str;
-      }
-
-  }   // namespace one_loop_reduced_integral_impl
+std::ostream& operator<<(std::ostream& str, const one_loop_element& obj)
+  {
+    obj.write(str);
+    return str;
+  }
 
 
 one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, symbol_factory& sf_)
@@ -240,14 +259,12 @@ void one_loop_reduced_integral::one_loop_reduce_zero_Rayleigh(const GiNaC::ex& t
         // construct integration element
         auto measure = this->loop_q*this->loop_q / GiNaC::pow(2*GiNaC::Pi, 3);
 
-        using one_loop_reduced_integral_impl::integration_element;
-        using one_loop_reduced_integral_impl::key;
         auto elt =
-          std::make_unique<integration_element>(temp, measure, this->WickProduct, this->tm,
-                                                GiNaC_symbol_set{this->loop_q}, this->external_momenta);
+          std::make_unique<one_loop_element>(temp, measure, this->WickProduct, this->tm,
+                                             GiNaC_symbol_set{this->loop_q}, this->x, this->external_momenta);
 
         // insert in database
-        this->integrand[key{*elt}].push_back(std::move(elt));
+        this->integrand[one_loop_element_key{*elt}].push_back(std::move(elt));
       }
   }
 
@@ -351,14 +368,12 @@ void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& te
         R_map[R] = R_replace;
         temp = temp.subs(R_map);
 
-        using one_loop_reduced_integral_impl::integration_element;
-        using one_loop_reduced_integral_impl::key;
         auto elt =
-          std::make_unique<integration_element>(temp, measure, this->WickProduct.subs(R_map), this->tm,
-                                                GiNaC_symbol_set{this->loop_q, this->x}, this->external_momenta);
+          std::make_unique<one_loop_element>(temp, measure, this->WickProduct.subs(R_map), this->tm,
+                                             GiNaC_symbol_set{this->loop_q, this->x}, this->x, this->external_momenta);
 
         // insert in database
-        this->integrand[key{*elt}].push_back(std::move(elt));
+        this->integrand[one_loop_element_key{*elt}].push_back(std::move(elt));
       }
   }
 
@@ -578,26 +593,12 @@ one_loop_reduced_integral::apply_Legendre_orthogonality(const GiNaC::ex& expr, c
 
 void one_loop_reduced_integral::write(std::ostream& out) const
   {
-    using one_loop_reduced_integral_impl::integration_element;
-
-    for(const auto& record : this->integrand)
-      {
-        const auto& vars = record.first;
-        const auto& data = record.second;
-
-        for(const auto& iptr : data)
-          {
-            const auto& i = *iptr;
-            out << i;
-          }
-      }
+    out << this->integrand;
   }
 
 
 void one_loop_reduced_integral::simplify(const GiNaC::exmap& map)
   {
-    using one_loop_reduced_integral_impl::integration_element;
-
     for(const auto& record : this->integrand)
       {
         const auto& data = record.second;
@@ -613,8 +614,6 @@ void one_loop_reduced_integral::simplify(const GiNaC::exmap& map)
 
 void one_loop_reduced_integral::canonicalize_external_momenta()
   {
-    using one_loop_reduced_integral_impl::integration_element;
-
     for(const auto& record : this->integrand)
       {
         const auto& data = record.second;
@@ -630,8 +629,6 @@ void one_loop_reduced_integral::canonicalize_external_momenta()
 
 GiNaC::ex one_loop_reduced_integral::get_UV_limit(unsigned int order) const
   {
-    using one_loop_reduced_integral_impl::integration_element;
-
     GiNaC::ex expr{0};
 
     for(const auto& record : this->integrand)
@@ -640,20 +637,8 @@ GiNaC::ex one_loop_reduced_integral::get_UV_limit(unsigned int order) const
 
         for(const auto& iptr : data)
           {
-            auto& i = *iptr;
-            auto term = i.get_UV_limit(order);
-
-            const auto& ivars = i.get_integration_variables();
-
-            // if the integration variables for i contain x, then
-            // perform a symbolic integration for it
-            auto t = ivars.find(this->x);
-            if(t != ivars.end())
-              {
-                term = GiNaC::integral(this->x, -1, 1, term).eval_integ();
-              }
-
-            expr += term;
+            const auto& i = *iptr;
+            expr += i.get_UV_limit(order);
           }
       }
 
@@ -664,5 +649,23 @@ GiNaC::ex one_loop_reduced_integral::get_UV_limit(unsigned int order) const
 std::ostream& operator<<(std::ostream& str, const one_loop_reduced_integral& obj)
   {
     obj.write(str);
+    return str;
+  }
+
+
+std::ostream& operator<<(std::ostream& str, const one_loop_element_db& obj)
+  {
+    for(const auto& record : obj)
+      {
+        const auto& vars = record.first;
+        const auto& data = record.second;
+
+        for(const auto& iptr : data)
+          {
+            const auto& i = *iptr;
+            str << i;
+          }
+      }
+
     return str;
   }
