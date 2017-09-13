@@ -73,58 +73,114 @@ void write_UV_limit(const Pk_rsd& rsd, const GiNaC::symbol& k)
   }
 
 
-void counterterm_map(const Pk_rsd& rsd, const GiNaC::symbol& k)
+std::vector<std::string> generate_map(const Pk_rsd_group& group, const GiNaC::symbol& k, unsigned int max_mu, unsigned int max_k)
+  {
+    std::vector<std::string> output;
+
+    const auto UV_limit = group.get_UV_limit(2*max_k);
+    const auto time_funcs = group.get_time_functions();
+
+    for(unsigned int i = 0; i <= max_mu; ++i)
+      {
+        const auto mu = 2*i;
+
+        std::ostringstream msg;
+        unsigned int count = 0;
+
+        for(unsigned int j = 0; j <= max_k; ++j)
+          {
+            const auto power = 2*j;
+            auto expr = UV_limit[i].expand().coeff(k, power);
+            if(expr != 0)
+              {
+                ++count;
+                msg << " k^" << power;
+              }
+          }
+
+        if(count > 0)
+          {
+            std::ostringstream line;
+
+            line << "   -- mu^" << mu << " -> " << msg.str();
+            if(!time_funcs[i].empty())
+              {
+                line << " (" << time_funcs[i].size() << " time function" << (time_funcs[i].size() != 1 ? "s" : "") << ")";
+              }
+            output.push_back(line.str());
+
+//            if(!time_funcs[i].empty())
+//              {
+//                for(unsigned int m = 0; m < time_funcs[i].size(); ++m)
+//                  {
+//                    std::ostringstream tline;
+//                    tline << "   -- -- " << m << ". " << time_funcs[i][m] << '\n';
+//                    output.push_back(tline.str());
+//                  }
+//              }
+          }
+      }
+
+    return output;
+  }
+
+
+std::vector<std::string> mixing_map(const Pk_rsd& rsd, const GiNaC::symbol& k)
   {
     const auto& rsd_13 = rsd.get_13();
+    return generate_map(rsd_13, k, 4, 1);
+  }
+
+
+std::vector<std::string> stochastic_map(const Pk_rsd& rsd, const GiNaC::symbol& k)
+  {
     const auto& rsd_22 = rsd.get_22();
+    return generate_map(rsd_22, k, 4, 2);
+  }
 
-    const auto rsd_13_UV = rsd_13.get_UV_limit();
-    const auto rsd_22_UV = rsd_22.get_UV_limit(4);
 
-    const auto rsd_13_tm = rsd_13.get_time_functions();
-    const auto rsd_22_tm = rsd_22.get_time_functions();
-
-    std::cout << "operator mixing:" << '\n';
-    for(unsigned int i = 0; i <= 4; ++i)
+template <typename MapGenerator>
+void write_map(const Pk_rsd& Pk_nobias, const Pk_rsd& Pk_b1, const Pk_rsd& Pk_b2, const Pk_rsd& Pk_b3,
+               const Pk_rsd& Pk_bG2, const Pk_rsd& Pk_bdG2, const Pk_rsd& Pk_bGamma3,
+               const Pk_rsd& Pk_b1b1, const Pk_rsd& Pk_b1b2, const Pk_rsd& Pk_b1b3, const Pk_rsd& Pk_b2b2,
+               const Pk_rsd& Pk_b1bG2, const Pk_rsd& Pk_bG2bG2, const Pk_rsd& Pk_b2bG2, const Pk_rsd& Pk_b1bdG2,
+               const Pk_rsd& Pk_b1bGamma3, const GiNaC::symbol& k, MapGenerator make_map)
+  {
+    auto write = [&](std::string name, const Pk_rsd& rsd)
       {
-        std::cout << "   -- mu^" << 2*i << ":";
-        unsigned int count = 0;
-        for(unsigned int j = 0; j <= 1; ++j)
+        const auto output = make_map(rsd, k);
+        if(!output.empty())
           {
-            auto expr = rsd_13_UV[i].expand().coeff(k, 2*j);
-            if(expr != 0) { std::cout << " k^" << 2*j; ++count; }
-          }
-        if(count == 0) std::cout << " <none>";
-        std::cout << " (" << rsd_13_tm[i].size() << " time-functions)" << '\n';
-        if(!rsd_13_tm[i].empty())
-          {
-            for(unsigned int m = 0; m < rsd_13_tm[i].size(); ++m)
+            std::cout << "-- " << name << '\n';
+            for(const auto& line : output)
               {
-                std::cout << "   -- -- " << m << ". " << rsd_13_tm[i][m] << '\n';
+                std::cout << line << '\n';
               }
+            std::cout << '\n';
           }
-      }
+      };
 
-    std::cout << "stochastic:" << '\n';
-    for(unsigned int i = 0; i <= 4; ++i)
-      {
-        std::cout << "   -- mu^" << 2*i << ":";
-        unsigned int count = 0;
-        for(unsigned int j = 0; j <= 2; ++j)
-          {
-            auto expr = rsd_22_UV[i].expand().coeff(k, 2*j);
-            if(expr != 0) { std::cout << " k^" << 2*j; ++count; }
-          }
-        if(count == 0) std::cout << " <none>";
-        std::cout << " (" << rsd_22_tm[i].size() << " time-functions)" << '\n';
-        if(!rsd_22_tm[i].empty())
-          {
-            for(unsigned int m = 0; m < rsd_22_tm[i].size(); ++m)
-              {
-                std::cout << "   -- -- " << m << ". " << rsd_22_tm[i][m] << '\n';
-              }
-          }
-      }
+    write("no bias", Pk_nobias);
+
+    write("b1", Pk_b1);
+    write("b2", Pk_b2);
+    write("b3", Pk_b3);
+    write("bG2", Pk_bG2);
+    // bG3 gives zero
+    write("bdG2", Pk_bdG2);
+    write("bGamma3", Pk_bGamma3);
+
+    write("b1 x b1", Pk_b1b1);
+    write("b1 x b2", Pk_b1b2);
+    write("b1 x b3", Pk_b1b3);
+    write("b2 x b2", Pk_b2b2);
+
+    write("b1 x bG2", Pk_b1bG2);
+    write("b2 x bG2", Pk_b2bG2);
+    write("bG2 x bG2", Pk_bG2bG2);
+    // b1 x bG3 gives zero
+    write("b1 x bdG2", Pk_b1bdG2);
+    write("b1 x bGamma3", Pk_bGamma3);
   }
 
 
@@ -311,34 +367,17 @@ int main(int argc, char* argv[])
     Pk_rsd Pk_b1bdG2{Pk_delta, mu, filter_list{ {b1,1}, {bdG2,1} }, filter_syms};
     Pk_rsd Pk_b1bGamma3{Pk_delta, mu, filter_list{ {b1,1}, {bGamma3,1} }, filter_syms};
 
-    auto write = [&](std::string name, const Pk_rsd& rsd)
-      {
-        std::cout << "-- " << name << '\n';
-        counterterm_map(rsd, k);
-        std::cout << '\n';
-      };
+    std::cout << "OPERATOR MIXING:" << '\n';
+    write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
+              Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
+              Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
+              Pk_b1bGamma3, k, mixing_map);
 
-    write("no bias", Pk_nobias);
-
-    write("b1", Pk_b1);
-    write("b2", Pk_b2);
-    write("b3", Pk_b3);
-    write("bG2", Pk_bG2);
-    // bG3 gives zero
-    write("bdG2", Pk_bdG2);
-    write("bGamma3", Pk_bGamma3);
-
-    write("b1 x b1", Pk_b1b1);
-    write("b1 x b2", Pk_b1b2);
-    write("b1 x b3", Pk_b1b3);
-    write("b2 x b2", Pk_b2b2);
-
-    write("b1 x bG2", Pk_b1bG2);
-    write("b2 x bG2", Pk_b2bG2);
-    write("bG2 x bG2", Pk_bG2bG2);
-    // b1 x bG3 gives zero
-    write("b1 x bdG2", Pk_b1bdG2);
-    write("b1 x bGamma3", Pk_bGamma3);
+    std::cout << "STOCHASTIC COUNTERTERMS:" << '\n';
+    write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
+              Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
+              Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
+              Pk_b1bGamma3, k, stochastic_map);
 
     return EXIT_SUCCESS;
   }
