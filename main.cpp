@@ -48,27 +48,68 @@ void write_UV_limit(const Pk_rsd& rsd, const GiNaC::symbol& k)
     const auto rsd_22_UV = rsd_22.get_UV_limit(4);
 
     std::cout << "## Loop-level 13 terms:" << '\n';
-    for(unsigned int j = 0; j <= 1; ++j)
+    for(unsigned int i = 0; i <= 1; ++i)
       {
-        std::cout << "@ k^" << 2*j << '\n';
+        std::cout << "@ k^" << 2*i << '\n';
 
-        for(unsigned int i = 0; i <= 4; ++i)
+        for(unsigned int j = 0; j <= 4; ++j)
           {
-            auto expr = GiNaC::collect_common_factors(rsd_13_UV[i].expand().coeff(k, 2*j));
-            std::cout << "   -> mu^" << 2*i << " = " << expr << '\n';
+            auto expr = GiNaC::collect_common_factors(rsd_13_UV[j].expand().coeff(k, 2*i));
+            std::cout << "   -> mu^" << 2*j << " = " << expr << '\n';
           }
       }
 
     std::cout << "## Loop-level 22 terms:" << '\n';
-    for(unsigned int j = 0; j <= 2; ++j)
+    for(unsigned int i = 0; i <= 2; ++i)
       {
-        std::cout << "@ k^" << 2*j << '\n';
+        std::cout << "@ k^" << 2*i << '\n';
 
-        for(unsigned int i = 0; i <= 4; ++i)
+        for(unsigned int j = 0; j <= 4; ++j)
           {
-            auto expr = GiNaC::collect_common_factors(rsd_22_UV[i].expand().coeff(k, 2*j));
-            std::cout << "   -> mu^" << 2*i << " = " << expr << '\n';
+            auto expr = GiNaC::collect_common_factors(rsd_22_UV[j].expand().coeff(k, 2*i));
+            std::cout << "   -> mu^" << 2*j << " = " << expr << '\n';
           }
+      }
+  }
+
+
+void counterterm_map(const Pk_rsd& rsd, const GiNaC::symbol& k)
+  {
+    const auto& rsd_13 = rsd.get_13();
+    const auto& rsd_22 = rsd.get_22();
+
+    const auto rsd_13_UV = rsd_13.get_UV_limit();
+    const auto rsd_22_UV = rsd_22.get_UV_limit(4);
+
+    const auto rsd_13_tm = rsd_13.get_number_time_functions();
+    const auto rsd_22_tm = rsd_22.get_number_time_functions();
+
+    std::cout << "operator mixing:" << '\n';
+    for(unsigned int i = 0; i <= 4; ++i)
+      {
+        std::cout << "  -- mu^" << 2*i << ":";
+        unsigned int count = 0;
+        for(unsigned int j = 0; j <= 1; ++j)
+          {
+            auto expr = rsd_13_UV[i].expand().coeff(k, 2*j);
+            if(expr != 0) { std::cout << " k^" << 2*j; ++count; }
+          }
+        if(count == 0) std::cout << " <none>";
+        std::cout << " (" << rsd_13_tm[i] << " time-functions)" << '\n';
+      }
+
+    std::cout << "stochastic:" << '\n';
+    for(unsigned int i = 0; i <= 4; ++i)
+      {
+        std::cout << "   -- mu^" << 2*i << ":";
+        unsigned int count = 0;
+        for(unsigned int j = 0; j <= 2; ++j)
+          {
+            auto expr = rsd_22_UV[i].expand().coeff(k, 2*j);
+            if(expr != 0) { std::cout << " k^" << 2*j; ++count; }
+          }
+        if(count == 0) std::cout << " <none>";
+        std::cout << " (" << rsd_22_tm[i] << " time-functions)" << '\n';
       }
   }
 
@@ -259,7 +300,7 @@ int main(int argc, char* argv[])
     auto write = [&](std::string name, const Pk_rsd& rsd)
       {
         std::cout << "-- " << name << '\n';
-        write_UV_limit(rsd, k);
+        counterterm_map(rsd, k);
         std::cout << '\n';
       };
 

@@ -58,12 +58,15 @@ class Pk_rsd_group
     void emplace(const one_loop_element& elt);
 
 
-    // UV LIMIT
+    // TOOLS
 
   public:
 
     //! construct UV limit
     GiNaC::exvector get_UV_limit(unsigned int order=2) const;
+
+    //! query number of distinct time functions at each mu
+    std::vector<size_t> get_number_time_functions() const;
 
 
     // SERVICES

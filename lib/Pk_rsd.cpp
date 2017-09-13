@@ -126,6 +126,20 @@ void Pk_rsd_group::write(std::ostream& out) const
   }
 
 
+std::vector<size_t> Pk_rsd_group::get_number_time_functions() const
+  {
+    std::vector<size_t> values;
+
+    values.push_back(this->mu0.size());
+    values.push_back(this->mu2.size());
+    values.push_back(this->mu4.size());
+    values.push_back(this->mu6.size());
+    values.push_back(this->mu8.size());
+
+    return values;
+  }
+
+
 Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_, const filter_list pt_, const GiNaC_symbol_set sy_)
   : mu(mu_),
     pattern(pt_),
