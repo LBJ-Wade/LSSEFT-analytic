@@ -129,29 +129,15 @@ size_t one_loop_element_key::hash() const
     // print time function to string and hash it
     std::ostringstream time_string;
     time_string << this->elt.tm;
+
     std::hash<std::string> hasher;
-    size_t h = hasher(time_string.str());
-
-    // concatenate symbols in integration variable list
-    std::string symbol_string;
-    std::for_each(this->elt.variables.begin(), this->elt.variables.end(),
-                  [&](const GiNaC::symbol& e) -> std::string
-                    { return symbol_string += e.get_name(); });
-
-    // combine both hashes together
-    hash_impl::hash_combine(h, symbol_string);
-
-    // return final value
-    return h;
+    return hasher(time_string.str());
   }
 
 
 bool one_loop_element_key::is_equal(const one_loop_element_key& obj) const
   {
-    return std::equal(this->elt.variables.cbegin(), this->elt.variables.cend(),
-                      obj.elt.variables.cbegin(), obj.elt.variables.cend(),
-                      [](const GiNaC::symbol& asym, const GiNaC::symbol& bsym) -> bool
-                        { return asym.get_name() == bsym.get_name(); });
+    return static_cast<bool>(this->elt.tm == obj.elt.tm);
   }
 
 
