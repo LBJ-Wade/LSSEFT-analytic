@@ -126,15 +126,23 @@ void Pk_rsd_group::write(std::ostream& out) const
   }
 
 
-std::vector<size_t> Pk_rsd_group::get_number_time_functions() const
+std::vector< std::vector<time_function> > Pk_rsd_group::get_time_functions() const
   {
-    std::vector<size_t> values;
+    std::vector< std::vector<time_function> > values(5);
 
-    values.push_back(this->mu0.size());
-    values.push_back(this->mu2.size());
-    values.push_back(this->mu4.size());
-    values.push_back(this->mu6.size());
-    values.push_back(this->mu8.size());
+    auto build = [](const one_loop_element_db& db, std::vector<time_function>& dest)
+      {
+        for(const auto& item : db)
+          {
+            dest.push_back(item.first.get_time_function());
+          }
+      };
+
+    build(this->mu0, values[0]);
+    build(this->mu2, values[1]);
+    build(this->mu4, values[2]);
+    build(this->mu6, values[3]);
+    build(this->mu8, values[4]);
 
     return values;
   }

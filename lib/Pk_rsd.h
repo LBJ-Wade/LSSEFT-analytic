@@ -66,7 +66,7 @@ class Pk_rsd_group
     GiNaC::exvector get_UV_limit(unsigned int order=2) const;
 
     //! query number of distinct time functions at each mu
-    std::vector<size_t> get_number_time_functions() const;
+    std::vector< std::vector<time_function> >  get_time_functions() const;
 
 
     // SERVICES

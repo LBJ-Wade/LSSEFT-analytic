@@ -160,6 +160,9 @@ class one_loop_element_key
 
   public:
 
+    //! return time function associated with this key
+    const time_function& get_time_function() const;
+
     //! hash
     size_t hash() const;
 

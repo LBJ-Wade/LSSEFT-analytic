@@ -141,6 +141,12 @@ bool one_loop_element_key::is_equal(const one_loop_element_key& obj) const
   }
 
 
+const time_function& one_loop_element_key::get_time_function() const
+  {
+    return elt.tm;
+  }
+
+
 std::ostream& operator<<(std::ostream& str, const one_loop_element& obj)
   {
     obj.write(str);

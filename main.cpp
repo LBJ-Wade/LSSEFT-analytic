@@ -81,13 +81,13 @@ void counterterm_map(const Pk_rsd& rsd, const GiNaC::symbol& k)
     const auto rsd_13_UV = rsd_13.get_UV_limit();
     const auto rsd_22_UV = rsd_22.get_UV_limit(4);
 
-    const auto rsd_13_tm = rsd_13.get_number_time_functions();
-    const auto rsd_22_tm = rsd_22.get_number_time_functions();
+    const auto rsd_13_tm = rsd_13.get_time_functions();
+    const auto rsd_22_tm = rsd_22.get_time_functions();
 
     std::cout << "operator mixing:" << '\n';
     for(unsigned int i = 0; i <= 4; ++i)
       {
-        std::cout << "  -- mu^" << 2*i << ":";
+        std::cout << "   -- mu^" << 2*i << ":";
         unsigned int count = 0;
         for(unsigned int j = 0; j <= 1; ++j)
           {
@@ -95,7 +95,14 @@ void counterterm_map(const Pk_rsd& rsd, const GiNaC::symbol& k)
             if(expr != 0) { std::cout << " k^" << 2*j; ++count; }
           }
         if(count == 0) std::cout << " <none>";
-        std::cout << " (" << rsd_13_tm[i] << " time-functions)" << '\n';
+        std::cout << " (" << rsd_13_tm[i].size() << " time-functions)" << '\n';
+        if(!rsd_13_tm[i].empty())
+          {
+            for(unsigned int m = 0; m < rsd_13_tm[i].size(); ++m)
+              {
+                std::cout << "   -- -- " << m << ". " << rsd_13_tm[i][m] << '\n';
+              }
+          }
       }
 
     std::cout << "stochastic:" << '\n';
@@ -109,7 +116,14 @@ void counterterm_map(const Pk_rsd& rsd, const GiNaC::symbol& k)
             if(expr != 0) { std::cout << " k^" << 2*j; ++count; }
           }
         if(count == 0) std::cout << " <none>";
-        std::cout << " (" << rsd_22_tm[i] << " time-functions)" << '\n';
+        std::cout << " (" << rsd_22_tm[i].size() << " time-functions)" << '\n';
+        if(!rsd_22_tm[i].empty())
+          {
+            for(unsigned int m = 0; m < rsd_22_tm[i].size(); ++m)
+              {
+                std::cout << "   -- -- " << m << ". " << rsd_22_tm[i][m] << '\n';
+              }
+          }
       }
   }
 
