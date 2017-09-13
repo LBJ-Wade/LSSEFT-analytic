@@ -102,7 +102,7 @@ std::vector<std::string> generate_map(const Pk_rsd_group& group, const GiNaC::sy
           {
             std::ostringstream line;
 
-            line << "   -- mu^" << mu << " -> " << msg.str();
+            line << "   -- mu^" << mu << " ->" << msg.str();
             if(!time_funcs[i].empty())
               {
                 line << " (" << time_funcs[i].size() << " time function" << (time_funcs[i].size() != 1 ? "s" : "") << ")";
@@ -146,7 +146,7 @@ void write_map(const Pk_rsd& Pk_nobias, const Pk_rsd& Pk_b1, const Pk_rsd& Pk_b2
                const Pk_rsd& Pk_b1bG2, const Pk_rsd& Pk_bG2bG2, const Pk_rsd& Pk_b2bG2, const Pk_rsd& Pk_b1bdG2,
                const Pk_rsd& Pk_b1bGamma3, const GiNaC::symbol& k, MapGenerator make_map)
   {
-    auto write = [&](std::string name, const Pk_rsd& rsd)
+    auto write = [&](std::string name, const Pk_rsd& rsd) -> void
       {
         const auto output = make_map(rsd, k);
         if(!output.empty())
@@ -181,6 +181,65 @@ void write_map(const Pk_rsd& Pk_nobias, const Pk_rsd& Pk_b1, const Pk_rsd& Pk_b2
     // b1 x bG3 gives zero
     write("b1 x bdG2", Pk_b1bdG2);
     write("b1 x bGamma3", Pk_bGamma3);
+  }
+
+
+void count_kernels(const Pk_rsd& Pk_nobias, const Pk_rsd& Pk_b1, const Pk_rsd& Pk_b2, const Pk_rsd& Pk_b3,
+                   const Pk_rsd& Pk_bG2, const Pk_rsd& Pk_bdG2, const Pk_rsd& Pk_bGamma3,
+                   const Pk_rsd& Pk_b1b1, const Pk_rsd& Pk_b1b2, const Pk_rsd& Pk_b1b3, const Pk_rsd& Pk_b2b2,
+                   const Pk_rsd& Pk_b1bG2, const Pk_rsd& Pk_bG2bG2, const Pk_rsd& Pk_b2bG2, const Pk_rsd& Pk_b1bdG2,
+                   const Pk_rsd& Pk_b1bGamma3)
+  {
+    size_t kernels = 0;
+
+    auto count = [&](std::string name, const Pk_rsd& group) -> void
+      {
+        const auto& P13 = group.get_13();
+        const auto& P22 = group.get_22();
+
+        const auto P13_time = P13.get_time_functions();
+        const auto P22_time = P22.get_time_functions();
+
+        size_t kernels_13 = 0;
+        for(unsigned int i = 0; i < P13_time.size(); ++i)
+          {
+            kernels_13 += P13_time[i].size();
+          }
+
+        size_t kernels_22 = 0;
+        for(unsigned int i = 0; i < P22_time.size(); ++i)
+          {
+            kernels_22 += P22_time[i].size();
+          }
+
+        std::cout << "-- " << name << " -> 13 kernels = " << kernels_13 << ", 22 kernels = " << kernels_22 << '\n';
+
+        kernels += kernels_13 + kernels_22;
+      };
+
+    count("no bias", Pk_nobias);
+
+    count("b1", Pk_b1);
+    count("b2", Pk_b2);
+    count("b3", Pk_b3);
+    count("bG2", Pk_bG2);
+    // bG3 gives zero
+    count("bdG2", Pk_bdG2);
+    count("bGamma3", Pk_bGamma3);
+
+    count("b1 x b1", Pk_b1b1);
+    count("b1 x b2", Pk_b1b2);
+    count("b1 x b3", Pk_b1b3);
+    count("b2 x b2", Pk_b2b2);
+
+    count("b1 x bG2", Pk_b1bG2);
+    count("b2 x bG2", Pk_b2bG2);
+    count("bG2 x bG2", Pk_bG2bG2);
+    // b1 x bG3 gives zero
+    count("b1 x bdG2", Pk_b1bdG2);
+    count("b1 x bGamma3", Pk_bGamma3);
+
+    std::cout << '\n' << "TOTAL KERNELS = " << kernels << '\n';
   }
 
 
@@ -367,6 +426,8 @@ int main(int argc, char* argv[])
     Pk_rsd Pk_b1bdG2{Pk_delta, mu, filter_list{ {b1,1}, {bdG2,1} }, filter_syms};
     Pk_rsd Pk_b1bGamma3{Pk_delta, mu, filter_list{ {b1,1}, {bGamma3,1} }, filter_syms};
 
+    std::cout << "** COUNTERTERM MAP" << '\n' << '\n';
+
     std::cout << "OPERATOR MIXING:" << '\n';
     write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
               Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
@@ -378,6 +439,14 @@ int main(int argc, char* argv[])
               Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
               Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
               Pk_b1bGamma3, k, stochastic_map);
+
+    std::cout << '\n' << '\n';
+
+    std::cout << "** NUMBER OF KERNELS" << '\n' << '\n';
+    count_kernels(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
+                  Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
+                  Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
+                  Pk_b1bGamma3);
 
     return EXIT_SUCCESS;
   }
