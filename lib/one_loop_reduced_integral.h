@@ -350,6 +350,9 @@ GiNaC::ex one_loop_reduced_integral::integrate_Legendre(const GiNaC::ex& term, c
         return temp;
       }
 
+    if(GiNaC::is_a<GiNaC::symbol>(term_ex) || GiNaC::is_a<GiNaC::function>(term_ex)) return term;
+
+    std::cerr << term_ex << '\n';
     throw exception(ERROR_BADLY_FORMED_TOP_LEVEL_LEGENDRE_SUM, exception_code::loop_transformation_error);
   }
 
