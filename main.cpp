@@ -180,7 +180,7 @@ void write_map(const Pk_rsd& Pk_nobias, const Pk_rsd& Pk_b1, const Pk_rsd& Pk_b2
     write("bG2 x bG2", Pk_bG2bG2);
     // b1 x bG3 gives zero
     write("b1 x bdG2", Pk_b1bdG2);
-    write("b1 x bGamma3", Pk_bGamma3);
+    write("b1 x bGamma3", Pk_b1bGamma3);
   }
 
 
