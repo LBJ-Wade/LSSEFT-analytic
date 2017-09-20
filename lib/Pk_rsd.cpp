@@ -140,13 +140,44 @@ std::vector< std::vector<time_function> > Pk_rsd_group::get_time_functions() con
   }
 
 
+void Pk_rsd_group::prune()
+  {
+    this->prune(this->mu0);
+    this->prune(this->mu2);
+    this->prune(this->mu4);
+    this->prune(this->mu6);
+    this->prune(this->mu8);
+  }
+
+
+void Pk_rsd_group::prune(one_loop_element_db& db)
+  {
+    auto t = db.begin();
+
+    while(t != db.end())
+      {
+        const one_loop_element& elt = *t->second;
+        if(elt.null())
+          {
+            t = db.erase(t);
+          }
+        else
+          {
+            ++t;
+          }
+      }
+  }
+
+
 void Pk_rsd_group::emplace(std::unique_ptr<one_loop_element> elt, one_loop_element_db& db)
   {
+    // nothing to do if element is empty
+    if(elt->null()) return;
+
     one_loop_element_key key{*elt};
 
     // check whether a compatible entry is already present in the database
     auto it = db.find(key);
-
 
     // if such an entry is present we can just compose the integrands
     if(it != db.end())
@@ -172,6 +203,11 @@ Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_, const filter_lis
     this->filter(Ptree, Pk.get_tree());
     this->filter(P13, Pk.get_13());
     this->filter(P22, Pk.get_22());
+
+    // remove empty records
+    this->Ptree.prune();
+    this->P13.prune();
+    this->P22.prune();
   }
 
 

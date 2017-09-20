@@ -114,6 +114,9 @@ namespace Pk_one_loop_impl
         //! canonicalize external momenta
         void canonicalize_external_momenta();
 
+        //! prune empty records
+        void prune();
+
 
         // UV LIMIT
 
@@ -266,6 +269,11 @@ Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2
     // perform angular reduction on integrands using Rayleigh algorithm
     this->P13.reduce_angular_integrals(sf);
     this->P22.reduce_angular_integrals(sf);
+
+    // prune empty records
+    this->Ptree.prune();
+    this->P13.prune();
+    this->P22.prune();
   }
 
 

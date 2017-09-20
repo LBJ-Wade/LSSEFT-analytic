@@ -73,6 +73,14 @@ class Pk_rsd_group
     //! query number of distinct time functions at each mu
     std::vector< std::vector<time_function> > get_time_functions() const;
 
+    //! prune empty records from the database
+    void prune();
+
+  protected:
+
+    //! prune a specific database
+    void prune(one_loop_element_db& db);
+
 
     // SERVICES
 

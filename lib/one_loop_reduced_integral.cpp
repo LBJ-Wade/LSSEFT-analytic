@@ -728,6 +728,25 @@ GiNaC::ex one_loop_reduced_integral::get_UV_limit(unsigned int order) const
   }
 
 
+void one_loop_reduced_integral::prune()
+  {
+    auto t = this->integrand.begin();
+
+    while(t != this->integrand.end())
+      {
+        const one_loop_element& elt = *t->second;
+        if(elt.null())
+          {
+            t = this->integrand.erase(t);
+          }
+        else
+          {
+            ++t;
+          }
+      }
+  }
+
+
 void one_loop_reduced_integral::emplace(std::unique_ptr<one_loop_element> elt)
   {
     one_loop_element_key key{*elt};

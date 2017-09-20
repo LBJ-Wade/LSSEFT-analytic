@@ -98,6 +98,18 @@ namespace Pk_one_loop_impl
       }
 
 
+    void Pk_db::prune()
+      {
+        for(auto& record : this->db)
+          {
+            loop_pair& pair = record.second;
+            const std::unique_ptr<one_loop_reduced_integral>& ri = pair.second;
+
+            if(ri) ri->prune();
+          }
+      }
+
+
     void Pk_db::emplace(std::unique_ptr<loop_integral> elt)
       {
         loop_integral_key key{*elt};

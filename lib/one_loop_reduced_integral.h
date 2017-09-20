@@ -265,6 +265,9 @@ class one_loop_reduced_integral
     //! canonicalize external momenta
     void canonicalize_external_momenta();
 
+    //! remove empty records
+    void prune();
+
   protected:
 
     //! emplace a one_loop_element in the database
