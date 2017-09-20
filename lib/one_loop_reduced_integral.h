@@ -60,9 +60,26 @@ class one_loop_element
     ~one_loop_element() = default;
 
 
+    // OPERATIONS
+
+  public:
+
+    //! increment in-place
+    one_loop_element& operator+=(const one_loop_element& rhs);
+
+
     // ACCESSORS
 
   public:
+
+    //! get measure
+    const GiNaC::ex& get_measure() const { return this->measure; }
+
+    //! get Wick product
+    const GiNaC::ex& get_Wick_product() const { return this->WickProduct; }
+
+    //! get time function
+    const GiNaC::ex& get_time_function() const { return this->tm; }
 
     //! get integration variable list
     const GiNaC_symbol_set& get_integration_variables() const { return this->variables; }
@@ -78,7 +95,10 @@ class one_loop_element
     //! write self to stream
     void write(std::ostream& str) const;
 
-    //! test for nullity
+    //! test for matching type (matches measure, Wick product, integration variables, external momenta)
+    bool is_matching_type(const one_loop_element& obj) const;
+
+    //! test for nullity of integrand
     bool null() const { return static_cast<bool>(this->integrand == 0); }
 
 
@@ -182,7 +202,7 @@ class one_loop_element_key
 
 //! an integrand database is a map from integration variables to a list of integrands, here
 //! represented as a vector for efficiency (and because we don't need any features of eg std::list)
-using one_loop_element_db = std::unordered_map< one_loop_element_key, std::vector< std::unique_ptr<one_loop_element> > >;
+using one_loop_element_db = std::unordered_map< one_loop_element_key, std::unique_ptr<one_loop_element> >;
 
 //! stream insertion
 std::ostream& operator<<(std::ostream& str, const one_loop_element_db& obj);
@@ -220,7 +240,7 @@ class one_loop_reduced_integral
 
   public:
 
-    //! constructor accepts a loop_integral and performs dimensional reduction on it
+    //! constructor accepts a loop_integral container and performs dimensional reduction on it
     one_loop_reduced_integral(const loop_integral& i_, symbol_factory& sf_);
 
     //! destructor is default
@@ -246,6 +266,9 @@ class one_loop_reduced_integral
     void canonicalize_external_momenta();
 
   protected:
+
+    //! emplace a one_loop_element in the database
+    void emplace(std::unique_ptr<one_loop_element> elt);
 
     //! apply one-loop reduction formula to a single term
     void reduce(const GiNaC::ex& expr);

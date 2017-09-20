@@ -57,6 +57,11 @@ class Pk_rsd_group
     //! accepts a one_loop_element and breaks it into individual powers of mu
     void emplace(const one_loop_element& elt);
 
+  protected:
+
+    //! perform emplace on a specific database
+    void emplace(std::unique_ptr<one_loop_element> elt, one_loop_element_db& db);
+
 
     // TOOLS
 
@@ -66,7 +71,7 @@ class Pk_rsd_group
     GiNaC::exvector get_UV_limit(unsigned int order=2) const;
 
     //! query number of distinct time functions at each mu
-    std::vector< std::vector<time_function> >  get_time_functions() const;
+    std::vector< std::vector<time_function> > get_time_functions() const;
 
 
     // SERVICES

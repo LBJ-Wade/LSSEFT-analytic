@@ -64,6 +64,7 @@ class loop_integral
 
   public:
 
+    //! increment in-place
     loop_integral& operator+=(const loop_integral& rhs);
 
 

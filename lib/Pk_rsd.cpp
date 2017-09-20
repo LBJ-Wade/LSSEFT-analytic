@@ -66,23 +66,11 @@ void Pk_rsd_group::emplace(const one_loop_element& elt)
         return f;
       };
 
-    auto mu0 = filter(elt, 0);
-    auto mu2 = filter(elt, 2);
-    auto mu4 = filter(elt, 4);
-    auto mu6 = filter(elt, 6);
-    auto mu8 = filter(elt, 8);
-
-    one_loop_element_key mu0_key{*mu0};
-    one_loop_element_key mu2_key{*mu2};
-    one_loop_element_key mu4_key{*mu4};
-    one_loop_element_key mu6_key{*mu6};
-    one_loop_element_key mu8_key{*mu8};
-
-    if(!mu0->null()) this->mu0[mu0_key].push_back(std::move(mu0));
-    if(!mu2->null()) this->mu2[mu2_key].push_back(std::move(mu2));
-    if(!mu4->null()) this->mu4[mu4_key].push_back(std::move(mu4));
-    if(!mu6->null()) this->mu6[mu6_key].push_back(std::move(mu6));
-    if(!mu8->null()) this->mu8[mu8_key].push_back(std::move(mu8));
+    this->emplace(filter(elt, 0), this->mu0);
+    this->emplace(filter(elt, 2), this->mu2);
+    this->emplace(filter(elt, 4), this->mu4);
+    this->emplace(filter(elt, 6), this->mu6);
+    this->emplace(filter(elt, 8), this->mu8);
   }
 
 
@@ -90,17 +78,15 @@ GiNaC::exvector Pk_rsd_group::get_UV_limit(unsigned int order) const
   {
     GiNaC::exvector values;
 
-    auto build = [&](const auto& db) -> auto
+    auto build = [&](const one_loop_element_db& db) -> auto
       {
         GiNaC::ex value{0};
 
-        for(const auto& item : db)
+        for(const auto& record : db)
           {
-            for(const auto& iptr : item.second)
-              {
-                const auto& i = *iptr;
-                value += i.get_UV_limit(order);
-              }
+            const auto& data = record.second;
+
+            if(data) value += data->get_UV_limit(order);
           }
 
         return value;
@@ -134,7 +120,13 @@ std::vector< std::vector<time_function> > Pk_rsd_group::get_time_functions() con
       {
         for(const auto& item : db)
           {
-            dest.push_back(item.first.get_time_function());
+            const GiNaC::ex& tm = item.first.get_time_function();
+
+            auto it = std::find_if(dest.begin(), dest.end(),
+                                   [&](const time_function& t) -> bool
+                                     { return static_cast<bool>(t == tm); });
+
+            if(it == dest.end()) dest.push_back(tm);
           }
       };
 
@@ -145,6 +137,27 @@ std::vector< std::vector<time_function> > Pk_rsd_group::get_time_functions() con
     build(this->mu8, values[4]);
 
     return values;
+  }
+
+
+void Pk_rsd_group::emplace(std::unique_ptr<one_loop_element> elt, one_loop_element_db& db)
+  {
+    one_loop_element_key key{*elt};
+
+    // check whether a compatible entry is already present in the database
+    auto it = db.find(key);
+
+
+    // if such an entry is present we can just compose the integrands
+    if(it != db.end())
+      {
+        *it->second += *elt;
+        return;
+      }
+
+    // otherwise, we need to insert a new element
+    auto res = db.emplace(std::move(key), std::move(elt));
+    if(!res.second) throw exception(ERROR_ONE_LOOP_ELEMENT_INSERT_FAILED_RSD, exception_code::loop_integral_error);
   }
 
 
@@ -173,13 +186,10 @@ void Pk_rsd::filter(Pk_rsd_group& dest, const Pk_one_loop_impl::Pk_db& source)
 
         const auto& db  = ri->get_db();
 
-        for(const auto& term : db)
+        for(const auto& record : db)
           {
-            for(const auto& t : term.second)
-              {
-                const auto& elt = *t;
-                dest.emplace(elt);
-              }
+            const std::unique_ptr<one_loop_element>& elt = record.second;
+            if(elt) dest.emplace(*elt);
           }
       }
   }

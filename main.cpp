@@ -109,15 +109,16 @@ std::vector<std::string> generate_map(const Pk_rsd_group& group, const GiNaC::sy
               }
             output.push_back(line.str());
 
-//            if(!time_funcs[i].empty())
-//              {
-//                for(unsigned int m = 0; m < time_funcs[i].size(); ++m)
-//                  {
-//                    std::ostringstream tline;
-//                    tline << "   -- -- " << m << ". " << time_funcs[i][m] << '\n';
-//                    output.push_back(tline.str());
-//                  }
-//              }
+            if(!time_funcs[i].empty())
+              {
+                unsigned int m = 0;
+                for(const auto& f : time_funcs[i])
+                  {
+                    std::ostringstream tline;
+                    tline << "   -- -- " << ++m << ". " << f;
+                    output.push_back(tline.str());
+                  }
+              }
           }
       }
 

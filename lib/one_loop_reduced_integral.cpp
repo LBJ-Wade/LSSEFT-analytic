@@ -35,6 +35,15 @@
 #include "localizations/messages.h"
 
 
+namespace one_loop_reduced_integral_impl
+  {
+
+    //! order a set of symbols
+    std::vector<GiNaC::symbol> order_symbol_set(const GiNaC_symbol_set& syms);
+
+  }   // namespace loop_integral_impl
+
+
 one_loop_element::one_loop_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
                                    GiNaC_symbol_set vs_, GiNaC::symbol ang_, GiNaC_symbol_set em_)
   : integrand(std::move(ig_)),
@@ -118,6 +127,63 @@ void one_loop_element::filter(const GiNaC::symbol& pattern, unsigned int order)
   }
 
 
+bool one_loop_element::is_matching_type(const one_loop_element& obj) const
+  {
+    using one_loop_reduced_integral_impl::order_symbol_set;
+
+    // test for equality of time function, measure, Wick product, integration variables, external momenta
+    const auto& at = this->tm;
+    const auto& bt = obj.tm;
+
+    if(!static_cast<bool>(at == bt)) return false;
+
+    // test for equality of measure
+    const auto& am = this->measure;
+    const auto& bm = obj.measure;
+
+    if(!static_cast<bool>(am == bm)) return false;
+
+    // test for equality of Wick product
+    const auto& aw = this->WickProduct;
+    const auto& bw = obj.WickProduct;
+
+    if(!static_cast<bool>(aw == bw)) return false;
+
+    // test for equality of integration variables
+    auto a_iv = order_symbol_set(this->variables);
+    auto b_iv = order_symbol_set(obj.variables);
+
+    if(!std::equal(a_iv.cbegin(), a_iv.cend(), b_iv.cbegin(), b_iv.cend(),
+                   [](const GiNaC::symbol& asym, const GiNaC::symbol& bsym) -> bool
+                     { return asym.get_name() == bsym.get_name(); })) return false;
+
+    // test for equality of external momenta
+    auto a_em = order_symbol_set(this->external_momenta);
+    auto b_em = order_symbol_set(obj.external_momenta);
+
+    if(!std::equal(a_em.cbegin(), a_em.cend(), b_em.cbegin(), b_em.cend(),
+                   [](const GiNaC::symbol& asym, const GiNaC::symbol& bsym) -> bool
+                     { return asym.get_name() == bsym.get_name(); })) return false;
+
+    // test for equality of angular variable
+    if(!static_cast<bool>(this->angular_dx == obj.angular_dx)) return false;
+
+    return true;
+  }
+
+
+one_loop_element& one_loop_element::operator+=(const one_loop_element& rhs)
+  {
+    if(!this->is_matching_type(rhs))
+      throw exception(ERROR_COMPOSE_ONE_LOOP_ELEMENT_MISMATCHING_TYPE, exception_code::loop_integral_error);
+
+    // we know all metadata agree, so can just add up the integrands
+    this->integrand += rhs.integrand;
+
+    return *this;
+  }
+
+
 one_loop_element_key::one_loop_element_key(const one_loop_element& elt_)
   : elt(elt_)
   {
@@ -126,18 +192,54 @@ one_loop_element_key::one_loop_element_key(const one_loop_element& elt_)
 
 size_t one_loop_element_key::hash() const
   {
+    using one_loop_reduced_integral_impl::order_symbol_set;
+
     // print time function to string and hash it
     std::ostringstream time_string;
-    time_string << this->elt.tm;
+    time_string << this->elt.get_time_function().expand();
 
-    std::hash<std::string> hasher;
-    return hasher(time_string.str());
+    size_t h = 0;
+    hash_impl::hash_combine(h, time_string.str());
+
+    // print measure to string and hash it
+    std::ostringstream measure_string;
+    measure_string << this->elt.get_measure().expand();
+
+    hash_impl::hash_combine(h, measure_string.str());
+
+    // print Wick product to string and hash it
+    std::ostringstream Wick_string;
+    Wick_string << this->elt.get_Wick_product().expand();
+
+    hash_impl::hash_combine(h, Wick_string.str());
+
+    // order integration variables lexically, convert to a string, and hash
+    auto ordered_iv = order_symbol_set(this->elt.get_integration_variables());
+
+    std::string iv_string;
+    std::for_each(ordered_iv.begin(), ordered_iv.end(),
+                  [&](const GiNaC::symbol& e) -> void
+                    { iv_string += e.get_name(); });
+
+    hash_impl::hash_combine(h, iv_string);
+
+    // order external momenta lexically, convert to a string, and hash
+    auto ordered_em = order_symbol_set(this->elt.get_external_momenta());
+
+    std::string em_string;
+    std::for_each(ordered_em.begin(), ordered_em.end(),
+                  [&](const GiNaC::symbol& e) -> void
+                    { em_string += e.get_name(); });
+
+    hash_impl::hash_combine(h, em_string);
+
+    return h;
   }
 
 
 bool one_loop_element_key::is_equal(const one_loop_element_key& obj) const
   {
-    return static_cast<bool>(this->elt.tm == obj.elt.tm);
+    return this->elt.is_matching_type(obj.elt);
   }
 
 
@@ -256,7 +358,7 @@ void one_loop_reduced_integral::one_loop_reduce_zero_Rayleigh(const GiNaC::ex& t
                                              GiNaC_symbol_set{this->loop_q}, this->x, this->external_momenta);
 
         // insert in database
-        this->integrand[one_loop_element_key{*elt}].push_back(std::move(elt));
+        this->emplace(std::move(elt));
       }
   }
 
@@ -365,7 +467,7 @@ void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& te
                                              GiNaC_symbol_set{this->loop_q, this->x}, this->x, this->external_momenta);
 
         // insert in database
-        this->integrand[one_loop_element_key{*elt}].push_back(std::move(elt));
+        this->emplace(std::move(elt));
       }
   }
 
@@ -595,11 +697,7 @@ void one_loop_reduced_integral::simplify(const GiNaC::exmap& map)
       {
         const auto& data = record.second;
 
-        for(const auto& iptr : data)
-          {
-            auto& i = *iptr;
-            i.simplify(map);
-          }
+        if(data) data->simplify(map);
       }
   }
 
@@ -610,11 +708,7 @@ void one_loop_reduced_integral::canonicalize_external_momenta()
       {
         const auto& data = record.second;
 
-        for(const auto& iptr : data)
-          {
-            auto& i = *iptr;
-            i.canonicalize_external_momenta();
-          }
+        if(data) data->canonicalize_external_momenta();
       }
   }
 
@@ -627,14 +721,30 @@ GiNaC::ex one_loop_reduced_integral::get_UV_limit(unsigned int order) const
       {
         const auto& data = record.second;
 
-        for(const auto& iptr : data)
-          {
-            const auto& i = *iptr;
-            expr += i.get_UV_limit(order);
-          }
+        if(data) expr += data->get_UV_limit(order);
       }
 
     return expr;
+  }
+
+
+void one_loop_reduced_integral::emplace(std::unique_ptr<one_loop_element> elt)
+  {
+    one_loop_element_key key{*elt};
+
+    // check whether a compatible entry is already present in the database
+    auto it = this->integrand.find(key);
+
+    // if such an entry is present we can just compose the integrands
+    if(it != this->integrand.end())
+      {
+        *it->second += *elt;
+        return;
+      }
+
+    // otherwise, we need to insert a new element
+    auto res = this->integrand.emplace(std::move(key), std::move(elt));
+    if(!res.second) throw exception(ERROR_ONE_LOOP_ELEMENT_INSERT_FAILED, exception_code::loop_integral_error);
   }
 
 
@@ -649,15 +759,31 @@ std::ostream& operator<<(std::ostream& str, const one_loop_element_db& obj)
   {
     for(const auto& record : obj)
       {
-        const auto& vars = record.first;
+        const auto& key = record.first;
         const auto& data = record.second;
 
-        for(const auto& iptr : data)
-          {
-            const auto& i = *iptr;
-            str << i;
-          }
+        if(data) str << *data;
       }
 
     return str;
   }
+
+
+namespace one_loop_reduced_integral_impl
+  {
+
+    std::vector<GiNaC::symbol> order_symbol_set(const GiNaC_symbol_set& syms)
+      {
+        std::vector<GiNaC::symbol> ordered_set;
+
+        for(const auto& sym : syms)
+          {
+            ordered_set.push_back(sym);
+          }
+
+        std::sort(ordered_set.begin(), ordered_set.end(), std::less<GiNaC::symbol>{});
+
+        return ordered_set;
+      }
+
+  }   // namespace loop_integral_impl
