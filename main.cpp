@@ -39,37 +39,32 @@
 #include "SPT/one_loop_kernels.h"
 
 
-void write_UV_limit(const Pk_rsd& rsd, const GiNaC::symbol& k)
+std::vector<std::string> generate_UV_limit(const Pk_rsd_group& group, const GiNaC::symbol& k, unsigned int max_mu, unsigned int max_k)
   {
-    const auto& rsd_13 = rsd.get_13();
-    const auto& rsd_22 = rsd.get_22();
+    std::vector<std::string> output;
 
-    const auto rsd_13_UV = rsd_13.get_UV_limit();
-    const auto rsd_22_UV = rsd_22.get_UV_limit(4);
+    const auto UV_limit = group.get_UV_limit(2*max_k);
 
-    std::cout << "## Loop-level 13 terms:" << '\n';
-    for(unsigned int i = 0; i <= 1; ++i)
+    for(unsigned int i = 0; i <= max_k; ++i)
       {
-        std::cout << "@ k^" << 2*i << '\n';
+        const auto kval = 2*i;
 
-        for(unsigned int j = 0; j <= 4; ++j)
+        std::ostringstream header;
+        header << "@ k^" << kval;
+        output.push_back(header.str());
+
+        for(unsigned int j = 0; j <= max_mu; ++j)
           {
-            auto expr = GiNaC::collect_common_factors(rsd_13_UV[j].expand().coeff(k, 2*i));
-            std::cout << "   -> mu^" << 2*j << " = " << expr << '\n';
+            const auto muval = 2*j;
+
+            std::ostringstream msg;
+            auto expr = GiNaC::collect_common_factors(UV_limit[j].expand().coeff(k, kval));
+            msg << "   -> mu^" << muval << " = " << expr;
+            output.push_back(msg.str());
           }
       }
 
-    std::cout << "## Loop-level 22 terms:" << '\n';
-    for(unsigned int i = 0; i <= 2; ++i)
-      {
-        std::cout << "@ k^" << 2*i << '\n';
-
-        for(unsigned int j = 0; j <= 4; ++j)
-          {
-            auto expr = GiNaC::collect_common_factors(rsd_22_UV[j].expand().coeff(k, 2*i));
-            std::cout << "   -> mu^" << 2*j << " = " << expr << '\n';
-          }
-      }
+    return output;
   }
 
 
@@ -82,7 +77,7 @@ std::vector<std::string> generate_map(const Pk_rsd_group& group, const GiNaC::sy
 
     for(unsigned int i = 0; i <= max_mu; ++i)
       {
-        const auto mu = 2*i;
+        const auto muval = 2*i;
 
         std::ostringstream msg;
         unsigned int count = 0;
@@ -102,7 +97,7 @@ std::vector<std::string> generate_map(const Pk_rsd_group& group, const GiNaC::sy
           {
             std::ostringstream line;
 
-            line << "   -- mu^" << mu << " ->" << msg.str();
+            line << "   -- mu^" << muval << " ->" << msg.str();
             if(!time_funcs[i].empty())
               {
                 line << " (" << time_funcs[i].size() << " time function" << (time_funcs[i].size() != 1 ? "s" : "") << ")";
@@ -111,11 +106,10 @@ std::vector<std::string> generate_map(const Pk_rsd_group& group, const GiNaC::sy
 
             if(!time_funcs[i].empty())
               {
-                unsigned int m = 0;
-                for(const auto& f : time_funcs[i])
+                for(unsigned int m = 0; m < time_funcs[i].size(); ++m)
                   {
                     std::ostringstream tline;
-                    tline << "   -- -- " << ++m << ". " << f;
+                    tline << "   -- -- " << m << ". " << time_funcs[i][m] << '\n';
                     output.push_back(tline.str());
                   }
               }
@@ -137,6 +131,20 @@ std::vector<std::string> stochastic_map(const Pk_rsd& rsd, const GiNaC::symbol& 
   {
     const auto& rsd_22 = rsd.get_22();
     return generate_map(rsd_22, k, 4, 2);
+  }
+
+
+std::vector<std::string> mixing_divergences(const Pk_rsd& rsd, const GiNaC::symbol& k)
+  {
+    const auto& rsd_13 = rsd.get_13();
+    return generate_UV_limit(rsd_13, k, 4, 1);
+  }
+
+
+std::vector<std::string> stochastic_divergences(const Pk_rsd& rsd, const GiNaC::symbol& k)
+  {
+    const auto& rsd_22 = rsd.get_22();
+    return generate_UV_limit(rsd_22, k, 4, 2);
   }
 
 
@@ -238,7 +246,7 @@ void count_kernels(const Pk_rsd& Pk_nobias, const Pk_rsd& Pk_b1, const Pk_rsd& P
     count("bG2 x bG2", Pk_bG2bG2);
     // b1 x bG3 gives zero
     count("b1 x bdG2", Pk_b1bdG2);
-    count("b1 x bGamma3", Pk_bGamma3);
+    count("b1 x bGamma3", Pk_b1bGamma3);
 
     std::cout << '\n' << "TOTAL KERNELS = " << kernels << '\n';
   }
@@ -247,7 +255,7 @@ void count_kernels(const Pk_rsd& Pk_nobias, const Pk_rsd& Pk_b1, const Pk_rsd& P
 int main(int argc, char* argv[])
   {
     symbol_factory sf;
-    
+
     // redshift z is the time variable
     const auto& z = sf.get_z();
 
@@ -285,14 +293,14 @@ int main(int argc, char* argv[])
     auto deltaq = sf.make_initial_value("delta");
     auto deltas = sf.make_initial_value("delta");
     auto deltat = sf.make_initial_value("delta");
-    
+
     // linear set is delta*_q
     initial_value_set iv_q{deltaq};
-    
+
     // quadratic set is delta*_q delta*_s or delta*_s delta*_t
     initial_value_set iv_qs{deltaq, deltas};
     initial_value_set iv_st{deltas, deltat};
-    
+
     // cubic set is delta*_q delta*_s delta*_t
     initial_value_set iv_qst{deltaq, deltas, deltat};
 
@@ -300,14 +308,14 @@ int main(int argc, char* argv[])
     vector q = deltaq;
     vector s = deltas;
     vector t = deltat;
-    
-    
+
+
     // set up kernels for the dark matter overdensity \delta
     auto delta = sf.make_fourier_kernel<3>();
 
     // linear order
     delta.add(SPT::D(z), iv_q, 1);
-    
+
     // second order
     delta.add(SPT::DA(z) * alpha(q, s, kernel{iv_qs, sf}, sf));
     delta.add(SPT::DB(z) * gamma(q, s, kernel{iv_qs, sf}, sf));
@@ -324,7 +332,7 @@ int main(int argc, char* argv[])
     auto delta1 = delta.order(1);
     auto delta2 = delta.order(2);
     auto delta3 = delta.order(3);
-    
+
     auto phi1 = InverseLaplacian(-diff_t(delta1));
     auto phi2 = InverseLaplacian(-diff_t(delta2) - delta1*Laplacian(phi1) - gradgrad(phi1, delta1));
     auto phi3 = InverseLaplacian(-diff_t(delta3)
@@ -351,7 +359,7 @@ int main(int argc, char* argv[])
     auto k = sf.make_symbol("k");
     sf.declare_parameter(k);
 
-    
+
     // build expression for the redshift-space overdensities,
     // for both dark matter and halos
 
@@ -433,21 +441,21 @@ int main(int argc, char* argv[])
     write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
               Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
               Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
-              Pk_b1bGamma3, k, mixing_map);
+              Pk_b1bGamma3, k, mixing_divergences);
 
     std::cout << "STOCHASTIC COUNTERTERMS:" << '\n';
     write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
               Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
               Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
-              Pk_b1bGamma3, k, stochastic_map);
+              Pk_b1bGamma3, k, stochastic_divergences);
 
-    std::cout << '\n' << '\n';
-
-    std::cout << "** NUMBER OF KERNELS" << '\n' << '\n';
-    count_kernels(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
-                  Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
-                  Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
-                  Pk_b1bGamma3);
+//    std::cout << '\n' << '\n';
+//
+//    std::cout << "** NUMBER OF KERNELS" << '\n' << '\n';
+//    count_kernels(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
+//                  Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
+//                  Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
+//                  Pk_b1bGamma3);
 
     return EXIT_SUCCESS;
   }
