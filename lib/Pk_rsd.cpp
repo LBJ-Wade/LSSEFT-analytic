@@ -119,10 +119,10 @@ GiNaC::exvector Pk_rsd_group::get_UV_limit(unsigned int order) const
 void Pk_rsd_group::write(std::ostream& out) const
   {
     out << "-- mu^0" << '\n'; if(!this->mu0.empty()) out << this->mu0 << '\n'; else out << "   <empty>" << '\n';
-    out << "-- mu^2" << '\n'; if(!this->mu0.empty()) out << this->mu2 << '\n'; else out << "   <empty>" << '\n';
-    out << "-- mu^4" << '\n'; if(!this->mu0.empty()) out << this->mu4 << '\n'; else out << "   <empty>" << '\n';
-    out << "-- mu^6" << '\n'; if(!this->mu0.empty()) out << this->mu6 << '\n'; else out << "   <empty>" << '\n';
-    out << "-- mu^8" << '\n'; if(!this->mu0.empty()) out << this->mu8 << '\n'; else out << "   <empty>" << '\n';
+    out << "-- mu^2" << '\n'; if(!this->mu2.empty()) out << this->mu2 << '\n'; else out << "   <empty>" << '\n';
+    out << "-- mu^4" << '\n'; if(!this->mu4.empty()) out << this->mu4 << '\n'; else out << "   <empty>" << '\n';
+    out << "-- mu^6" << '\n'; if(!this->mu6.empty()) out << this->mu6 << '\n'; else out << "   <empty>" << '\n';
+    out << "-- mu^8" << '\n'; if(!this->mu8.empty()) out << this->mu8 << '\n'; else out << "   <empty>" << '\n';
   }
 
 
