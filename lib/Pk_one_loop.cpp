@@ -35,15 +35,15 @@ namespace Pk_one_loop_impl
         size_t count = 0;
         for(const auto& item : this->db)
           {
-            const loop_integral& lp = *item.first;
+            const loop_integral& lp = *item.second.first;
+            const std::unique_ptr<one_loop_reduced_integral>& ri = item.second.second;
 
             std::cout << "Element " << count << "." << '\n';
             std::cout << lp << '\n';
 
-            if(item.second)
+            if(ri)
               {
-                const one_loop_reduced_integral& rd = *item.second;
-                std::cout << rd << '\n';
+                std::cout << *ri << '\n';
               }
 
             ++count;
@@ -54,12 +54,11 @@ namespace Pk_one_loop_impl
     void Pk_db::reduce_angular_integrals(symbol_factory& sf)
       {
         // walk through each subintegral in turn, performing angular reduction on it
-        // walk through each integral in turn
-        size_t count = 0;
         for(auto& item : this->db)
           {
-            const loop_integral& lp = *item.first;
-            item.second = std::make_unique<one_loop_reduced_integral>(lp, sf);    // will release any previous assignment
+            const loop_integral& lp = *item.second.first;
+            std::unique_ptr<one_loop_reduced_integral>& ri = item.second.second;
+            ri = std::make_unique<one_loop_reduced_integral>(lp, sf);    // will release any previous assignment
           }
       }
 
@@ -69,7 +68,8 @@ namespace Pk_one_loop_impl
         // walk through each subintegral, applying simplification map to reduced integral if it exists
         for(auto& item : this->db)
           {
-            if(item.second) item.second->simplify(map);
+            std::unique_ptr<one_loop_reduced_integral>& ri = item.second.second;
+            if(ri) ri->simplify(map);
           }
       }
 
@@ -78,7 +78,8 @@ namespace Pk_one_loop_impl
       {
         for(auto& item : this->db)
           {
-            if(item.second) item.second->canonicalize_external_momenta();
+            std::unique_ptr<one_loop_reduced_integral>& ri = item.second.second;
+            if(ri) ri->canonicalize_external_momenta();
           }
       }
 
@@ -89,10 +90,31 @@ namespace Pk_one_loop_impl
 
         for(const auto& item : this->db)
           {
-            if(item.second) expr += item.second->get_UV_limit(order);
+            const std::unique_ptr<one_loop_reduced_integral>& ri = item.second.second;
+            if(ri) expr += ri->get_UV_limit(order);
           }
 
         return GiNaC::collect_common_factors(expr);
+      }
+
+
+    void Pk_db::emplace(std::unique_ptr<loop_integral> elt)
+      {
+        loop_integral_key key{*elt};
+
+        // determine whether an entry with this key already exists
+        auto it = this->db.find(key);
+
+        // if a matching element already exists then we should just sum up the kernels
+        if(it != this->db.end())
+          {
+            *it->second.first += *elt;
+            return;
+          }
+
+        // otherwise, we need to insert a new element
+        auto res = this->db.emplace(std::move(key), std::make_pair(std::move(elt), std::unique_ptr<one_loop_reduced_integral>{nullptr}));
+        if(!res.second) throw exception(ERROR_LOOP_INTEGRAL_INSERT_FAILED, exception_code::Pk_error);
       }
 
   }   // namespace Pk_one_loop_impl

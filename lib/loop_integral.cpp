@@ -24,12 +24,31 @@
 // --@@
 //
 
+#include <string>
+#include <sstream>
+#include <vector>
+#include <algorithm>
+
 #include "loop_integral.h"
 
 #include "detail/contractions.h"
 
+#include "utilities/hash_combine.h"
+
 #include "shared/exceptions.h"
 #include "localizations/messages.h"
+
+
+namespace loop_integral_impl
+  {
+
+    //! order a set of symbols
+    std::vector<GiNaC::symbol> order_symbol_set(const GiNaC_symbol_set& syms);
+
+    //! order a set of Rayleigh momenta
+    std::vector<subs_list::const_iterator> order_Rayleigh_set(const subs_list& syms);
+
+  }   // namespace loop_integral_impl
 
 
 std::ostream& operator<<(std::ostream& str, const loop_integral& obj)
@@ -210,3 +229,164 @@ void loop_integral::match_Wick_to_Rayleigh()
     // replace old Wick product with matched version
     this->WickProduct = new_Wick;
   }
+
+
+bool loop_integral::is_matching_type(const loop_integral& obj) const
+  {
+    using loop_integral_impl::order_symbol_set;
+    using loop_integral_impl::order_Rayleigh_set;
+
+    // test for equality of time function, Wick product, loop momenta, external momenta and Rayleigh momenta
+    const auto& at = this->tm;
+    const auto& bt = obj.tm;
+
+    if(!static_cast<bool>(at == bt)) return false;
+
+    // test for equality of Wick product
+    const auto& aw = this->WickProduct;
+    const auto& bw = obj.WickProduct;
+
+    if(!static_cast<bool>(aw == bw)) return false;
+
+    // test for equality of loop momenta
+    auto a_lm = order_symbol_set(this->loop_momenta);
+    auto b_lm = order_symbol_set(obj.loop_momenta);
+
+    if(!std::equal(a_lm.cbegin(), a_lm.cend(), b_lm.cbegin(), b_lm.cend(),
+                   [](const GiNaC::symbol& asym, const GiNaC::symbol& bsym) -> bool
+                     { return asym.get_name() == bsym.get_name(); })) return false;
+
+    // test for equality of external momenta
+    auto a_em = order_symbol_set(this->external_momenta);
+    auto b_em = order_symbol_set(obj.external_momenta);
+
+    if(!std::equal(a_em.cbegin(), a_em.cend(), b_em.cbegin(), b_em.cend(),
+                   [](const GiNaC::symbol& asym, const GiNaC::symbol& bsym) -> bool
+                     { return asym.get_name() == bsym.get_name(); })) return false;
+
+    // test for equality of Rayleigh momenta
+    auto a_rm = order_Rayleigh_set(this->Rayleigh_momenta);
+    auto b_rm = order_Rayleigh_set(obj.Rayleigh_momenta);
+
+    if(!std::equal(a_rm.cbegin(), a_rm.cend(), b_rm.cbegin(), b_rm.cend(),
+                   [](const decltype(a_rm)::value_type& arule, const decltype(b_rm)::value_type& brule) -> bool
+                     { return static_cast<bool>(arule->first == brule->first) && static_cast<bool>(arule->second == brule->second); })) return false;
+
+    return true;
+  }
+
+
+loop_integral& loop_integral::operator+=(const loop_integral& rhs)
+  {
+    if(!this->is_matching_type(rhs))
+      throw exception(ERROR_COMPOSE_LOOP_INTEGRAL_MISMATCHING_TYPE, exception_code::loop_integral_error);
+
+    // we know all variables and Wick product strings agree, so can just add the kernels
+    this->K += rhs.K;
+
+    return *this;
+  }
+
+
+loop_integral_key::loop_integral_key(const loop_integral& l)
+  : loop(l)
+  {
+  }
+
+
+size_t loop_integral_key::hash() const
+  {
+    using loop_integral_impl::order_symbol_set;
+    using loop_integral_impl::order_Rayleigh_set;
+
+    // we need to hash on: time function, Wick product, loop momenta, external momenta and Rayleigh momenta
+
+    // to hash the time expression, expand it completely and print
+    // we are guaranteed that the expressions comes in a canonical order, even if that order is unpredictable
+    std::ostringstream time_string;
+    time_string << this->loop.get_time_function().expand();
+
+    size_t h = 0;
+    hash_impl::hash_combine(h, time_string.str());
+
+    // to hash the Wick product, expand it completely and print
+    std::ostringstream Wick_string;
+    Wick_string << this->loop.get_Wick_product().expand();
+
+    hash_impl::hash_combine(h, Wick_string.str());
+
+    // order loop momenta lexicographically, convert to a string, and hash
+    auto ordered_lm = order_symbol_set(this->loop.get_loop_momenta());
+
+    std::string lm_string;
+    std::for_each(ordered_lm.begin(), ordered_lm.end(),
+                  [&](const GiNaC::symbol& e) -> void
+                    { lm_string += e.get_name(); });
+
+    hash_impl::hash_combine(h, lm_string);
+
+    // order external momenta lexicographically, convert to a string, and hash
+    auto ordered_em = order_symbol_set(this->loop.get_external_momenta());
+
+    std::string em_string;
+    std::for_each(ordered_em.begin(), ordered_em.end(),
+                  [&](const GiNaC::symbol& e) -> void
+                    { em_string += e.get_name(); });
+
+    hash_impl::hash_combine(h, em_string);
+
+    // order Rayleigh momenta lexicographically, convert to a string, and hash
+    auto ordered_rm = order_Rayleigh_set(this->loop.get_Rayleigh_momenta());
+
+    std::string rm_string;
+    std::for_each(ordered_rm.begin(), ordered_rm.end(),
+                  [&](const decltype(ordered_rm)::value_type& rule) -> void
+                    { std::ostringstream str; str << rule->first << rule->second; rm_string += str.str(); });
+
+    hash_impl::hash_combine(h, rm_string);
+
+    return h;
+  }
+
+
+bool loop_integral_key::is_equal(const loop_integral_key& obj) const
+  {
+    return this->loop.is_matching_type(obj.loop);
+  }
+
+
+namespace loop_integral_impl
+  {
+
+    std::vector<GiNaC::symbol> order_symbol_set(const GiNaC_symbol_set& syms)
+      {
+        std::vector<GiNaC::symbol> ordered_set;
+
+        for(const auto& sym : syms)
+          {
+            ordered_set.push_back(sym);
+          }
+
+        std::sort(ordered_set.begin(), ordered_set.end(), std::less<GiNaC::symbol>{});
+
+        return ordered_set;
+      }
+
+
+    std::vector<subs_list::const_iterator> order_Rayleigh_set(const subs_list& syms)
+      {
+        std::vector<subs_list::const_iterator> ordered_set;
+
+        for(auto t = syms.begin(); t != syms.end(); ++t)
+          {
+            ordered_set.push_back(t);
+          }
+
+        std::sort(ordered_set.begin(), ordered_set.end(),
+                  [&](const decltype(ordered_set)::value_type& lhs, const decltype(ordered_set)::value_type& rhs) -> bool
+                    { return std::less<GiNaC::symbol>{}(GiNaC::ex_to<GiNaC::symbol>(lhs->first), GiNaC::ex_to<GiNaC::symbol>(rhs->first)); });
+
+        return ordered_set;
+      }
+
+  }   // namespace loop_integral_impl

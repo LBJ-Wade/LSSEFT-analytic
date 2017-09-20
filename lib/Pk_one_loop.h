@@ -30,6 +30,7 @@
 
 #include <iostream>
 #include <unordered_map>
+#include <memory>
 
 #include "fourier_kernel.h"
 #include "loop_integral.h"
@@ -50,12 +51,15 @@ namespace Pk_one_loop_impl
 
         // TYPES
 
+      public:
+
+        //! a loop_pair is a doublet that groups a raw integral with its reduced form
+        using loop_pair = std::pair< std::unique_ptr<loop_integral>, std::unique_ptr<one_loop_reduced_integral> >;
+
       protected:
 
-        //! database is a set of pairs that link the raw loop integrals with their
-        //! reduced forms
-        using db_type = std::vector< std::pair< std::unique_ptr<loop_integral>,
-                                                std::unique_ptr<one_loop_reduced_integral> > >;
+        //! database is a set of loop_pairs, keyed by loop_integral_key
+        using db_type = std::unordered_map< loop_integral_key, loop_pair >;
 
       public:
 
@@ -94,8 +98,7 @@ namespace Pk_one_loop_impl
       public:
 
         //! emplace an element
-        template <typename... Args>
-        void emplace(Args&&... args);
+        void emplace(std::unique_ptr<loop_integral> elt);
 
 
         // TRANSFORMATIONS
@@ -136,13 +139,6 @@ namespace Pk_one_loop_impl
         db_type db;
 
       };
-
-
-    template <typename... Args>
-    void Pk_db::emplace(Args&& ... args)
-      {
-        this->db.emplace_back( std::make_pair(std::forward<Args>(args)..., std::unique_ptr<one_loop_reduced_integral>()) );
-      }
 
   }   // namespace Pk_one_loop_impl
 
@@ -262,10 +258,12 @@ Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2
     static_assert(N1 >= 3, "To construct a one-loop power spectrum requires a Fourier kernel of third-order or above");
     static_assert(N2 >= 3, "To construct a one-loop power spectrum requires a Fourier kernel of third-order or above");
 
+    // build power spectrum components from products of ker1 and ker2
     this->build_tree(ker1, ker2);
     this->build_13(ker1, ker2);
     this->build_22(ker1, ker2);
 
+    // perform angular reduction on integrands using Rayleigh algorithm
     this->P13.reduce_angular_integrals(sf);
     this->P22.reduce_angular_integrals(sf);
   }

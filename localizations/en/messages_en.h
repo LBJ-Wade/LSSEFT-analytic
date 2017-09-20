@@ -35,6 +35,7 @@ constexpr auto ERROR_INITIAL_VALUE_INSERT_FAILED = "Internal error: initial valu
 constexpr auto ERROR_KERNEL_INSERT_FAILED = "Internal error: kernel insertion failed";
 constexpr auto ERROR_KERNEL_COPY_INSERT_FAILED = "Internal error: kernel insertion failed on copy";
 constexpr auto ERROR_KERNEL_TRANSFORM_INSERT_FAILED = "Internal error: kernel insertion failed during transformation step";
+constexpr auto ERROR_LOOP_INTEGRAL_INSERT_FAILED = "Internal error: loop integral insertion failed";
 
 constexpr auto ERROR_KERNEL_NOT_SCALAR = "Kernel is not a scalar function of the momenta";
 constexpr auto ERROR_KERNEL_NOT_RATIONAL = "Kernel is not a rational function of the momenta";
@@ -96,6 +97,8 @@ constexpr auto ERROR_CANNOT_ADD_KERNELS_WITH_UNEQUAL_TIME_FUNCTIONS = "Cannot ad
 constexpr auto ERROR_FABJ_FIRST_ARG_NONZERO = "First argument of FabJ is not zero";
 constexpr auto ERROR_FABJ_SECOND_ARGS_NOT_EQUAL = "Second and third arguments of FabJ are not zero";
 constexpr auto ERROR_FABJ_SECOND_ARGS_NEGATIVE = "Second and third arguments of FabJ are negative";
+
+constexpr auto ERROR_COMPOSE_LOOP_INTEGRAL_MISMATCHING_TYPE = "Internal error: attempt to compose loop integrals of mismatching types";
 
 constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
 constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";

@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <string>
 
 #include "fourier_kernel.h"
 #include "detail/relabel_product.h"
@@ -67,21 +68,21 @@ namespace fourier_kernel_impl
 
     size_t key::hash() const
       {
-        std::hash<std::string> string_hasher;
-
         // to hash the time expression, expand it completely and print
+        // we are guaranteed that the expressions comes in a canonical order, even if that order is unpredictable
         std::ostringstream time_string;
         time_string << this->tm.expand();
 
-        size_t h = string_hasher(time_string.str());
+        size_t h = 0;
+        hash_impl::hash_combine(h, time_string.str());
 
         // to hash the initial value set, order its symbols lexicographically
         const auto symbols = this->get_ordered_iv_symbols();
 
         std::string symbol_string;
         std::for_each(symbols.begin(), symbols.end(),
-                      [&](const GiNaC::symbol& e) -> std::string
-                        { return symbol_string += e.get_name(); });
+                      [&](const GiNaC::symbol& e) -> void
+                        { symbol_string += e.get_name(); });
 
         // combine both hashes together
         hash_impl::hash_combine(h, symbol_string);

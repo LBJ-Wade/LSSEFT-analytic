@@ -166,10 +166,12 @@ void Pk_rsd::filter(Pk_rsd_group& dest, const Pk_one_loop_impl::Pk_db& source)
   {
     for(const auto& item : source)
       {
-        if(!item.second) continue;    // skip if pointer is empty
+        const loop_integral& lp = *item.second.first;
+        const std::unique_ptr<one_loop_reduced_integral>& ri = item.second.second;
 
-        const auto& reduced = *item.second;
-        const auto& db  = reduced.get_db();
+        if(!ri) continue;    // skip if pointer is empty
+
+        const auto& db  = ri->get_db();
 
         for(const auto& term : db)
           {

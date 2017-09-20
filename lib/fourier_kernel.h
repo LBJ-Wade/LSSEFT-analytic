@@ -272,7 +272,7 @@ namespace fourier_kernel_impl
   }   // namespace fourier_kernel_impl
 
 
-// specialize std::hash and std::is_equal to work for key_type
+// specialize std::hash and std::equal_to to work for key_type
 namespace std
   {
     

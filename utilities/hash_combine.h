@@ -28,6 +28,8 @@
 #define LSSEFT_ANALYTIC_HASH_COMBINE_H
 
 
+#include <functional>
+
 
 namespace hash_impl
   {

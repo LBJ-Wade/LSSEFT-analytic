@@ -40,6 +40,7 @@ enum class exception_code
     contraction_error,
     Rayleigh_error,
     Pk_error,
+    loop_integral_error,
     loop_transformation_error,
     Fabrikant_error
   };
