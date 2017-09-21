@@ -311,7 +311,7 @@ namespace detail
 
 
     template <size_t N>
-    contractions::contractions(iv_group <N> clusters, kext_group <N> kext, symbol_factory& sf_)
+    contractions::contractions(iv_group<N> clusters, kext_group<N> kext, symbol_factory& sf_)
       : items(std::make_unique<Wick_set>()),
         sf(sf_)
       {

@@ -45,9 +45,12 @@ namespace cfs
         // get symbol that we're expanding with respect to
         const auto& sym = GiNaC::ex_to<GiNaC::symbol>(rel.lhs());
 
-        // if series expansion of argument has no constant term, then we don't want to do a Taylor expansion
+        // if series expansion of argument has a constant term, then it's safe to do a normal Taylor
+        // expansion
         if(x.coeff(sym, 0) != 0) throw GiNaC::do_taylor();
 
+        // otherwise, we should avoid it because we will end up with an expansion of Pk(x) around x=0
+        // instead, just return the original Pk(x) as the zeroth term of a power series
         return GiNaC::pseries(rel, GiNaC::epvector{ {Pk(a, b, x), 0} });
       }
 
@@ -72,6 +75,8 @@ namespace detail
     std::unique_ptr<contractions::contraction_set>
     contractions::enumerate_contractions(size_t num, const iv_list& ivs) const
       {
+        using detail::graph;
+
         // allocate a unique_ptr for the contraction set
         auto ctrs = std::make_unique<contraction_set>();
 
@@ -84,12 +89,13 @@ namespace detail
             // allocate storage for this contraction group
             auto group = std::make_unique<contraction_group>();
 
-            // copy list of initial values, which will be used to populate the contraction elements
+            // copy list of fields participating in the Wick product,
+            // which will be used to populate the contraction elements
             auto ivs_copy = ivs;
 
             // use an edge database to represent the Feynman graph we are effectively setting up;
             // we'll need to know whether it is connected
-            detail::graph G;
+            graph G;
 
             // divisor keeps track of numerical factor needed to strip out next term in the double factorial
             size_t divisor = num_contractions;
