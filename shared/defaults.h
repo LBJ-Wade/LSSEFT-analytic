@@ -56,4 +56,8 @@ constexpr auto LSSEFT_REDSHIFT_NAME = "z";
 constexpr auto LSSEFT_REDSHIFT_LATEX = "z";
 
 
+//! enable reduction of Fabrikant integrals
+//#define REDUCE_FABRIKANT_INTEGRALS
+
+
 #endif //LSSEFT_ANALYTIC_DEFAULTS_H

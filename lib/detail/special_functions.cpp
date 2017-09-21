@@ -29,6 +29,7 @@
 #include "special_functions.h"
 
 #include "shared/error.h"
+#include "shared/defaults.h"
 
 #include "shared/exceptions.h"
 #include "localizations/messages.h"
@@ -69,6 +70,7 @@ namespace Fabrikant
         if(mu_num.to_int() < 0)
           throw exception(ERROR_FABJ_SECOND_ARGS_NEGATIVE, exception_code::Fabrikant_error);
 
+#ifdef REDUCE_FABRIKANT_INTEGRALS
         if(mu_num.to_int() == 0)
           return GiNaC::Pi/(4*s*t*u);
 
@@ -96,6 +98,7 @@ namespace Fabrikant
         std::ostringstream msg;
         msg << WARNING_UNEVALUATED_FABRIKANT << " " << mu_num.to_int() << '\n';
         handler.warn(msg.str());
+#endif
 
         return FabJ(lambda, mu, nu, s, t, u).hold();
       }
