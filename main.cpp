@@ -317,16 +317,20 @@ int main(int argc, char* argv[])
     delta.add(SPT::D(z), iv_q, 1);
 
     // second order
-    delta.add(SPT::DA(z) * alpha(q, s, kernel{iv_qs, sf}, sf));
-    delta.add(SPT::DB(z) * gamma(q, s, kernel{iv_qs, sf}, sf));
+    // note that we have to symmetrize explicitly, because the Wick contraction generator
+    // will always leave one cluster unsymmetrized
+    kernel qs_base{iv_qs, sf};
+    delta.add(SPT::DA(z) * alpha_bar(q, s, qs_base, sf));
+    delta.add(SPT::DB(z) * gamma_bar(q, s, qs_base, sf));
 
     // third order
-    delta.add((SPT::DD(z) - SPT::DJ(z)) * 2*gamma_bar(s+t, q, alpha_bar(s, t, kernel{iv_qst, sf}, sf), sf));
-    delta.add(SPT::DE(z)                * 2*gamma_bar(s+t, q, gamma_bar(s, t, kernel{iv_qst, sf}, sf), sf));
-    delta.add((SPT::DF(z) + SPT::DJ(z)) * 2*alpha_bar(s+t, q, alpha_bar(s, t, kernel{iv_qst, sf}, sf), sf));
-    delta.add(SPT::DG(z)                * 2*alpha_bar(s+t, q, gamma_bar(s, t, kernel{iv_qst, sf}, sf), sf));
-    delta.add(SPT::DJ(z)                * (alpha(s+t, q, gamma_bar(s, t, kernel{iv_qst, sf}, sf), sf)
-                                           - 2*alpha(s+t, q, alpha_bar(s, t, kernel{iv_qst, sf}, sf), sf)));
+    kernel qst_base{iv_qst, sf};
+    delta.add((SPT::DD(z) - SPT::DJ(z)) * 2*gamma_bar(s+t, q, alpha_bar(s, t, qst_base, sf), sf));
+    delta.add(SPT::DE(z)                * 2*gamma_bar(s+t, q, gamma_bar(s, t, qst_base, sf), sf));
+    delta.add((SPT::DF(z) + SPT::DJ(z)) * 2*alpha_bar(s+t, q, alpha_bar(s, t, qst_base, sf), sf));
+    delta.add(SPT::DG(z)                * 2*alpha_bar(s+t, q, gamma_bar(s, t, qst_base, sf), sf));
+    delta.add(SPT::DJ(z)                * (alpha(s+t, q, gamma_bar(s, t, qst_base, sf), sf)
+                                           - 2*alpha(s+t, q, alpha_bar(s, t, qst_base, sf), sf)));
 
     // compute kernels for the dark matter velocity potential \phi, v = grad phi -> v(k) = i k phi
     auto delta1 = delta.order(1);
