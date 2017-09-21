@@ -104,7 +104,18 @@ GiNaC::ex one_loop_element::get_UV_limit(unsigned int order) const
     // in the limit that all external momenta are small, ie., by making a Taylor expansion in each
     for(const auto& k : this->external_momenta)
       {
+        // expand integrand * measure * WickProduct
+        // note that Taylor expansions of the correlations in WickProduct are treated specially,
+        // so we always get a sensible result even from expanding around k=0
         prod = GiNaC::series_to_poly(prod.expand().series(k, order+1));
+
+        // attempt to simplify square-roots of the integration variables
+        // these are often left-over after expansion
+        for(const auto& var : this->variables)
+          {
+            prod = prod.subs(GiNaC::exmap{ {GiNaC::sqrt(var*var), var},
+                                           {GiNaC::pow(var*var, -GiNaC::numeric{1}/GiNaC::numeric{2}), GiNaC::numeric{1}/var} });
+          }
       }
 
     // if our integration variables contain the angular integral dx,
