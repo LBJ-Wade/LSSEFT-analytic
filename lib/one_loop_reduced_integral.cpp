@@ -66,10 +66,10 @@ void one_loop_element::write(std::ostream& str) const
       }
     str << '\n';
 
-    str << "  time function = " << this->tm << '\n';
+    str << "  time function = " << GiNaC::collect_common_factors(this->tm) << '\n';
     str << "  measure = " << this->measure << '\n';
     str << "  Wick product = " << this->WickProduct << '\n';
-    str << "  integrand = " << this->integrand << '\n';
+    str << "  integrand = " << GiNaC::collect_common_factors(this->integrand) << '\n';
   }
 
 
