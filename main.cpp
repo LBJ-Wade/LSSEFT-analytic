@@ -372,13 +372,13 @@ int main(int argc, char* argv[])
     // captured from the exterior scope.
     // Of course, delta has to be adjusted.
     auto r_dot_v = dotgrad(r, phi);
-    auto make_delta_rsd = [&](const auto& kmu, const auto& delta) -> auto
+    auto make_delta_rsd = [&](const auto& kmu, const auto& d) -> auto
       {
-        return delta
+        return d
                - (GiNaC::I / H) * kmu * r_dot_v
-               - (GiNaC::I / H) * kmu * (r_dot_v * delta)
+               - (GiNaC::I / H) * kmu * (r_dot_v * d)
                - (GiNaC::numeric{1} / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v)
-               - (GiNaC::numeric{1} / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v * delta)
+               - (GiNaC::numeric{1} / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v * d)
                + (GiNaC::I / (3*2*H*H*H)) * kmu*kmu*kmu * (r_dot_v * r_dot_v * r_dot_v);
       };
 
