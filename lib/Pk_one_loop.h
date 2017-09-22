@@ -181,8 +181,8 @@ class Pk_one_loop
     
     //! generic algorithm to construct cross-products of kernels
     //! (assumed to be of a single order, but the algorithm doesn't enforce that)
-    template <typename Kernel1, typename Kernel2, typename InsertOperator>
-    void cross_product(const Kernel1& ker1, const Kernel2& ker2, InsertOperator ins);
+    template <typename Kernel1, typename Kernel2>
+    void cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db& db);
     
     //! build tree power spectrum
     template <typename Kernel1, typename Kernel2>
@@ -277,8 +277,8 @@ Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2
   }
 
 
-template <typename Kernel1, typename Kernel2, typename InsertOperator>
-void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, InsertOperator ins)
+template <typename Kernel1, typename Kernel2>
+void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db& db)
   {
     // multiply out all terms in ker1 and ker2, using the insertion operator 'ins'
     // to store the results in a suitable Pk database
@@ -352,7 +352,10 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Insert
                 
                 if(static_cast<bool>(K != 0))
                   {
-                    ins(tm1 * tm2, K, data.get_Wick_string(), loops, Rayleigh_list);
+                    auto elt =
+                      std::make_unique<loop_integral>(tm1*tm2, K, data.get_Wick_string(), loops,
+                                                      GiNaC_symbol_set{this->k}, Rayleigh_list, this->sf);
+                    db.emplace(std::move(elt));
                   }
               }
           }
@@ -366,16 +369,7 @@ void Pk_one_loop::build_tree(const Kernel1& ker1, const Kernel2& ker2)
     const auto ker1_db = ker1.order(1);
     const auto ker2_db = ker2.order(1);
 
-    auto ins = [&](time_function t, GiNaC::ex K, GiNaC::ex ws, GiNaC_symbol_set lm, subs_list rm) -> void
-      {
-        this->Ptree.emplace(
-          std::make_unique<loop_integral>(
-            std::move(t), std::move(K), std::move(ws), std::move(lm), GiNaC_symbol_set{this->k}, std::move(rm), this->sf
-          )
-        );
-      };
-    
-    this->cross_product(ker1_db, ker2_db, ins);
+    this->cross_product(ker1_db, ker2_db, this->Ptree);
   }
 
 
@@ -388,17 +382,8 @@ void Pk_one_loop::build_13(const Kernel1& ker1, const Kernel2& ker2)
     const auto ker2_db1 = ker2.order(1);
     const auto ker2_db3 = ker2.order(3);
 
-    auto ins = [&](time_function t, GiNaC::ex K, GiNaC::ex ws, GiNaC_symbol_set lm, subs_list rm) -> void
-      {
-        this->P13.emplace(
-          std::make_unique<loop_integral>(
-            std::move(t), std::move(K), std::move(ws), std::move(lm), GiNaC_symbol_set{this->k}, std::move(rm), this->sf
-          )
-        );
-      };
-    
-    this->cross_product(ker1_db1, ker2_db3, ins);
-    this->cross_product(ker1_db3, ker2_db1, ins);
+    this->cross_product(ker1_db1, ker2_db3, this->P13);
+    this->cross_product(ker1_db3, ker2_db1, this->P13);
   }
 
 
@@ -408,16 +393,7 @@ void Pk_one_loop::build_22(const Kernel1& ker1, const Kernel2& ker2)
     const auto ker1_db2 = ker1.order(2);
     const auto ker2_db2 = ker2.order(2);
 
-    auto ins = [&](time_function t, GiNaC::ex K, GiNaC::ex ws, GiNaC_symbol_set lm, subs_list rm) -> void
-      {
-        this->P22.emplace(
-          std::make_unique<loop_integral>(
-            std::move(t), std::move(K), std::move(ws), std::move(lm), GiNaC_symbol_set{this->k}, std::move(rm), this->sf
-          )
-        );
-      };
-    
-    this->cross_product(ker1_db2, ker2_db2, ins);
+    this->cross_product(ker1_db2, ker2_db2, this->P22);
   }
 
 
