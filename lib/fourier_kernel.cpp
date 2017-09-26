@@ -709,3 +709,61 @@ GiNaC::ex get_normalization_factor(const time_function& tm, symbol_factory& sf)
     // otherwise, determine normalization directly
     return compute_normalization(expr, sf);
   }
+
+
+symmetrization_db build_symmetrizations(const GiNaC::ex& K, const initial_value_set& s)
+  {
+    // bin initial values by their symbol name
+    // this gives us the individual groups over which we need to symmetrize
+    using bin_db = std::map< GiNaC::symbol, std::vector<GiNaC::symbol> >;
+    bin_db s_groups;
+
+    for(auto t = s.value_cbegin(); t != s.value_cend(); ++t)
+      {
+        s_groups[t->get_symbol()].emplace_back(t->get_momentum());
+      }
+
+    // build atomic symmetrization database consisting of the identity transformation, ie. an empty exchange list
+    symmetrization_db db = { GiNaC::exmap{} };
+
+    // work through bins, adding elements to the symmetrization database for any with multiple occupancy
+    for(auto& group : s_groups)
+      {
+        // get list of momenta associated with this symbol
+        auto& original = group.second;
+        auto group_size = original.size();
+
+        // no need to symmetrize if just one instance
+        if(group_size > 1)
+          {
+            // sort momentum list and copy to a separate list for generating permutations; need an explicit comparator
+            // since operator< applied to
+            std::sort(original.begin(), original.end(), std::less<GiNaC::symbol>{});
+            auto perms = original;
+
+            symmetrization_db new_db;
+            do
+              {
+                // add new symmetrizations to each existing element in db and cache in new_db
+                // later, we replace new_db with db
+                for(const auto& perm : db)
+                  {
+                    GiNaC::exmap subs_map = perm;
+
+                    for(unsigned int i = 0; i < perms.size(); ++i)
+                      {
+                        if(perms[i] != original[i]) subs_map[original[i]] = perms[i];
+                      }
+
+                    new_db.emplace_back(subs_map);
+                  }
+              }
+            while(std::next_permutation(perms.begin(), perms.end(), std::less<GiNaC::symbol>{}));
+
+            // replace db with new_db
+            db.swap(new_db);
+          }
+      }
+
+    return db;
+  }

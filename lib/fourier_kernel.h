@@ -550,6 +550,10 @@ void validate_momenta(const initial_value_set& s, const subs_list& vs, const GiN
 //! division by this factor will place the time function into a canonical form
 GiNaC::ex get_normalization_factor(const time_function& tm, symbol_factory& sf);
 
+//! perform symmetrization of kernel
+using symmetrization_db = std::vector< GiNaC::exmap >;
+symmetrization_db build_symmetrizations(const GiNaC::ex& K, const initial_value_set& s);
+
 
 template <unsigned int N>
 fourier_kernel<N>& fourier_kernel<N>::add(kernel_type k)
@@ -598,25 +602,45 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
     // validate that momentum variables used in K match those listed in the stochastic terms
     validate_momenta(s, vs, K, this->sf.get_parameters(), silent);
 
-    // check whether an entry with this key already exists
-    auto ker = std::make_unique<kernel_type>(std::move(K), std::move(s), std::move(t), std::move(vs), this->sf);
-    key_type key{*ker};
-    
-    // now need to insert this kernel into the database; first, check whether an entry with this
-    // key already exists
-    auto it = this->kernels.find(key);
-    
-    // if so, then a matching element already exists and we should add the current kernel to it
-    // notice that momentum relabelling, if needed, is handled by the kernel addition implementation
-    if(it != this->kernels.end())
+    // build list of symmetrizations for this initial value set
+    auto sym_groups = build_symmetrizations(K, s);
+
+    // get size of symmetrization set
+    size_t perms = sym_groups.size();
+
+    // loop over all perms, perform symmetrization, and insert in the kernel list
+    for(const auto& perm : sym_groups)
       {
-        *it->second += *ker;
-        return *this;
+        // permute K
+        auto perm_K = K.subs(perm) / GiNaC::numeric(perms);
+
+        // permute substitution list
+        subs_list perm_vs;
+        for(const auto& v : vs)
+          {
+            perm_vs[v.first] = v.second.subs(perm);
+          }
+
+        // construct a key for the permuted entry
+        auto ker = std::make_unique<kernel_type>(std::move(perm_K), s, t, std::move(perm_vs), this->sf);
+        key_type key{*ker};
+
+        // now need to insert this kernel into the database; first, check whether an entry with this
+        // key already exists
+        auto it = this->kernels.find(key);
+
+        // if so, then a matching element already exists and we should add the current kernel to it
+        // notice that momentum relabelling, if needed, is handled by the kernel addition implementation
+        if(it != this->kernels.end())
+          {
+            *it->second += *ker;
+            return *this;
+          }
+
+        // otherwise, we can insert directly
+        auto res = this->kernels.emplace(std::move(key), std::move(ker));
+        if(!res.second) throw exception(ERROR_KERNEL_INSERT_FAILED, exception_code::kernel_error);
       }
-    
-    // otherwise, we can insert directly
-    auto res = this->kernels.emplace(std::move(key), std::move(ker));
-    if(!res.second) throw exception(ERROR_KERNEL_INSERT_FAILED, exception_code::kernel_error);
 
     return *this;
   }
