@@ -607,12 +607,13 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
 
     // get size of symmetrization set
     size_t perms = sym_groups.size();
+    auto perms_N = GiNaC::numeric(perms);
 
     // loop over all perms, perform symmetrization, and insert in the kernel list
     for(const auto& perm : sym_groups)
       {
         // permute K
-        auto perm_K = K.subs(perm) / GiNaC::numeric(perms);
+        auto perm_K = K.subs(perm) / perms_N;
 
         // permute substitution list
         subs_list perm_vs;
@@ -634,7 +635,7 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
         if(it != this->kernels.end())
           {
             *it->second += *ker;
-            return *this;
+            continue;
           }
 
         // otherwise, we can insert directly
