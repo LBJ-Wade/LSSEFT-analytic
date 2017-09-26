@@ -317,11 +317,11 @@ int main(int argc, char* argv[])
     delta.add(SPT::D(z), iv_q, 1);
 
     // second order
-    // note that we have to symmetrize explicitly, because the Wick contraction generator
-    // will always leave one cluster unsymmetrized
+    // note that there is no need to symmetrize explicitly; kernels are symmetrized
+    // automatically before insertion into the kernel group
     kernel qs_base{iv_qs, sf};
-    delta.add(SPT::DA(z) * alpha_bar(q, s, qs_base, sf));
-    delta.add(SPT::DB(z) * gamma_bar(q, s, qs_base, sf));
+    delta.add(SPT::DA(z) * alpha(q, s, qs_base, sf));
+    delta.add(SPT::DB(z) * gamma(q, s, qs_base, sf));
 
     // third order
     kernel qst_base{iv_qst, sf};
