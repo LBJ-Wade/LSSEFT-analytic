@@ -114,7 +114,7 @@ GiNaC::ex one_loop_element::get_UV_limit(unsigned int order) const
         for(const auto& var : this->variables)
           {
             prod = prod.subs(GiNaC::exmap{ {GiNaC::sqrt(var*var), var},
-                                           {GiNaC::pow(var*var, -GiNaC::numeric{1}/GiNaC::numeric{2}), GiNaC::numeric{1}/var} });
+                                           {GiNaC::pow(var*var, GiNaC::wild()), GiNaC::pow(var, GiNaC::numeric{2}*GiNaC::wild())} });
           }
       }
 
