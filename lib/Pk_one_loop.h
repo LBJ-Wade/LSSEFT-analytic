@@ -106,7 +106,7 @@ namespace Pk_one_loop_impl
       public:
 
         //! reduce angular integrals
-        void reduce_angular_integrals(symbol_factory& sf);
+        void reduce_angular_integrals(symbol_factory& sf, bool symmetrize);
 
         //! apply simplification map
         void simplify(const GiNaC::exmap& map);
@@ -267,8 +267,8 @@ Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2
     this->build_22(ker1, ker2);
 
     // perform angular reduction on integrands using Rayleigh algorithm
-    this->P13.reduce_angular_integrals(sf);
-    this->P22.reduce_angular_integrals(sf);
+    this->P13.reduce_angular_integrals(sf, false);    // false = don't symmetrize q/s
+    this->P22.reduce_angular_integrals(sf, true);     // true = symmetrize q/s
 
     // prune empty records
     this->Ptree.prune();

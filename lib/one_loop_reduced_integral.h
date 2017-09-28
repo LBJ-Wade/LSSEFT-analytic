@@ -241,7 +241,7 @@ class one_loop_reduced_integral
   public:
 
     //! constructor accepts a loop_integral container and performs dimensional reduction on it
-    one_loop_reduced_integral(const loop_integral& i_, symbol_factory& sf_);
+    one_loop_reduced_integral(const loop_integral& i_, symbol_factory& sf_, bool s_);
 
     //! destructor is default
     ~one_loop_reduced_integral() = default;
@@ -340,6 +340,9 @@ class one_loop_reduced_integral
 
     //! cache external momenta
     const GiNaC_symbol_set& external_momenta;
+
+    //! symmetrize expession? used for 22-type integrals
+    bool symmetrize;
 
 
     // SPECIAL SYMBOLS

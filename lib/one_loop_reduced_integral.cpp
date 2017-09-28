@@ -267,12 +267,13 @@ std::ostream& operator<<(std::ostream& str, const one_loop_element& obj)
   }
 
 
-one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, symbol_factory& sf_)
+one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, symbol_factory& sf_, bool s_)
   : loop_int(i_),
     Rayleigh_momenta(i_.get_Rayleigh_momenta()),
     WickProduct(i_.get_Wick_product()),
     tm(i_.get_time_function()),
     external_momenta(i_.get_external_momenta()),
+    symmetrize(s_),
     sf(sf_),
     x(sf_.make_symbol("x"))
   {
@@ -459,6 +460,15 @@ void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& te
     // store result if it is nonzero
     if(temp != 0)
       {
+        // symmetrize if required
+        if(this->symmetrize)
+          {
+            GiNaC::exmap sym_map;
+            sym_map[R] = this->loop_q;
+            sym_map[this->loop_q] = R;
+            temp = temp/2 + temp.subs(sym_map)/2;
+          }
+
         // construct integration element, assuming that the Fabrikant integrals imposed the
         // triangle condition on R, loop_q and kext
         auto measure = this->loop_q*this->loop_q / GiNaC::pow(2*GiNaC::Pi, 3);
