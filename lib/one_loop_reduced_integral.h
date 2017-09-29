@@ -341,7 +341,7 @@ class one_loop_reduced_integral
     //! cache external momenta
     const GiNaC_symbol_set& external_momenta;
 
-    //! symmetrize expession? used for 22-type integrals
+    //! symmetrize expession? - used for 22-type integrals
     bool symmetrize;
 
 

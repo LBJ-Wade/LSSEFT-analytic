@@ -460,12 +460,12 @@ void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& te
     // store result if it is nonzero
     if(temp != 0)
       {
-        // symmetrize if required
+        // symmetrize between q and s if required
+        // For a 22 integral, the integral is q, s symmetric but our special treatment of the Rayleigh
+        // momentum breaks this at the level of the integrand
         if(this->symmetrize)
           {
-            GiNaC::exmap sym_map;
-            sym_map[R] = this->loop_q;
-            sym_map[this->loop_q] = R;
+            GiNaC::exmap sym_map = { {R, this->loop_q}, {this->loop_q, R} };
             temp = temp/2 + temp.subs(sym_map)/2;
           }
 
@@ -479,8 +479,7 @@ void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& te
         // measure is R^2 dR, and dR -> k q / R
         measure *= R_replace * kext * this->loop_q / GiNaC::pow(2*GiNaC::Pi, 3);
 
-        GiNaC::exmap R_map;
-        R_map[R] = R_replace;
+        GiNaC::exmap R_map = { {R, R_replace} };
         temp = temp.subs(R_map);
 
         auto elt =
