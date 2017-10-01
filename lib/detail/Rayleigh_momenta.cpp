@@ -26,19 +26,17 @@
 
 #include "Rayleigh_momenta.h"
 
-#include "shared/exceptions.h"
-#include "localizations/messages.h"
-
 
 namespace detail
   {
     
     GiNaC::exmap
     merge_Rayleigh_rules(GiNaC::exmap& dest, const GiNaC::exmap& source, const GiNaC_symbol_set& reserved,
-                         const GiNaC::exmap& subs_rules, symbol_factory& sf)
+                         const GiNaC::exmap& subs_rules, service_locator& loc)
       {
         GiNaC::exmap mma_map;
-        
+        auto& sf = loc.get_symbol_factory();
+
         // check whether any of the substitution rules in 'source' already exist in 'dest'
         // if they do, add a suitable relabelling rule to mma_map
         // otherwise, insert a new rule provided there is no symbol collision
@@ -103,9 +101,9 @@ namespace detail
     
     GiNaC::exmap
     merge_Rayleigh_lists(const GiNaC::exmap& source, GiNaC::exmap& dest, GiNaC_symbol_set& reserved,
-                         const GiNaC::exmap& subs_rules, symbol_factory& sf)
+                         const GiNaC::exmap& subs_rules, service_locator& loc)
       {
-        auto Ray_remap = merge_Rayleigh_rules(dest, source, reserved, subs_rules, sf);
+        auto Ray_remap = merge_Rayleigh_rules(dest, source, reserved, subs_rules, loc);
         
         // merge symbols in Rayleigh_list into reserved symbols
         std::for_each(dest.begin(), dest.end(), [&](const GiNaC::exmap::value_type& v) -> void

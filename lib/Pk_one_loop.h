@@ -106,7 +106,7 @@ namespace Pk_one_loop_impl
       public:
 
         //! reduce angular integrals
-        void reduce_angular_integrals(symbol_factory& sf, bool symmetrize);
+        void reduce_angular_integrals(service_locator& loc, bool symmetrize);
 
         //! apply simplification map
         void simplify(const GiNaC::exmap& map);
@@ -169,7 +169,7 @@ class Pk_one_loop
     //! constructor accepts two Fourier kernels and the corresponding momentum labels
     template <unsigned int N1, unsigned int N2>
     Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
-                const GiNaC::symbol& k_, symbol_factory& sf_);
+                const GiNaC::symbol& k_, service_locator& lc_);
     
     //! destructor is default
     ~Pk_one_loop() = default;
@@ -229,7 +229,7 @@ class Pk_one_loop
     // SERVICES
     
     //! cache reference to symbol factory
-    symbol_factory& sf;
+    service_locator& loc;
     
     
     // RESERVED SYMBOLS
@@ -254,9 +254,9 @@ class Pk_one_loop
 
 template <unsigned int N1, unsigned int N2>
 Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
-                         const GiNaC::symbol& k_, symbol_factory& sf_)
+                         const GiNaC::symbol& k_, service_locator& lc_)
   : k(k_),
-    sf(sf_)
+    loc(lc_)
   {
     static_assert(N1 >= 3, "To construct a one-loop power spectrum requires a Fourier kernel of third-order or above");
     static_assert(N2 >= 3, "To construct a one-loop power spectrum requires a Fourier kernel of third-order or above");
@@ -267,8 +267,8 @@ Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2
     this->build_22(ker1, ker2);
 
     // perform angular reduction on integrands using Rayleigh algorithm
-    this->P13.reduce_angular_integrals(sf, false);    // false = don't symmetrize q/s
-    this->P22.reduce_angular_integrals(sf, true);     // true = symmetrize q/s
+    this->P13.reduce_angular_integrals(loc, false);    // false = don't symmetrize q/s
+    this->P22.reduce_angular_integrals(loc, true);     // true = symmetrize q/s
 
     // prune empty records
     this->Ptree.prune();
@@ -300,7 +300,7 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db&
             const auto& rm2 = t2->second->get_substitution_list();
         
             detail::contractions ctrs(detail::contractions::iv_group<2>{ iv1, iv2 },
-                                      detail::contractions::kext_group<2>{ this->k, -this->k }, this->sf);
+                                      detail::contractions::kext_group<2>{ this->k, -this->k }, this->loc);
         
             const auto& Wicks = ctrs.get();
             for(const auto& W : Wicks)
@@ -323,8 +323,8 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db&
                 std::copy(loops.begin(), loops.end(), std::inserter(reserved, reserved.begin()));
                 
                 using detail::merge_Rayleigh_lists;
-                auto Ray_remap1 = merge_Rayleigh_lists(rm1, Rayleigh_list, reserved, subs_maps[0], this->sf);
-                auto Ray_remap2 = merge_Rayleigh_lists(rm2, Rayleigh_list, reserved, subs_maps[1], this->sf);
+                auto Ray_remap1 = merge_Rayleigh_lists(rm1, Rayleigh_list, reserved, subs_maps[0], this->loc);
+                auto Ray_remap2 = merge_Rayleigh_lists(rm2, Rayleigh_list, reserved, subs_maps[1], this->loc);
                 
                 // perform all relabellings
                 auto K1_remap = K1.subs(subs_maps[0]).subs(Ray_remap1);
@@ -332,7 +332,7 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db&
                 
                 // relabel indices
                 using detail::relabel_index_product;
-                auto K = relabel_index_product(K1_remap, K2_remap, this->sf);
+                auto K = relabel_index_product(K1_remap, K2_remap, this->loc);
                 
                 using detail::remove_Rayleigh_trivial;
                 auto Rayleigh_triv = remove_Rayleigh_trivial(Rayleigh_list);
@@ -354,7 +354,7 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db&
                   {
                     auto elt =
                       std::make_unique<loop_integral>(tm1*tm2, K, data.get_Wick_string(), loops,
-                                                      GiNaC_symbol_set{this->k}, Rayleigh_list, this->sf);
+                                                      GiNaC_symbol_set{this->k}, Rayleigh_list, this->loc);
                     db.emplace(std::move(elt));
                   }
               }

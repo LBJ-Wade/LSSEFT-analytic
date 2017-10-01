@@ -30,9 +30,10 @@
 namespace detail
   {
 
-    GiNaC::ex relabel_index_product(const GiNaC::ex& a, const GiNaC::ex& b, symbol_factory& sf)
+    GiNaC::ex relabel_index_product(const GiNaC::ex& a, const GiNaC::ex& b, service_locator& loc)
       {
         GiNaC::exmap idx_map;
+        auto& sf =  loc.get_symbol_factory();
         
         // need only relabel indices that occur >= 2 times; can allow single occurrences to be contracted
         const auto& a_idxs = get_expr_indices(a, 2);

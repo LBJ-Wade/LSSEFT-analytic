@@ -59,14 +59,14 @@ std::ostream& operator<<(std::ostream& str, const loop_integral& obj)
 
 
 loop_integral::loop_integral(time_function tm_, GiNaC::ex K_, GiNaC::ex ws_, GiNaC_symbol_set lm_,
-                             GiNaC_symbol_set em_, subs_list rm_, symbol_factory& sf_)
+                             GiNaC_symbol_set em_, subs_list rm_, service_locator& lc_)
   : tm(std::move(tm_)),
     K(std::move(K_)),
     WickProduct(std::move(ws_)),
     loop_momenta(std::move(lm_)),
     external_momenta(std::move(em_)),
     Rayleigh_momenta(std::move(rm_)),
-    sf(sf_)
+    loc(lc_)
   {
     // no need to apply any transformations if this is a tree-level term
     if(loop_momenta.empty()) return;
@@ -116,11 +116,13 @@ void loop_integral::canonicalize_loop_labels()
     GiNaC_symbol_set new_momenta;
     GiNaC::exmap relabel;
 
+    auto& sf = this->loc.get_symbol_factory();
+
     // step through loop momenta, relabelling to canonicalized variables
     unsigned int count = 0;
     for(const auto& l : this->loop_momenta)
       {
-        const auto L = this->sf.make_canonical_loop_momentum(count++);
+        const auto L = sf.make_canonical_loop_momentum(count++);
         relabel[l] = L;
         new_momenta.insert(L);
       }
@@ -144,11 +146,13 @@ void loop_integral::canonicalize_Rayleigh_labels()
     GiNaC::exmap new_Rayleigh;
     GiNaC::exmap relabel;
 
+    auto& sf = this->loc.get_symbol_factory();
+
     // step through Rayleigh momenta, relabelling to canonicalized forms
     unsigned int count = 0;
     for(const auto& rule : this->Rayleigh_momenta)
       {
-        const auto S = this->sf.make_canonical_Rayleigh_momentum(count++);
+        const auto S = sf.make_canonical_Rayleigh_momentum(count++);
         relabel[rule.first] = S;
         new_Rayleigh[S] = rule.second;    // RHS of rules never depend on other Rayleigh momenta, so this is safe
       }
@@ -164,6 +168,8 @@ void loop_integral::canonicalize_Rayleigh_labels()
 void loop_integral::match_Wick_to_Rayleigh()
   {
     GiNaC::ex new_Wick{1};
+
+    auto& sf = this->loc.get_symbol_factory();
 
     if(!GiNaC::is_a<GiNaC::mul>(this->WickProduct))
       throw exception(ERROR_BADLY_FORMED_WICK_PRODUCT, exception_code::loop_transformation_error);
@@ -215,7 +221,7 @@ void loop_integral::match_Wick_to_Rayleigh()
                   }
 
                 // matching Rayleigh momentum didn't exist, so insert one
-                auto S = this->sf.make_canonical_Rayleigh_momentum(0);
+                auto S = sf.make_canonical_Rayleigh_momentum(0);
                 new_Wick *= cfs::Pk(f1, f2, S);
                 this->Rayleigh_momenta[S] = arg;
               }

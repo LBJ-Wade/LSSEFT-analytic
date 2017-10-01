@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 29/08/2017.
+// Created by David Seery on 01/10/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,21 +24,11 @@
 // --@@
 //
 
-#ifndef LSSEFT_ANALYTIC_RELABEL_PRODUCT_H
-#define LSSEFT_ANALYTIC_RELABEL_PRODUCT_H
+#include "service_locator.h"
 
 
-#include "services/service_locator.h"
-#include "utilities/GiNaC_utils.h"
-
-
-namespace detail
+service_locator::service_locator(argument_cache& ac_, symbol_factory& sf_)
+  : args(ac_),
+    sf(sf_)
   {
-    
-    //! relabel indices in a product
-    GiNaC::ex relabel_index_product(const GiNaC::ex& a, const GiNaC::ex& b, service_locator& loc);
-    
-  }   // namespace detail
-
-
-#endif //LSSEFT_ANALYTIC_RELABEL_PRODUCT_H
+  }

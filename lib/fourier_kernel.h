@@ -36,7 +36,7 @@
 #include "initial_value.h"
 #include "vector.h"
 
-#include "services/symbol_factory.h"
+#include "services/service_locator.h"
 
 #include "utilities/hash_combine.h"
 #include "utilities/GiNaC_utils.h"
@@ -108,11 +108,11 @@ namespace fourier_kernel_impl
         //! these will need to be handled by a Rayleigh plane wave expansion when computing
         //! correlation functions
         kernel(GiNaC::ex K_, initial_value_set iv_, time_function tm_, subs_list vs_,
-               symbol_factory& sf_);
+               service_locator& lc_);
 
         //! alternative constructor accepts just an initial_value_set and a symbol factory refernce;
         //! sets momentum kernel and time function to unity
-        kernel(initial_value_set iv_, symbol_factory& sf_);
+        kernel(initial_value_set iv_, service_locator& sl_);
         
         //! destructor us default
         ~kernel() = default;
@@ -188,8 +188,8 @@ namespace fourier_kernel_impl
         
         // AGENTS
         
-        //! cache reference to symbol factory
-        symbol_factory& sf;
+        //! cache reference to service locator
+        service_locator& loc;
         
         
         // KERNEL DATA
@@ -431,8 +431,8 @@ class fourier_kernel
   protected:
     
     //! constructor captures symbol_factory class and creates an empty Fourier representation
-    explicit fourier_kernel(symbol_factory& sf_)
-      : sf(sf_)
+    explicit fourier_kernel(service_locator& lc_)
+      : loc(lc_)
       {
       }
     
@@ -496,14 +496,14 @@ class fourier_kernel
     
   private:
     
-    //! cache reference to symbol factory
-    symbol_factory& sf;
+    //! cache reference to service locator
+    service_locator& loc;
     
     //! database of kernels
     kernel_db kernels;
     
     
-    friend class symbol_factory;
+    friend class service_locator;
     
     // friend declarations can't be partial specializations, so we must use the fully templated versions here
     template <unsigned int M, typename Operator>
@@ -548,7 +548,7 @@ void validate_momenta(const initial_value_set& s, const subs_list& vs, const GiN
 
 //! compute normalization factor for a given time function
 //! division by this factor will place the time function into a canonical form
-GiNaC::ex get_normalization_factor(const time_function& tm, symbol_factory& sf);
+GiNaC::ex get_normalization_factor(const time_function& tm, service_locator& sl);
 
 //! perform symmetrization of kernel
 using symmetrization_db = std::vector< GiNaC::exmap >;
@@ -589,7 +589,7 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
     validate_subslist(s, vs);
 
     // normalize the time function, redistributing factors into the kernel if needed
-    auto norm = get_normalization_factor(t, this->sf);
+    auto norm = get_normalization_factor(t, this->loc);
     t /= norm;
     K *= norm;
 
@@ -600,7 +600,7 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
     validate_structure(K);
     
     // validate that momentum variables used in K match those listed in the stochastic terms
-    validate_momenta(s, vs, K, this->sf.get_parameters(), silent);
+    validate_momenta(s, vs, K, this->loc.get_symbol_factory().get_parameters(), silent);
 
     // build list of symmetrizations for this initial value set
     auto sym_groups = build_symmetrizations(K, s);
@@ -650,7 +650,7 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
 template <unsigned int N>
 fourier_kernel<N> fourier_kernel<N>::order(unsigned int ord) const
   {
-    auto r = this->sf.template make_fourier_kernel<N>();
+    auto r = this->loc.template make_fourier_kernel<N>();
     
     if(ord > N) return r;
     
@@ -704,7 +704,7 @@ template <unsigned int N, typename Operator>
 fourier_kernel<N> fourier_kernel_impl::transform_kernel(const fourier_kernel<N>& a, Operator op)
   {
     // manufacture a blank fourier kernel of max order N
-    auto r = a.sf.template make_fourier_kernel<N>();
+    auto r = a.loc.template make_fourier_kernel<N>();
     
     // copy elements from a into this blank kernel, applying op as we go
     for(const auto& t : a.kernels)
@@ -879,7 +879,7 @@ fourier_kernel<N> operator*(const fourier_kernel<N>& a, const fourier_kernel<N>&
     using fourier_kernel_impl::kernel;
     
     // manufacture a blank fourier kernel of max order N
-    auto r = a.sf.template make_fourier_kernel<N>();
+    auto r = a.loc.template make_fourier_kernel<N>();
 
     // insert step is trivial and should just copy each kernel product into the new container r
     auto ins = [&](const kernel& c, const kernel& d) -> void
@@ -897,7 +897,7 @@ fourier_kernel<N> operator*(const fourier_kernel<N>& a, const fourier_kernel<N>&
 template <unsigned int N>
 fourier_kernel<N> diff_t(const fourier_kernel<N>& a)
   {
-    const auto& z = a.sf.get_z();
+    const auto& z = a.loc.get_symbol_factory().get_z();
     
     return -FRW::Hub(z) * (GiNaC::numeric{1}+z) * diff_z(a);
   }
@@ -946,8 +946,9 @@ fourier_kernel<N> InverseLaplacian(const fourier_kernel<N>& a)
         
         // generate a new substitution rule because we are introducing
         // a potentially non-rotationally invariant denominator
-        auto label_sym = a.sf.make_unique_Rayleigh_momentum();
-        vector label = a.sf.make_vector(label_sym);
+        auto& sf = a.loc.get_symbol_factory();
+        auto label_sym = sf.make_unique_Rayleigh_momentum();
+        vector label = sf.make_vector(label_sym);
 
         auto rsq = -label.norm_square();
         b.multiply_kernel(GiNaC::ex(1)/rsq, label_sym, vsum.get_expr());
@@ -961,14 +962,16 @@ template <unsigned int N>
 fourier_kernel<N> gradgrad(const fourier_kernel<N>& a, const fourier_kernel<N>& b)
   {
     using fourier_kernel_impl::kernel;
+
+    auto& sf = a.loc.get_symbol_factory();
     
     // manufacture a blank fourier kernel of max order N
-    auto r = a.sf.template make_fourier_kernel<N>();
+    auto r = a.loc.template make_fourier_kernel<N>();
     
     // insert step should multiply each product kernel by -ka.kb
     auto ins = [&](kernel c, kernel d) -> void
       {
-        auto idx = a.sf.make_unique_index();
+        auto idx = sf.make_unique_index();
         
         auto kc = c.get_total_momentum();
         auto kc_idx = kc[idx];
@@ -997,7 +1000,7 @@ fourier_kernel<N> dotgrad(const vector& a, const fourier_kernel<N>& b)
     using fourier_kernel_impl::transform_kernel;
     
     // manufacture a blank fourier kernel of max order N
-    auto r = b.sf.template make_fourier_kernel<N>();
+    auto r = b.loc.template make_fourier_kernel<N>();
     
     // insert step should dot each product kernel with i a.kb
     return transform_kernel(b, [&](kernel c) -> kernel
@@ -1017,13 +1020,15 @@ fourier_kernel<N> Galileon2(const fourier_kernel<N>& a)
     using fourier_kernel_impl::kernel;
     using fourier_kernel_impl::transform_kernel;
 
+    auto& sf = a.loc.get_symbol_factory();
+
     // manufacture a blank fourier kernel of max order N
-    auto r = a.sf.template make_fourier_kernel<N>();
+    auto r = a.loc.template make_fourier_kernel<N>();
 
     auto ins = [&](kernel c, kernel d) -> void
       {
-        auto idx_i = a.sf.make_unique_index();
-        auto idx_j = a.sf.make_unique_index();
+        auto idx_i = sf.make_unique_index();
+        auto idx_j = sf.make_unique_index();
 
         auto kc = c.get_total_momentum();
         auto kc_i = kc[idx_i];
@@ -1061,15 +1066,17 @@ fourier_kernel<N> Galileon3(const fourier_kernel<N>& a)
     using fourier_kernel_impl::kernel;
     using fourier_kernel_impl::transform_kernel;
 
+    auto& sf = a.loc.get_symbol_factory();
+
     // manufacture a blank fourier kernel of max order N
-    auto r = a.sf.template make_fourier_kernel<N>();
+    auto r = a.loc.template make_fourier_kernel<N>();
 
     // insert step should dot each product kernel with i a.kb
     auto ins = [&](kernel c, kernel d, kernel e) -> void
       {
-        auto idx_i = a.sf.make_unique_index();
-        auto idx_j = a.sf.make_unique_index();
-        auto idx_k = a.sf.make_unique_index();
+        auto idx_i = sf.make_unique_index();
+        auto idx_j = sf.make_unique_index();
+        auto idx_k = sf.make_unique_index();
 
         auto kc = c.get_total_momentum();
         auto kc_i = kc[idx_i];

@@ -44,10 +44,6 @@ class vector;
 //! forward-declare initial_value
 class initial_value;
 
-//! forward-declare fourier_kernel
-template <unsigned int N>
-class fourier_kernel;
-
 
 //! symbol factory provides a unified API for building GiNaC symbols
 class symbol_factory
@@ -101,11 +97,7 @@ class symbol_factory
     
     //! make an initial value object from an existing symbol
     initial_value make_initial_value(const GiNaC::symbol& s);
-    
-    //! make an empty Fourier kernel
-    template <unsigned int N>
-    fourier_kernel<N> make_fourier_kernel();
-    
+
     
     // SERVICES
     
@@ -177,13 +169,6 @@ class symbol_factory
     GiNaC::symbol z;
 
   };
-
-
-template <unsigned int N>
-fourier_kernel<N> symbol_factory::make_fourier_kernel()
-  {
-    return fourier_kernel<N>{*this};
-  }
 
 
 #endif //LSSEFT_ANALYTIC_SYMBOL_FACTORY_H

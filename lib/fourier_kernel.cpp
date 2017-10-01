@@ -114,25 +114,25 @@ namespace fourier_kernel_impl
       }
 
 
-    kernel::kernel(GiNaC::ex K_, initial_value_set iv_, time_function tm_, subs_list vs_, symbol_factory& sf_)
+    kernel::kernel(GiNaC::ex K_, initial_value_set iv_, time_function tm_, subs_list vs_, service_locator& lc_)
       : K(std::move(K_)),
         tm(std::move(tm_)),
         iv(std::move(iv_)),
         vs(std::move(vs_)),
-        sf(sf_)
+        loc(lc_)
       {
         // normalize the time function, redistributing factors into the kernel if needed
-        auto norm = get_normalization_factor(tm, sf);
+        auto norm = get_normalization_factor(tm, loc);
         tm /= norm;
         K *= norm;
       }
 
 
-    kernel::kernel(initial_value_set iv_, symbol_factory& sf_)
+    kernel::kernel(initial_value_set iv_, service_locator& sl_)
       : K(1),
         tm(1),
         iv(std::move(iv_)),
-        sf(sf_)
+        loc(sl_)
       {
       }
 
@@ -168,7 +168,7 @@ namespace fourier_kernel_impl
         
         // also need to remap and merge any substitution rules in the right-hand side
         using detail::merge_Rayleigh_rules;
-        auto relabel_map = merge_Rayleigh_rules(this->vs, rhs.vs, this->iv.get_momenta(), mma_map, this->sf);
+        auto relabel_map = merge_Rayleigh_rules(this->vs, rhs.vs, this->iv.get_momenta(), mma_map, this->loc);
         std::copy(relabel_map.begin(), relabel_map.end(), std::inserter(mma_map, mma_map.begin()));
 
         // now perform relabelling in the kernel
@@ -183,6 +183,8 @@ namespace fourier_kernel_impl
     
     kernel& kernel::operator*=(const kernel& rhs)
       {
+        auto& sf = this->loc.get_symbol_factory();
+
         // product time function is just product of each individual time function
         this->tm *= rhs.tm;
     
@@ -201,7 +203,7 @@ namespace fourier_kernel_impl
             if(!collision) continue;
             
             // otherwise, manufacture a new symbol
-            auto relabel = this->sf.make_unique_momentum();
+            auto relabel = sf.make_unique_momentum();
             
             mma_map[label] = relabel;
           }
@@ -230,16 +232,16 @@ namespace fourier_kernel_impl
         // merge RHS substitution list with ours
         // (occurs after merging initial value list so all reserved symbols are captured)
         using detail::merge_Rayleigh_rules;
-        auto relabel_map = merge_Rayleigh_rules(this->vs, rhs.vs, this->iv.get_momenta(), mma_map, this->sf);
+        auto relabel_map = merge_Rayleigh_rules(this->vs, rhs.vs, this->iv.get_momenta(), mma_map, this->loc);
         std::copy(relabel_map.begin(), relabel_map.end(), std::inserter(mma_map, mma_map.begin()));
 
         // build final expression, performing any necessary index (or other) relabellings on RHS
         using detail::relabel_index_product;
-        auto temp = simplify_index(relabel_index_product(this->K, rhs.K.subs(mma_map), this->sf));
+        auto temp = simplify_index(relabel_index_product(this->K, rhs.K.subs(mma_map), this->loc));
         this->K = temp;
 
         // renormalize time function
-        auto norm = get_normalization_factor(tm, sf);
+        auto norm = get_normalization_factor(tm, loc);
         this->tm /= norm;
         this->K *= norm;
 
@@ -313,7 +315,7 @@ namespace fourier_kernel_impl
 
 
         // renormalize time function
-        auto norm = get_normalization_factor(c.tm, c.sf);
+        auto norm = get_normalization_factor(c.tm, c.loc);
         c.tm /= norm;
         c.K *= norm;
 
@@ -343,12 +345,14 @@ namespace fourier_kernel_impl
     
     kernel diff_z(const kernel& a)
       {
+        auto& sf = a.loc.get_symbol_factory();
+
         kernel b = a;
-        const auto& z = a.sf.get_z();
+        const auto& z = sf.get_z();
         b.tm = GiNaC::diff(b.tm, z);
 
         // renormalize time function
-        auto norm = get_normalization_factor(b.tm, b.sf);
+        auto norm = get_normalization_factor(b.tm, b.loc);
         b.tm /= norm;
         b.K *= norm;
 
@@ -373,7 +377,7 @@ namespace fourier_kernel_impl
     kernel& kernel::multiply_kernel(GiNaC::ex f)
       {
         auto our_syms = this->iv.get_momenta();
-        const auto& params = this->sf.get_parameters();
+        const auto& params = this->loc.get_symbol_factory().get_parameters();
         std::copy(params.begin(), params.end(), std::inserter(our_syms, our_syms.begin()));
     
         // ensure that f only involves symbols in the initial value set or s, or declared as parameters
@@ -391,7 +395,7 @@ namespace fourier_kernel_impl
         this->K *= f;
 
         // renormalize time function
-        auto norm = get_normalization_factor(tm, sf);
+        auto norm = get_normalization_factor(tm, loc);
         this->tm /= norm;
         this->K *= norm;
 
@@ -402,7 +406,7 @@ namespace fourier_kernel_impl
     kernel& kernel::multiply_kernel(GiNaC::ex f, GiNaC::symbol s, GiNaC::ex rule)
       {
         auto our_syms = this->iv.get_momenta();
-        const auto& params = this->sf.get_parameters();
+        const auto& params = this->loc.get_symbol_factory().get_parameters();
         std::copy(params.begin(), params.end(), std::inserter(our_syms, our_syms.begin()));
 
         // ensure that f only involves symbols in the initial value set or s
@@ -463,7 +467,7 @@ namespace fourier_kernel_impl
         if(t == this->vs.end()) this->vs[s] = rule;
 
         // renormalize time function
-        auto norm = get_normalization_factor(tm, sf);
+        auto norm = get_normalization_factor(tm, loc);
         this->tm /= norm;
         this->K *= norm;
 
@@ -653,21 +657,21 @@ void validate_momenta(const initial_value_set& s, const subs_list& vs, const GiN
 namespace get_normalization_factor_impl
   {
 
-    GiNaC::ex compute_normalization(const GiNaC::ex& term, symbol_factory& sf)
+    GiNaC::ex compute_normalization(const GiNaC::ex& term, service_locator& sl)
       {
         if(GiNaC::is_a<GiNaC::numeric>(term)) return term;
 
         if(GiNaC::is_a<GiNaC::symbol>(term))
           {
             // ignore if this symbol is the redshift z
-            const auto& z = sf.get_z();
+            const auto& z = sl.get_symbol_factory().get_z();
             if(static_cast<bool>(z == term)) return GiNaC::numeric{1};
             return term;
           }
 
         if(GiNaC::is_a<GiNaC::power>(term))
           {
-            auto sub_norm = get_normalization_factor(term.op(0), sf);
+            auto sub_norm = get_normalization_factor(term.op(0), sl);
             return GiNaC::pow(sub_norm, term.op(1));
           }
 
@@ -677,7 +681,7 @@ namespace get_normalization_factor_impl
   }   // namespace get_normalization_factor_impl
 
 
-GiNaC::ex get_normalization_factor(const time_function& tm, symbol_factory& sf)
+GiNaC::ex get_normalization_factor(const time_function& tm, service_locator& sl)
   {
     // Want to canonicalize the time function.
     // This can be done by expanding it and collecting the numerical factors associated with the first term.
@@ -690,7 +694,7 @@ GiNaC::ex get_normalization_factor(const time_function& tm, symbol_factory& sf)
     using get_normalization_factor_impl::compute_normalization;
 
     // if expression is an add, extract numerical factors from its first term
-    if(GiNaC::is_a<GiNaC::add>(expr)) return get_normalization_factor(expr.op(0), sf);
+    if(GiNaC::is_a<GiNaC::add>(expr)) return get_normalization_factor(expr.op(0), sl);
 
     // if expression is a mul, extract numerical factors
     if(GiNaC::is_a<GiNaC::mul>(expr))
@@ -700,14 +704,14 @@ GiNaC::ex get_normalization_factor(const time_function& tm, symbol_factory& sf)
 
         for(size_t i = 0; i < ops; ++i)
           {
-            norm *= compute_normalization(expr.op(i), sf);
+            norm *= compute_normalization(expr.op(i), sl);
           }
 
         return norm;
       }
 
     // otherwise, determine normalization directly
-    return compute_normalization(expr, sf);
+    return compute_normalization(expr, sl);
   }
 
 

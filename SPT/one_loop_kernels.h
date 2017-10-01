@@ -34,22 +34,22 @@
 
 
 //! alpha kernel
-kernel alpha(const vector& q, const vector& s, kernel ker, symbol_factory& sf);
+kernel alpha(const vector& q, const vector& s, kernel ker, service_locator& loc);
 
 //! beta kernel
-kernel beta(const vector& q, const vector& s, kernel ker, symbol_factory& sf);
+kernel beta(const vector& q, const vector& s, kernel ker, service_locator& loc);
 
 //! gamma kernel
-kernel gamma(const vector& q, const vector& s, kernel ker, symbol_factory& sf);
+kernel gamma(const vector& q, const vector& s, kernel ker, service_locator& loc);
 
 //! symmetrized alpha kernel
-kernel alpha_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf);
+kernel alpha_bar(const vector& q, const vector& s, kernel ker, service_locator& loc);
 
 //! symmetrized beta kernel
-kernel beta_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf);
+kernel beta_bar(const vector& q, const vector& s, kernel ker, service_locator& loc);
 
 //! symmetrized gamma kernel
-kernel gamma_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf);
+kernel gamma_bar(const vector& q, const vector& s, kernel ker, service_locator& loc);
 
 
 #endif //LSSEFT_ANALYTIC_ONE_LOOP_KERNELS_H

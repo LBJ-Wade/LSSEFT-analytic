@@ -267,15 +267,15 @@ std::ostream& operator<<(std::ostream& str, const one_loop_element& obj)
   }
 
 
-one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, symbol_factory& sf_, bool s_)
+one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, service_locator& lc_, bool s_)
   : loop_int(i_),
     Rayleigh_momenta(i_.get_Rayleigh_momenta()),
     WickProduct(i_.get_Wick_product()),
     tm(i_.get_time_function()),
     external_momenta(i_.get_external_momenta()),
     symmetrize(s_),
-    sf(sf_),
-    x(sf_.make_symbol("x"))
+    loc(lc_),
+    x(lc_.get_symbol_factory().make_symbol("x"))
   {
     // throw if we were given a tree-level expression
     if(loop_int.get_loop_order() == 0)

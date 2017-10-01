@@ -27,8 +27,10 @@
 #include "one_loop_kernels.h"
 
 
-kernel alpha(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
+kernel alpha(const vector& q, const vector& s, kernel ker, service_locator& loc)
   {
+    auto& sf = loc.get_symbol_factory();
+
     auto Q_sym = sf.make_unique_Rayleigh_momentum();
     auto Q = sf.make_vector(Q_sym);
     
@@ -39,11 +41,13 @@ kernel alpha(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
   }
 
 
-kernel beta(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
+kernel beta(const vector& q, const vector& s, kernel ker, service_locator& loc)
   {
+    auto& sf = loc.get_symbol_factory();
+
     auto Q_sym = sf.make_unique_Rayleigh_momentum();
     auto Q = sf.make_vector(Q_sym);
-    
+
     auto S_sym = sf.make_unique_Rayleigh_momentum();
     auto S = sf.make_vector(S_sym);
 
@@ -55,25 +59,25 @@ kernel beta(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
   }
 
 
-kernel gamma(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
+kernel gamma(const vector& q, const vector& s, kernel ker, service_locator& loc)
   {
-    return alpha(q, s, ker, sf) + beta(q, s, ker, sf);
+    return alpha(q, s, ker, loc) + beta(q, s, ker, loc);
   }
 
 
-kernel alpha_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
+kernel alpha_bar(const vector& q, const vector& s, kernel ker, service_locator& loc)
   {
-    return (alpha(q, s, ker, sf) + alpha(s, q, ker, sf)) / 2;
+    return (alpha(q, s, ker, loc) + alpha(s, q, ker, loc)) / 2;
   }
 
 
-kernel beta_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
+kernel beta_bar(const vector& q, const vector& s, kernel ker, service_locator& loc)
   {
-    return (beta(q, s, ker, sf) + beta(s, q, ker, sf)) / 2;
+    return (beta(q, s, ker, loc) + beta(s, q, ker, loc)) / 2;
   }
 
 
-kernel gamma_bar(const vector& q, const vector& s, kernel ker, symbol_factory& sf)
+kernel gamma_bar(const vector& q, const vector& s, kernel ker, service_locator& loc)
   {
-    return (gamma(q, s, ker, sf) + gamma(s, q, ker, sf)) / 2;
+    return (gamma(q, s, ker, loc) + gamma(s, q, ker, loc)) / 2;
   }

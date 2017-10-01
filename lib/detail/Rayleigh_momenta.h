@@ -28,7 +28,7 @@
 #define LSSEFT_ANALYTIC_RAYLEIGH_MOMENTA_H
 
 
-#include "services/symbol_factory.h"
+#include "services/service_locator.h"
 #include "utilities/GiNaC_utils.h"
 
 
@@ -41,11 +41,11 @@ namespace detail
     //! with symbols already in map, or in the set 'reserved_symbols'
     GiNaC::exmap
     merge_Rayleigh_rules(GiNaC::exmap& dest, const GiNaC::exmap& source, const GiNaC_symbol_set& reserved,
-                         const GiNaC::exmap& subs_rules, symbol_factory& sf);
+                         const GiNaC::exmap& subs_rules, service_locator& loc);
     
     //! convenience wrapper to drive merge_Rayleigh_rules(), updating reserved symbols as we go
     GiNaC::exmap merge_Rayleigh_lists(const GiNaC::exmap& source, GiNaC::exmap& dest, GiNaC_symbol_set& reserved,
-                                      const GiNaC::exmap& subs_rules, symbol_factory& sf);
+                                      const GiNaC::exmap& subs_rules, service_locator& loc);
     
     //! build a replacement rule list for trivial Rayleigh labels
     GiNaC::exmap remove_Rayleigh_trivial(GiNaC::exmap& rm);

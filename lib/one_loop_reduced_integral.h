@@ -241,7 +241,7 @@ class one_loop_reduced_integral
   public:
 
     //! constructor accepts a loop_integral container and performs dimensional reduction on it
-    one_loop_reduced_integral(const loop_integral& i_, symbol_factory& sf_, bool s_);
+    one_loop_reduced_integral(const loop_integral& i_, service_locator& lc_, bool s_);
 
     //! destructor is default
     ~one_loop_reduced_integral() = default;
@@ -317,8 +317,8 @@ class one_loop_reduced_integral
 
     // AGENTS
 
-    //! cache reference to symbol factory
-    symbol_factory& sf;
+    //! cache reference to service locator
+    service_locator& loc;
 
 
     // DATA

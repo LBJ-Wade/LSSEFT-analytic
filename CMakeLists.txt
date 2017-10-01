@@ -13,7 +13,7 @@ SET_COMPILER_FLAGS()
 # RESOLVE DEPENDENCIES
 
 # find required Boost libraries
-FIND_PACKAGE(Boost 1.56 REQUIRED COMPONENTS timer date_time)
+FIND_PACKAGE(Boost 1.56 REQUIRED COMPONENTS timer date_time program_options)
 
 # find GiNaC libraries
 IF(NOT FORCE_BUILD_GINAC)
@@ -47,6 +47,8 @@ ADD_EXECUTABLE(LSSEFT_analytic
   lib/detail/Rayleigh_momenta.cpp
   lib/detail/relabel_product.cpp
   lib/detail/special_functions.cpp
+  services/argument_cache.cpp
+  services/service_locator.cpp
   services/symbol_factory.cpp
   shared/error.cpp
   shared/exceptions.cpp
@@ -104,6 +106,11 @@ SET(LOCALIZATIONS_FILES
   )
 
 SET(SERVICES_FILES
+  services/argument_cache.cpp
+  services/argument_cache.h
+  services/service_locator.cpp
+  services/service_locator.h
+  services/switches.h
   services/symbol_factory.cpp
   services/symbol_factory.h
   )

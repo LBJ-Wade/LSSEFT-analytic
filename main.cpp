@@ -27,7 +27,8 @@
 #include <iostream>
 #include <functional>
 
-#include "services/symbol_factory.h"
+#include "services/service_locator.h"
+
 #include "lib/vector.h"
 #include "lib/initial_value.h"
 #include "lib/fourier_kernel.h"
@@ -254,7 +255,12 @@ void count_kernels(const Pk_rsd& Pk_nobias, const Pk_rsd& Pk_b1, const Pk_rsd& P
 
 int main(int argc, char* argv[])
   {
+    // generate service objects
     symbol_factory sf;
+    argument_cache args{argc, argv};
+
+    // build service locator
+    service_locator loc{args, sf};
 
     // redshift z is the time variable
     const auto& z = sf.get_z();
@@ -311,7 +317,7 @@ int main(int argc, char* argv[])
 
 
     // set up kernels for the dark matter overdensity \delta
-    auto delta = sf.make_fourier_kernel<3>();
+    auto delta = loc.make_fourier_kernel<3>();
 
     // linear order
     delta.add(SPT::D(z), iv_q, 1);
@@ -319,18 +325,18 @@ int main(int argc, char* argv[])
     // second order
     // note that there is no need to symmetrize explicitly; kernels are symmetrized
     // automatically before insertion into the kernel group
-    kernel qs_base{iv_qs, sf};
-    delta.add(SPT::DA(z) * alpha(q, s, qs_base, sf));
-    delta.add(SPT::DB(z) * gamma(q, s, qs_base, sf));
+    kernel qs_base{iv_qs, loc};
+    delta.add(SPT::DA(z) * alpha(q, s, qs_base, loc));
+    delta.add(SPT::DB(z) * gamma(q, s, qs_base, loc));
 
     // third order
-    kernel qst_base{iv_qst, sf};
-    delta.add((SPT::DD(z) - SPT::DJ(z)) * 2*gamma_bar(s+t, q, alpha_bar(s, t, qst_base, sf), sf));
-    delta.add(SPT::DE(z)                * 2*gamma_bar(s+t, q, gamma_bar(s, t, qst_base, sf), sf));
-    delta.add((SPT::DF(z) + SPT::DJ(z)) * 2*alpha_bar(s+t, q, alpha_bar(s, t, qst_base, sf), sf));
-    delta.add(SPT::DG(z)                * 2*alpha_bar(s+t, q, gamma_bar(s, t, qst_base, sf), sf));
-    delta.add(SPT::DJ(z)                * (alpha(s+t, q, gamma_bar(s, t, qst_base, sf), sf)
-                                           - 2*alpha(s+t, q, alpha_bar(s, t, qst_base, sf), sf)));
+    kernel qst_base{iv_qst, loc};
+    delta.add((SPT::DD(z) - SPT::DJ(z)) * 2*gamma_bar(s+t, q, alpha_bar(s, t, qst_base, loc), loc));
+    delta.add(SPT::DE(z)                * 2*gamma_bar(s+t, q, gamma_bar(s, t, qst_base, loc), loc));
+    delta.add((SPT::DF(z) + SPT::DJ(z)) * 2*alpha_bar(s+t, q, alpha_bar(s, t, qst_base, loc), loc));
+    delta.add(SPT::DG(z)                * 2*alpha_bar(s+t, q, gamma_bar(s, t, qst_base, loc), loc));
+    delta.add(SPT::DJ(z)                * (alpha(s+t, q, gamma_bar(s, t, qst_base, loc), loc)
+                                           - 2*alpha(s+t, q, alpha_bar(s, t, qst_base, loc), loc)));
 
     // compute kernels for the dark matter velocity potential \phi, v = grad phi -> v(k) = i k phi
     auto delta1 = delta.order(1);
@@ -393,7 +399,7 @@ int main(int argc, char* argv[])
     auto deltah_rsd_k2 = make_delta_rsd(k2mu, deltah);
 
     // construct 1-loop \delta power spectrum
-    Pk_one_loop Pk_delta{deltah_rsd_k1, deltah_rsd_k2, k, sf};
+    Pk_one_loop Pk_delta{deltah_rsd_k1, deltah_rsd_k2, k, loc};
 
     // simplify mu-dependence
     Pk_delta.canonicalize_external_momenta();
@@ -439,14 +445,14 @@ int main(int argc, char* argv[])
     Pk_rsd Pk_b1bdG2{Pk_delta, mu, filter_list{ {b1,1}, {bdG2,1} }, filter_syms};
     Pk_rsd Pk_b1bGamma3{Pk_delta, mu, filter_list{ {b1,1}, {bGamma3,1} }, filter_syms};
 
-    std::cout << "** COUNTERTERM MAP" << '\n' << '\n';
-
-    std::cout << "OPERATOR MIXING:" << '\n';
-    write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
-              Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
-              Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
-              Pk_b1bGamma3, k, mixing_divergences);
-
+//    std::cout << "** COUNTERTERM MAP" << '\n' << '\n';
+//
+//    std::cout << "OPERATOR MIXING:" << '\n';
+//    write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
+//              Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
+//              Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
+//              Pk_b1bGamma3, k, mixing_divergences);
+//
     std::cout << "STOCHASTIC COUNTERTERMS:" << '\n';
     write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
               Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,

@@ -51,7 +51,7 @@ namespace Pk_one_loop_impl
       }
 
 
-    void Pk_db::reduce_angular_integrals(symbol_factory& sf, bool symmetrize)
+    void Pk_db::reduce_angular_integrals(service_locator& loc, bool symmetrize)
       {
         // walk through each subintegral in turn, performing angular reduction on it
         // the 'symmetrize' flag allows optional symmetrization of the loop and Rayleigh integrals
@@ -60,7 +60,7 @@ namespace Pk_one_loop_impl
           {
             const loop_integral& lp = *item.second.first;
             std::unique_ptr<one_loop_reduced_integral>& ri = item.second.second;
-            ri = std::make_unique<one_loop_reduced_integral>(lp, sf, symmetrize);    // will release any previous assignment
+            ri = std::make_unique<one_loop_reduced_integral>(lp, loc, symmetrize);    // will release any previous assignment
           }
       }
 

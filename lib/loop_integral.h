@@ -31,7 +31,7 @@
 #include <iostream>
 
 #include "shared/common.h"
-#include "services/symbol_factory.h"
+#include "services/service_locator.h"
 #include "utilities/GiNaC_utils.h"
 
 
@@ -54,7 +54,7 @@ class loop_integral
     //! set of external momenta, set of Rayleigh momenta (and mappings), and a symbol factory.
     //! After construction, the variable names are canonicalized
     loop_integral(time_function tm_, GiNaC::ex K_, GiNaC::ex ws_, GiNaC_symbol_set lm_, GiNaC_symbol_set em_,
-                  subs_list rm_, symbol_factory& sf_);
+                  subs_list rm_, service_locator& lc_);
 
     //! destructor is default
     ~loop_integral() = default;
@@ -131,8 +131,8 @@ class loop_integral
 
     // DELEGATES
 
-    //! cache reference to symbol factory
-    symbol_factory& sf;
+    //! cache reference to service locator
+    service_locator& loc;
 
 
     // KERNEL DATA

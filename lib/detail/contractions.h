@@ -251,7 +251,7 @@ namespace detail
         //! a list of corresponding external momenta,
         //! and constructs a set of all possible contractions between them
         template <size_t N>
-        contractions(iv_group <N> clusters, kext_group <N> kext, symbol_factory& sf_);
+        contractions(iv_group<N> clusters, kext_group<N> kext, service_locator& lc_);
         
         //! destructor is default
         ~contractions() = default;
@@ -301,8 +301,8 @@ namespace detail
         
       private:
         
-        //! cache reference to symbol factory
-        symbol_factory& sf;
+        //! cache reference to service locator
+        service_locator& loc;
 
         //! set of Wick contractions
         std::unique_ptr<Wick_set> items;
@@ -311,9 +311,9 @@ namespace detail
 
 
     template <size_t N>
-    contractions::contractions(iv_group<N> clusters, kext_group<N> kext, symbol_factory& sf_)
+    contractions::contractions(iv_group<N> clusters, kext_group<N> kext, service_locator& lc_)
       : items(std::make_unique<Wick_set>()),
-        sf(sf_)
+        loc(lc_)
       {
         // total number of fields should be even since we currently include only Gaussian contractions
         // that pair together exactly two fields
@@ -406,6 +406,8 @@ namespace detail
     contractions::assign_loop_momenta(const contraction_group& gp, const iv_group<N>& clusters, LabelMap& mma_map,
                                       UnassignedGroup& unassigned, GiNaC_symbol_set& loop_momenta)
       {
+        auto& sf = this->loc.get_symbol_factory();
+
         size_t loop_order = this->loop_order(gp, clusters);
     
         // take a working copy of the list of Wick contractions
@@ -454,7 +456,7 @@ namespace detail
             unassigned[clust2].erase(t2);
             
             // manufacture a new loop momentum variable
-            auto l = this->sf.make_unique_loop_momentum();
+            auto l = sf.make_unique_loop_momentum();
 
             // generate replacement rules for the momenta we have paired up
             mma_map[clust1][iv1.get_momentum()] = l;

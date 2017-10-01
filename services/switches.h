@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 29/08/2017.
+// Created by David Seery on 01/10/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,21 +24,17 @@
 // --@@
 //
 
-#ifndef LSSEFT_ANALYTIC_RELABEL_PRODUCT_H
-#define LSSEFT_ANALYTIC_RELABEL_PRODUCT_H
+#ifndef LSSEFT_ANALYTIC_SWITCHES_H
+#define LSSEFT_ANALYTIC_SWITCHES_H
 
 
-#include "services/service_locator.h"
-#include "utilities/GiNaC_utils.h"
+constexpr auto SWITCH_AUTO_SYMMETRIZE    = "auto-symmetrize";
+constexpr auto SWITCH_NO_AUTO_SYMMETRIZE = "no-auto-symmetrize";
+constexpr auto HELP_AUTO_SYMMETRIZE      = "automatically symmetrize Fourier kernels";
+
+constexpr auto SWITCH_22_SYMMETRIZE      = "symmetrize-22";
+constexpr auto SWITCH_NO_22_SYMMETRIZE   = "no-symmetrize-22";
+constexpr auto HELP_22_SYMMETRIZE        = "explicitly symmetrize 22 integrals after angular reduction";
 
 
-namespace detail
-  {
-    
-    //! relabel indices in a product
-    GiNaC::ex relabel_index_product(const GiNaC::ex& a, const GiNaC::ex& b, service_locator& loc);
-    
-  }   // namespace detail
-
-
-#endif //LSSEFT_ANALYTIC_RELABEL_PRODUCT_H
+#endif //LSSEFT_ANALYTIC_SWITCHES_H
