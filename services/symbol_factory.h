@@ -121,6 +121,7 @@ class symbol_factory
     //! make a canonicalized Rayleigh momentum
     GiNaC::symbol make_canonical_Rayleigh_momentum(unsigned int count);
 
+
     // PARAMETER HANDLING
 
   public:

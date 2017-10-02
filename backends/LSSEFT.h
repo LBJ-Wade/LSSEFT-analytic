@@ -55,6 +55,14 @@ namespace LSSEFT_impl
         ~LSSEFT_kernel() = default;
 
 
+        // ACCESSORS
+
+      public:
+
+        //! get external momenta
+        const GiNaC_symbol_set& get_external_momenta() const { return this->external_momenta; }
+
+
         // SERVICES
 
       public:
@@ -64,6 +72,20 @@ namespace LSSEFT_impl
 
         //! hash
         size_t hash() const;
+
+
+        // FORMATTING
+
+      public:
+
+        //! print integrand
+        std::string print_integrand(const GiNaC::exmap& subs_map) const;
+
+        //! print measure
+        std::string print_measure(const GiNaC::exmap& subs_map) const;
+
+        //! print Wick product
+        std::string print_WickProduct(const GiNaC::exmap& subs_map) const;
 
 
         // INTERNAL DATA
@@ -136,7 +158,7 @@ class LSSEFT
   public:
 
     //! constructor
-    LSSEFT(boost::filesystem::path rt_);
+    LSSEFT(boost::filesystem::path rt_, service_locator& lc_);
 
     //! destructor
     ~LSSEFT() = default;
@@ -165,13 +187,25 @@ class LSSEFT
 
   protected:
 
+    //! construct an output file name from the cached root
+    boost::filesystem::path make_output_path(std::string append) const;
+
     //! write create block
     void write_create() const;
+
+    //! write kernels
+    void write_kernels() const;
 
 
     // INTERNAL DATA
 
   private:
+
+    // SERVICES
+
+    //! cache reference to service locator
+    service_locator& loc;
+
 
     // CONFIGURATION DATA
 

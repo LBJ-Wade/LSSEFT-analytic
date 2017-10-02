@@ -469,7 +469,7 @@ int main(int argc, char* argv[])
 
     if(!args.get_output_root().empty())
       {
-        LSSEFT backend{args.get_output_root()};
+        LSSEFT backend{args.get_output_root(), loc};
 
         backend.add(Pk_nobias, "nobias");
 

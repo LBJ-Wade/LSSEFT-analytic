@@ -108,6 +108,10 @@ constexpr auto ERROR_COMPOSE_ONE_LOOP_ELEMENT_MISMATCHING_TYPE = "Internal error
 constexpr auto ERROR_BACKEND_PK_RSD_ALREADY_REGISTERED_A = "A power spectrum with the name";
 constexpr auto ERROR_BACKEND_PK_RSD_ALREADY_REGISTERED_B = "is already registered for output";
 
+constexpr auto ERROR_UNKNOWN_GINAC_FUNCTION = "Unknown mathematical function";
+constexpr auto ERROR_BACKEND_POW_ARGUMENTS = "Internal error: power function has unexpected number of arguments";
+constexpr auto ERROR_BACKEND_PK_ARGUMENTS = "Internal error: Pk correlator has unexpected number of arguments";
+
 constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
 constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";
 constexpr auto WARNING_ORDER_ZERO_KERNEL = "Ignoring order-zero kernel";
