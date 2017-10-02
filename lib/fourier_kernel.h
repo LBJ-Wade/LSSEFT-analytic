@@ -471,6 +471,12 @@ class fourier_kernel
     
     //! implementation: add a kernel
     fourier_kernel& add(kernel_type ker, bool silent);
+
+    //! insert a symmetrized kernel into the database
+    void insert_symmetric(time_function t, initial_value_set s, GiNaC::ex K, subs_list vs);
+
+    //! insert a unsymmetrized kernel into the database
+    void insert_raw(time_function t, initial_value_set s, GiNaC::ex K, subs_list vs);
     
     
     // OPERATIONS
@@ -602,6 +608,20 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
     // validate that momentum variables used in K match those listed in the stochastic terms
     validate_momenta(s, vs, K, this->loc.get_symbol_factory().get_parameters(), silent);
 
+    if(this->loc.get_argunent_cache().get_auto_symmetrize())
+      {
+        this->insert_symmetric(std::move(t), std::move(s), std::move(K), std::move(vs));
+        return *this;
+      }
+
+    this->insert_raw(std::move(t), std::move(s), std::move(K), std::move(vs));
+    return *this;
+  }
+
+
+template <unsigned int N>
+void fourier_kernel<N>::insert_symmetric(time_function t, initial_value_set s, GiNaC::ex K, subs_list vs)
+  {
     // build list of symmetrizations for this initial value set
     auto sym_groups = build_symmetrizations(K, s);
 
@@ -622,28 +642,33 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
             perm_vs[v.first] = v.second.subs(perm);
           }
 
-        // construct a key for the permuted entry
-        auto ker = std::make_unique<kernel_type>(std::move(perm_K), s, t, std::move(perm_vs), this->sf);
-        key_type key{*ker};
+        this->insert_raw(t, s, std::move(perm_K), std::move(perm_vs));
+      }
+  }
 
-        // now need to insert this kernel into the database; first, check whether an entry with this
-        // key already exists
-        auto it = this->kernels.find(key);
 
-        // if so, then a matching element already exists and we should add the current kernel to it
-        // notice that momentum relabelling, if needed, is handled by the kernel addition implementation
-        if(it != this->kernels.end())
-          {
-            *it->second += *ker;
-            continue;
-          }
+template <unsigned int N>
+void fourier_kernel<N>::insert_raw(time_function t, initial_value_set s, GiNaC::ex K, subs_list vs)
+  {
+    // construct a key for this record
+    auto ker = std::make_unique<kernel_type>(std::move(K), std::move(s), std::move(t), std::move(vs), this->loc);
+    key_type key{*ker};
 
-        // otherwise, we can insert directly
-        auto res = this->kernels.emplace(std::move(key), std::move(ker));
-        if(!res.second) throw exception(ERROR_KERNEL_INSERT_FAILED, exception_code::kernel_error);
+    // now need to insert this kernel into the database; first, check whether an entry with this
+    // key already exists
+    auto it = this->kernels.find(key);
+
+    // if so, then a matching element already exists and we should add the current kernel to it
+    // notice that momentum relabelling, if needed, is handled by the kernel addition implementation
+    if(it != this->kernels.end())
+      {
+        *it->second += *ker;
+        return;
       }
 
-    return *this;
+    // otherwise, we can insert directly
+    auto res = this->kernels.emplace(key, std::move(ker));
+    if(!res.second) throw exception(ERROR_KERNEL_INSERT_FAILED, exception_code::kernel_error);
   }
 
 

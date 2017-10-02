@@ -463,7 +463,7 @@ void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& te
         // symmetrize between q and s if required
         // For a 22 integral, the integral is q, s symmetric but our special treatment of the Rayleigh
         // momentum breaks this at the level of the integrand
-        if(this->symmetrize)
+        if(this->loc.get_argunent_cache().get_symmetrize_22() && this->symmetrize)
           {
             GiNaC::exmap sym_map = { {R, this->loop_q}, {this->loop_q, R} };
             temp = temp/2 + temp.subs(sym_map)/2;
