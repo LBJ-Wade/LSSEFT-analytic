@@ -35,6 +35,7 @@ ENDIF()
 
 ADD_EXECUTABLE(LSSEFT_analytic
   main.cpp
+  backends/LSSEFT.cpp
   lib/fourier_kernel.cpp
   lib/initial_value.cpp
   lib/loop_integral.cpp
@@ -69,6 +70,11 @@ TARGET_INCLUDE_DIRECTORIES(LSSEFT_analytic PRIVATE
 
 
 # add dummy target for CLion
+
+SET(BACKEND_FILES
+  backends/LSSEFT.cpp
+  backends/LSSEFT.h
+  )
 
 SET(LIBRARY_FILES
   lib/fourier_kernel.cpp
@@ -144,6 +150,7 @@ SET(TOP_LEVEL_FILES
   )
 
 ADD_EXECUTABLE(clion_dummy_target
+  ${BACKEND_FILES}
   ${LIBRARY_FILES}
   ${LIBRARY_DETAIL_FILES}
   ${LOCALIZATIONS_FILES}

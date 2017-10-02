@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 21/08/2017.
+// Created by David Seery on 02/10/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,59 +24,30 @@
 // --@@
 //
 
-#ifndef LSSEFT_ANALYTIC_EXCEPTIONS_H
-#define LSSEFT_ANALYTIC_EXCEPTIONS_H
+
+#include <sstream>
+
+#include "LSSEFT.h"
+
+#include "shared/exceptions.h"
+#include "localizations/messages.h"
 
 
-#include <string>
-#include <exception>
-
-
-enum class exception_code
+LSSEFT& LSSEFT::add(const Pk_rsd& P, std::string name)
   {
-    symbol_error,
-    kernel_error,
-    initial_value_error,
-    contraction_error,
-    Rayleigh_error,
-    Pk_error,
-    loop_integral_error,
-    loop_transformation_error,
-    Fabrikant_error,
-    backend_error
-  };
+    auto it = this->db.find(name);
 
+    if(it != this->db.end())
+      {
+        std::ostringstream msg;
+        msg << ERROR_BACKEND_PK_RSD_ALREADY_REGISTERED_A
+            << " '" << name << "' "
+            << ERROR_BACKEND_PK_RSD_ALREADY_REGISTERED_B;
+        throw exception(msg.str(), exception_code::backend_error);
+      }
 
-class exception: public std::runtime_error
-  {
-    
-    // CONSTRUCTOR, DESTRUCTOR
-    
-  public:
-    
-    //! constructor
-    exception(std::string msg, exception_code c);
-    
-    //! destructor
-    ~exception() = default;
-    
-    
-    // INTERFACE
-    
-  public:
-    
-    //! read exception code
-    exception_code get_code() const { return this->code; }
-    
-    
-    // INTERNAL DATA
-    
-  private:
-    
-    //! cache exception code
-    exception_code code;
-  
-  };
+    auto res = this->db.insert(std::make_pair(std::move(name), std::cref(P)));
+    if(!res.second) throw exception(ERROR_BACKEND_PK_INSERT_FAILED, exception_code::backend_error);
 
-
-#endif //LSSEFT_ANALYTIC_EXCEPTIONS_H
+    return *this;
+  }

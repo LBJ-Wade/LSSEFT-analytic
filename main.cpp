@@ -39,6 +39,8 @@
 #include "SPT/time_functions.h"
 #include "SPT/one_loop_kernels.h"
 
+#include "backends/LSSEFT.h"
+
 
 std::vector<std::string> generate_UV_limit(const Pk_rsd_group& group, const GiNaC::symbol& k, unsigned int max_mu, unsigned int max_k)
   {
@@ -466,6 +468,19 @@ int main(int argc, char* argv[])
 //                  Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
 //                  Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
 //                  Pk_b1bGamma3);
+
+
+    LSSEFT backend;
+
+    backend.add(Pk_nobias, "nobias");
+
+    backend.add(Pk_b1, "b1").add(Pk_b2, "b2").add(Pk_b3, "b3").add(Pk_bG2, "bG2").add(Pk_bG3, "bG3");
+    backend.add(Pk_bdG2, "bdG2").add(Pk_bGamma3, "bGamma3");
+
+    backend.add(Pk_b1b1, "b1b1").add(Pk_b1b2, "b1b2").add(Pk_b1b3, "b1b3").add(Pk_b2b2, "b2b2");
+
+    backend.add(Pk_b1bG2, "b1bG2").add(Pk_bG2bG2, "bG2bG2").add(Pk_b2bG2, "b2bG2").add(Pk_b1bG2, "b1bG3");
+    backend.add(Pk_b1bdG2, "b1bdG2").add(Pk_b1bGamma3, "b1bGamma3");
 
     return EXIT_SUCCESS;
   }

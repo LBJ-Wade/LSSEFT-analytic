@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 21/08/2017.
+// Created by David Seery on 02/10/2017.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -23,60 +23,55 @@
 // @contributor: David Seery <D.Seery@sussex.ac.uk>
 // --@@
 //
-
-#ifndef LSSEFT_ANALYTIC_EXCEPTIONS_H
-#define LSSEFT_ANALYTIC_EXCEPTIONS_H
-
-
-#include <string>
-#include <exception>
+#ifndef LSSEFT_ANALYTIC_LSSEFT_H
+#define LSSEFT_ANALYTIC_LSSEFT_H
 
 
-enum class exception_code
+#include <map>
+#include <functional>
+
+#include "lib/Pk_rsd.h"
+
+
+//! LSSEFT is a backend class capable of writing out C++ to implement
+//! a given correlation function in the Sussex LSSEFT platform
+class LSSEFT
   {
-    symbol_error,
-    kernel_error,
-    initial_value_error,
-    contraction_error,
-    Rayleigh_error,
-    Pk_error,
-    loop_integral_error,
-    loop_transformation_error,
-    Fabrikant_error,
-    backend_error
-  };
 
+    // TYPES
 
-class exception: public std::runtime_error
-  {
-    
+  protected:
+
+    //! main database
+    using db_type = std::map< std::string, std::reference_wrapper<const Pk_rsd> >;
+
     // CONSTRUCTOR, DESTRUCTOR
-    
+
   public:
-    
+
     //! constructor
-    exception(std::string msg, exception_code c);
-    
+    LSSEFT() = default;
+
     //! destructor
-    ~exception() = default;
-    
-    
+    ~LSSEFT() = default;
+
+
     // INTERFACE
-    
+
   public:
-    
-    //! read exception code
-    exception_code get_code() const { return this->code; }
-    
-    
+
+    //! add a new power spectrum
+    LSSEFT& add(const Pk_rsd& P, std::string name);
+
+
     // INTERNAL DATA
-    
+
   private:
-    
-    //! cache exception code
-    exception_code code;
-  
+
+    //! main database
+    db_type db;
+
   };
 
 
-#endif //LSSEFT_ANALYTIC_EXCEPTIONS_H
+#endif //LSSEFT_ANALYTIC_LSSEFT_H

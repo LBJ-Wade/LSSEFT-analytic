@@ -38,6 +38,7 @@ constexpr auto ERROR_KERNEL_TRANSFORM_INSERT_FAILED = "Internal error: kernel in
 constexpr auto ERROR_LOOP_INTEGRAL_INSERT_FAILED = "Internal error: loop integral insertion failed";
 constexpr auto ERROR_ONE_LOOP_ELEMENT_INSERT_FAILED = "Internal error: 1-loop integral element insertion failed";
 constexpr auto ERROR_ONE_LOOP_ELEMENT_INSERT_FAILED_RSD = "Internal error: 1-loop integral element insertion failed during RSD filtering";
+constexpr auto ERROR_BACKEND_PK_INSERT_FAILED = "Internal error: Pk insertin into backend failed";
 
 constexpr auto ERROR_KERNEL_NOT_SCALAR = "Kernel is not a scalar function of the momenta";
 constexpr auto ERROR_KERNEL_NOT_RATIONAL = "Kernel is not a rational function of the momenta";
@@ -102,6 +103,9 @@ constexpr auto ERROR_FABJ_SECOND_ARGS_NEGATIVE = "Second and third arguments of 
 
 constexpr auto ERROR_COMPOSE_LOOP_INTEGRAL_MISMATCHING_TYPE = "Internal error: attempt to compose loop integrals of mismatching types";
 constexpr auto ERROR_COMPOSE_ONE_LOOP_ELEMENT_MISMATCHING_TYPE = "Internal error: attempt to compose one-loop integral elements of mismatching types";
+
+constexpr auto ERROR_BACKEND_PK_RSD_ALREADY_REGISTERED_A = "A power spectrum with the name";
+constexpr auto ERROR_BACKEND_PK_RSD_ALREADY_REGISTERED_B = "is already registered for output";
 
 constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
 constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";
