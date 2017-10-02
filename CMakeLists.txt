@@ -13,7 +13,7 @@ SET_COMPILER_FLAGS()
 # RESOLVE DEPENDENCIES
 
 # find required Boost libraries
-FIND_PACKAGE(Boost 1.56 REQUIRED COMPONENTS timer date_time program_options)
+FIND_PACKAGE(Boost 1.56 REQUIRED COMPONENTS timer date_time program_options filesystem)
 
 # find GiNaC libraries
 IF(NOT FORCE_BUILD_GINAC)

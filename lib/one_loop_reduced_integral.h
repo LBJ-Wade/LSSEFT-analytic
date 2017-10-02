@@ -72,6 +72,9 @@ class one_loop_element
 
   public:
 
+    //! get integrand
+    const GiNaC::ex& get_integrand() const { return this->integrand; }
+
     //! get measure
     const GiNaC::ex& get_measure() const { return this->measure; }
 
@@ -95,7 +98,7 @@ class one_loop_element
     //! write self to stream
     void write(std::ostream& str) const;
 
-    //! test for matching type (matches measure, Wick product, integration variables, external momenta)
+    //! test for matching type (matches time function, measure, Wick product, integration variables, external momenta)
     bool is_matching_type(const one_loop_element& obj) const;
 
     //! test for nullity of integrand

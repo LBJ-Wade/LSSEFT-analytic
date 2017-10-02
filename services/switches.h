@@ -28,6 +28,16 @@
 #define LSSEFT_ANALYTIC_SWITCHES_H
 
 
+constexpr auto SWITCH_VERSION            = "version";
+constexpr auto HELP_VERSION              = "show version information";
+
+constexpr auto SWITCH_HELP               = "help";
+constexpr auto HELP_HELP                 = "display brief usage information";
+
+constexpr auto SWITCH_COUNTERTERMS       = "counterterms";
+constexpr auto SWITCH_NO_COUNTERTERMS    = "no-counterterms";
+constexpr auto HELP_COUNTERTERMS         = "compute counterterms";
+
 constexpr auto SWITCH_AUTO_SYMMETRIZE    = "auto-symmetrize";
 constexpr auto SWITCH_NO_AUTO_SYMMETRIZE = "no-auto-symmetrize";
 constexpr auto HELP_AUTO_SYMMETRIZE      = "automatically symmetrize Fourier kernels";
@@ -35,6 +45,10 @@ constexpr auto HELP_AUTO_SYMMETRIZE      = "automatically symmetrize Fourier ker
 constexpr auto SWITCH_22_SYMMETRIZE      = "symmetrize-22";
 constexpr auto SWITCH_NO_22_SYMMETRIZE   = "no-symmetrize-22";
 constexpr auto HELP_22_SYMMETRIZE        = "explicitly symmetrize 22 integrals after angular reduction";
+
+constexpr auto SWITCH_OUTPUT             = "output,o";
+constexpr auto SWITCH_OUTPUT_LONG        = "output";
+constexpr auto HELP_OUTPUT               = "set output root name";
 
 
 #endif //LSSEFT_ANALYTIC_SWITCHES_H

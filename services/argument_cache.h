@@ -28,6 +28,9 @@
 #define LSSEFT_ANALYTIC_ARGUMENT_CACHE_H
 
 
+#include "boost/filesystem/operations.hpp"
+
+
 //! argument cache serves as a central repository for behaviour controls
 class argument_cache
   {
@@ -43,21 +46,18 @@ class argument_cache
     ~argument_cache() = default;
 
 
-    // GET AND SET
+    // ACCESSORS
 
   public:
 
     //! get auto symmetrize status
     bool get_auto_symmetrize() const;
 
-    //! set auto symmetrize status
-    void set_auto_symmetrize(bool auto_symmetrize);
-
     //! get symmetrize-22 status
     bool get_symmetrize_22() const;
 
-    //! set symmetirze-22 status
-    void set_symmetrize_22(bool symmetrize_22);
+    //! get output root
+    const boost::filesystem::path& get_output_root() const;
 
 
     // INTERNAL DATA
@@ -71,6 +71,19 @@ class argument_cache
 
     //! explicitly symmetrize 22 kernels?
     bool symmetrize_22{true};
+
+
+    // BACKEND
+
+    //! generate counterterm list?
+    bool counterterms{false};
+  public:
+    bool get_counterterms() const;
+
+  private:
+
+    //! root for output file
+    boost::filesystem::path output_root;
 
   };
 

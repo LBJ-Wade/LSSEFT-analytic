@@ -288,3 +288,18 @@ GiNaC::exvector to_exvector(const GiNaC::ex& expr)
 
     return vec;
   }
+
+
+std::vector<GiNaC::symbol> order_symbol_set(const GiNaC_symbol_set& syms)
+  {
+    std::vector<GiNaC::symbol> ordered_set;
+
+    for(const auto& sym : syms)
+      {
+        ordered_set.push_back(sym);
+      }
+
+    std::sort(ordered_set.begin(), ordered_set.end(), std::less<GiNaC::symbol>{});
+
+    return ordered_set;
+  }

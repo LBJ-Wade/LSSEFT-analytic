@@ -29,6 +29,7 @@
 
 
 #include <iostream>
+#include <set>
 
 #include "Pk_one_loop.h"
 
@@ -38,6 +39,12 @@ using filter_list = std::vector< std::pair< GiNaC::symbol, unsigned int > >;
 
 class Pk_rsd_group
   {
+
+    // TYPES
+
+    //! specify which mu powers to include in visitor pattern
+    using visit_list = std::set<unsigned int>;
+
 
     // CONSTRUCTOR, DESTRUCTOR
 
@@ -89,6 +96,10 @@ class Pk_rsd_group
     //! write self to stream
     void write(std::ostream& out) const;
 
+    //! apply visitor
+    template <typename VisitorFunction>
+    void visit(visit_list pattern, VisitorFunction f) const;
+
 
     // INTERNAL DATA
 
@@ -129,6 +140,32 @@ class Pk_rsd_group
 
 //! stream insertion
 std::ostream& operator<<(std::ostream& str, const Pk_rsd_group& obj);
+
+
+template <typename VisitorFunction>
+void Pk_rsd_group::visit(visit_list pattern, VisitorFunction f) const
+  {
+    auto t0 = pattern.find(0);
+    auto t2 = pattern.find(2);
+    auto t4 = pattern.find(4);
+    auto t6 = pattern.find(6);
+    auto t8 = pattern.find(8);
+
+    auto visit = [&](const one_loop_element_db& db) -> void
+      {
+        for(const auto& item : db)
+          {
+            const one_loop_element& elt = *item.second;
+            f(elt);
+          }
+      };
+
+    if(t0 != pattern.end()) visit(this->mu0);
+    if(t2 != pattern.end()) visit(this->mu2);
+    if(t4 != pattern.end()) visit(this->mu4);
+    if(t6 != pattern.end()) visit(this->mu6);
+    if(t8 != pattern.end()) visit(this->mu8);
+  }
 
 
 class Pk_rsd

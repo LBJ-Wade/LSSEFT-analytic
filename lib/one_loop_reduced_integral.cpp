@@ -35,15 +35,6 @@
 #include "localizations/messages.h"
 
 
-namespace one_loop_reduced_integral_impl
-  {
-
-    //! order a set of symbols
-    std::vector<GiNaC::symbol> order_symbol_set(const GiNaC_symbol_set& syms);
-
-  }   // namespace loop_integral_impl
-
-
 one_loop_element::one_loop_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
                                    GiNaC_symbol_set vs_, GiNaC::symbol ang_, GiNaC_symbol_set em_)
   : integrand(std::move(ig_)),
@@ -140,8 +131,6 @@ void one_loop_element::filter(const GiNaC::symbol& pattern, unsigned int order)
 
 bool one_loop_element::is_matching_type(const one_loop_element& obj) const
   {
-    using one_loop_reduced_integral_impl::order_symbol_set;
-
     // test for equality of time function, measure, Wick product, integration variables, external momenta
     const auto& at = this->tm;
     const auto& bt = obj.tm;
@@ -203,8 +192,6 @@ one_loop_element_key::one_loop_element_key(const one_loop_element& elt_)
 
 size_t one_loop_element_key::hash() const
   {
-    using one_loop_reduced_integral_impl::order_symbol_set;
-
     // print time function to string and hash it
     std::ostringstream time_string;
     time_string << this->elt.get_time_function().expand();
@@ -806,23 +793,3 @@ std::ostream& operator<<(std::ostream& str, const one_loop_element_db& obj)
 
     return str;
   }
-
-
-namespace one_loop_reduced_integral_impl
-  {
-
-    std::vector<GiNaC::symbol> order_symbol_set(const GiNaC_symbol_set& syms)
-      {
-        std::vector<GiNaC::symbol> ordered_set;
-
-        for(const auto& sym : syms)
-          {
-            ordered_set.push_back(sym);
-          }
-
-        std::sort(ordered_set.begin(), ordered_set.end(), std::less<GiNaC::symbol>{});
-
-        return ordered_set;
-      }
-
-  }   // namespace loop_integral_impl

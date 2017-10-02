@@ -264,6 +264,9 @@ int main(int argc, char* argv[])
     // build service locator
     service_locator loc{args, sf};
 
+    if(!args.get_counterterms() && args.get_output_root().empty())
+      exit(EXIT_SUCCESS);
+
     // redshift z is the time variable
     const auto& z = sf.get_z();
 
@@ -325,8 +328,8 @@ int main(int argc, char* argv[])
     delta.add(SPT::D(z), iv_q, 1);
 
     // second order
-    // note that there is no need to symmetrize explicitly; kernels are symmetrized
-    // automatically before insertion into the kernel group
+    // we don't symmetrize explicitly; kernels are symmetrized automatically
+    // if this feature is not disabled
     kernel qs_base{iv_qs, loc};
     delta.add(SPT::DA(z) * alpha(q, s, qs_base, loc));
     delta.add(SPT::DB(z) * gamma(q, s, qs_base, loc));
@@ -447,40 +450,40 @@ int main(int argc, char* argv[])
     Pk_rsd Pk_b1bdG2{Pk_delta, mu, filter_list{ {b1,1}, {bdG2,1} }, filter_syms};
     Pk_rsd Pk_b1bGamma3{Pk_delta, mu, filter_list{ {b1,1}, {bGamma3,1} }, filter_syms};
 
-//    std::cout << "** COUNTERTERM MAP" << '\n' << '\n';
-//
-//    std::cout << "OPERATOR MIXING:" << '\n';
-//    write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
-//              Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
-//              Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
-//              Pk_b1bGamma3, k, mixing_divergences);
-//
-    std::cout << "STOCHASTIC COUNTERTERMS:" << '\n';
-    write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
-              Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
-              Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
-              Pk_b1bGamma3, k, stochastic_divergences);
+    if(args.get_counterterms())
+      {
+        std::cout << "** COUNTERTERM MAP" << '\n' << '\n';
 
-//    std::cout << '\n' << '\n';
-//
-//    std::cout << "** NUMBER OF KERNELS" << '\n' << '\n';
-//    count_kernels(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
-//                  Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
-//                  Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
-//                  Pk_b1bGamma3);
+        std::cout << "OPERATOR MIXING:" << '\n';
+        write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
+                  Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
+                  Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
+                  Pk_b1bGamma3, k, mixing_divergences);
 
+        std::cout << "STOCHASTIC COUNTERTERMS:" << '\n';
+        write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
+                  Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
+                  Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
+                  Pk_b1bGamma3, k, stochastic_divergences);
+      }
 
-    LSSEFT backend;
+    if(!args.get_output_root().empty())
+      {
+        LSSEFT backend{args.get_output_root()};
 
-    backend.add(Pk_nobias, "nobias");
+        backend.add(Pk_nobias, "nobias");
 
-    backend.add(Pk_b1, "b1").add(Pk_b2, "b2").add(Pk_b3, "b3").add(Pk_bG2, "bG2").add(Pk_bG3, "bG3");
-    backend.add(Pk_bdG2, "bdG2").add(Pk_bGamma3, "bGamma3");
+        backend.add(Pk_b1, "b1").add(Pk_b2, "b2").add(Pk_b3, "b3").add(Pk_bG2, "bG2").add(Pk_bG3, "bG3");
+        backend.add(Pk_bdG2, "bdG2").add(Pk_bGamma3, "bGamma3");
 
-    backend.add(Pk_b1b1, "b1b1").add(Pk_b1b2, "b1b2").add(Pk_b1b3, "b1b3").add(Pk_b2b2, "b2b2");
+        backend.add(Pk_b1b1, "b1b1").add(Pk_b1b2, "b1b2").add(Pk_b1b3, "b1b3").add(Pk_b2b2, "b2b2");
 
-    backend.add(Pk_b1bG2, "b1bG2").add(Pk_bG2bG2, "bG2bG2").add(Pk_b2bG2, "b2bG2").add(Pk_b1bG2, "b1bG3");
-    backend.add(Pk_b1bdG2, "b1bdG2").add(Pk_b1bGamma3, "b1bGamma3");
+        backend.add(Pk_b1bG2, "b1bG2").add(Pk_bG2bG2, "bG2bG2").add(Pk_b2bG2, "b2bG2").add(Pk_b1bG2, "b1bG3");
+        backend.add(Pk_b1bdG2, "b1bdG2").add(Pk_b1bGamma3, "b1bGamma3");
+
+        backend.write();
+      }
+
 
     return EXIT_SUCCESS;
   }

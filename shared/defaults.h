@@ -56,6 +56,10 @@ constexpr auto LSSEFT_REDSHIFT_NAME = "z";
 constexpr auto LSSEFT_REDSHIFT_LATEX = "z";
 
 
+//! default kernel root name
+constexpr auto LSSEFT_DEFAULT_KERNEL_ROOT = "ker";
+
+
 //! enable reduction of Fabrikant integrals
 #define REDUCE_FABRIKANT_INTEGRALS
 

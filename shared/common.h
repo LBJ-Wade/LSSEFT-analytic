@@ -38,4 +38,9 @@ using time_function = GiNaC::ex;
 using subs_list = GiNaC::exmap;
 
 
+constexpr auto PROGRAM_NAME = "LSSEFT-analytic";
+constexpr auto PROGRAM_VERSION = "2017.1-beta1";
+constexpr auto PROGRAM_COPYRIGHT = "(c) University of Sussex 2017";
+
+
 #endif //LSSEFT_ANALYTIC_COMMON_H

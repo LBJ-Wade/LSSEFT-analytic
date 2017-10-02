@@ -30,7 +30,89 @@
 #include <map>
 #include <functional>
 
+#include "shared/defaults.h"
+
 #include "lib/Pk_rsd.h"
+
+#include "boost/filesystem/operations.hpp"
+
+
+namespace LSSEFT_impl
+  {
+
+    //! holds the details of a single LSSEFT kernel
+    class LSSEFT_kernel
+      {
+
+        // CONSTRUCTOR, DESTRUCTOR
+
+      public:
+
+        //! constructor
+        LSSEFT_kernel(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, GiNaC_symbol_set vs_, GiNaC_symbol_set em_);
+
+        //! destructor is default
+        ~LSSEFT_kernel() = default;
+
+
+        // SERVICES
+
+      public:
+
+        //! test for equality
+        bool is_equal(const LSSEFT_kernel& obj) const;
+
+        //! hash
+        size_t hash() const;
+
+
+        // INTERNAL DATA
+
+      private:
+
+        //! integrand
+        GiNaC::ex integrand;
+
+        //! measure
+        GiNaC::ex measure;
+
+        //! Wick product
+        GiNaC::ex WickProduct;
+
+        //! set of integration variables
+        GiNaC_symbol_set variables;
+
+        //! set of external momenta
+        GiNaC_symbol_set external_momenta;
+
+      };
+
+  }   // namespace LSSEFT_impl
+
+
+// specialize std::hash<> and std::is_equal<> to LSSEFT_impl
+namespace std
+  {
+
+    template <>
+    struct hash<LSSEFT_impl::LSSEFT_kernel>
+      {
+        size_t operator()(const LSSEFT_impl::LSSEFT_kernel& obj) const
+          {
+            return obj.hash();
+          }
+      };
+
+    template <>
+    struct equal_to<LSSEFT_impl::LSSEFT_kernel>
+      {
+        bool operator()(const LSSEFT_impl::LSSEFT_kernel& a, const LSSEFT_impl::LSSEFT_kernel& b) const
+          {
+            return a.is_equal(b);
+          }
+      };
+
+  }   // namespace std
 
 
 //! LSSEFT is a backend class capable of writing out C++ to implement
@@ -42,15 +124,19 @@ class LSSEFT
 
   protected:
 
-    //! main database
-    using db_type = std::map< std::string, std::reference_wrapper<const Pk_rsd> >;
+    //! power spectrum database
+    using Pk_db_type = std::map< std::string, std::reference_wrapper<const Pk_rsd> >;
+
+    //! kernel database
+    using kernel_db_type = std::unordered_map< LSSEFT_impl::LSSEFT_kernel, std::string >;
+
 
     // CONSTRUCTOR, DESTRUCTOR
 
   public:
 
     //! constructor
-    LSSEFT() = default;
+    LSSEFT(boost::filesystem::path rt_);
 
     //! destructor
     ~LSSEFT() = default;
@@ -63,13 +149,49 @@ class LSSEFT
     //! add a new power spectrum
     LSSEFT& add(const Pk_rsd& P, std::string name);
 
+    //! write output files
+    void write() const;
+
+  protected:
+
+    //! process the kernels associated with an added power spectrum
+    void process_kernels(const Pk_rsd_group& group);
+
+    //! generate a unique kernel name
+    std::string make_unique_kernel_name();
+
+
+    // INTERNAL API
+
+  protected:
+
+    //! write create block
+    void write_create() const;
+
 
     // INTERNAL DATA
 
   private:
 
-    //! main database
-    db_type db;
+    // CONFIGURATION DATA
+
+    //! output root
+    boost::filesystem::path root;
+
+    //! current kernel number
+    unsigned int kernel_count{0};
+
+    //! kernel root string
+    std::string kernel_root{LSSEFT_DEFAULT_KERNEL_ROOT};
+
+
+    // DATABASES
+
+    //! power spectrum database
+    Pk_db_type Pk_db;
+
+    //! kernel database
+    kernel_db_type kernel_db;
 
   };
 
