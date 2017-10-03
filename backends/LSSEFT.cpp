@@ -119,6 +119,11 @@ namespace LSSEFT_impl
       }
 
 
+    // forward-declare print functions
+    static std::string format_print(const GiNaC::ex& expr);
+    static std::string print_operands(const GiNaC::ex& expr, const std::string& op);
+
+
     static const std::map< std::string, std::string > func_convert
       {
         {"abs", "std::abs"},
@@ -144,8 +149,23 @@ namespace LSSEFT_impl
       };
 
 
-    // forward-declare print function
-    static std::string format_print(const GiNaC::ex& expr);
+    static std::string print_func(const GiNaC::ex& expr, const std::string& name)
+      {
+        auto t = func_convert.find(name);
+        if(t == func_convert.end())
+          {
+            std::ostringstream msg;
+            msg << ERROR_UNKNOWN_GINAC_FUNCTION << " '" << name << "'";
+            throw exception(msg.str(), exception_code::backend_error);
+          }
+
+        std::string rval{t->second};
+        rval.append("(");
+        rval.append(print_operands(expr, ","));
+        rval.append(")");
+
+        return rval;
+      }
 
 
     static std::string print_ginac(const GiNaC::ex& expr)
@@ -235,9 +255,21 @@ namespace LSSEFT_impl
 
         if(n != 3) throw exception(ERROR_BACKEND_PK_ARGUMENTS, exception_code::backend_error);
 
-        out << "data_->Pk(data_->IR_cutoff, data_->UV_cutoff, " << format_print(expr.op(2)) << ")";
+        out << "(data_->Pk(data_->IR_cutoff, data_->UV_cutoff, " << format_print(expr.op(2)) << ") * Mpc_units::Mpc3)";
 
         return out.str();
+      }
+
+
+    static std::string print_constant(const GiNaC::ex& expr)
+      {
+        const auto& c = GiNaC::ex_to<GiNaC::constant>(expr);
+
+        std::ostringstream buf;
+        buf << c;
+
+        if(buf.str() == "Pi") return std::string{"M_PI"};
+        return buf.str();
       }
 
 
@@ -253,32 +285,17 @@ namespace LSSEFT_impl
         else if(name == "add")       return print_operands(expr, "+");
         else if(name == "mul")       return print_operands(expr, "*");
         else if(name == "power")     return print_power(expr);
-        else if(name == "constant")  return print_ginac(expr);
+        else if(name == "constant")  return print_constant(expr);
         else if(name == "tensdelta") return print_ginac(expr);
         else if(name == "idx")       return print_ginac(expr);
         else if(name == "varidx")    return print_ginac(expr);
         else if(name == "indexed")   return print_ginac(expr);
+        else if(name == "Pk")        return print_Pk(expr);
 
         // not a standard operation, so assume it must be a special function
         // look up its C++ form in func_map, and then format its arguments,
         // taking care to keep track of use counts
-
-        if(name == "Pk") return print_Pk(expr);
-
-        auto t = func_convert.find(name);
-        if(t == func_convert.end())
-          {
-            std::ostringstream msg;
-            msg << ERROR_UNKNOWN_GINAC_FUNCTION << " '" << name << "'";
-            throw exception(msg.str(), exception_code::backend_error);
-          }
-
-        std::string rval{t->second};
-        rval.append("(");
-        rval.append(print_operands(expr, ","));
-        rval.append(")");
-
-        return rval;
+        return print_func(expr, name);
       }
 
 
@@ -294,9 +311,56 @@ namespace LSSEFT_impl
       }
 
 
-    std::string LSSEFT_kernel::print_WickProduct(const GiNaC::exmap& subs_map) const
+    GiNaC::ex filter(const GiNaC::ex& factor, const GiNaC_symbol_set& external_momenta)
       {
-        return format_print(this->WickProduct.subs(subs_map));
+        const auto& func = GiNaC::ex_to<GiNaC::function>(factor);
+
+        if(func.get_name() == "Pk" && func.nops() == 3)
+          {
+            const GiNaC::ex& arg = func.op(2);
+            if(GiNaC::is_a<GiNaC::symbol>(arg))
+              {
+                const auto& sym = GiNaC::ex_to<GiNaC::symbol>(arg);
+                auto it = external_momenta.find(sym);
+
+                // if symbol included in external momenta, return unity
+                if(it != external_momenta.end()) return GiNaC::ex{1};
+              }
+          }
+
+        return factor;
+      }
+
+
+    std::string
+    LSSEFT_kernel::print_WickProduct(const GiNaC::exmap& subs_map, const GiNaC_symbol_set& external_momenta) const
+      {
+        GiNaC::ex filtered{1};
+
+        // filter out factors in the Wick product that don't participate in the integration
+        if(GiNaC::is_a<GiNaC::function>(this->WickProduct))
+          {
+            filtered *= filter(this->WickProduct, external_momenta);
+          }
+        else if(GiNaC::is_a<GiNaC::mul>(this->WickProduct))
+          {
+            size_t ops = this->WickProduct.nops();
+            for(size_t i = 0; i < ops; ++i)
+              {
+                const GiNaC::ex& factor = this->WickProduct.op(i);
+
+                if(GiNaC::is_a<GiNaC::function>(factor))
+                  {
+                    filtered *= filter(factor, external_momenta);
+                  }
+                else
+                  {
+                    filtered *= factor;
+                  }
+              }
+          }
+
+        return format_print(filtered.subs(subs_map));
       }
 
   }   // namespace LSSEFT_impl
@@ -443,19 +507,21 @@ void LSSEFT::write_kernels() const
         // write create statements for all kernels that we require
         outf << "static int " << name << "_integrand(const int* ndim_, const cubareal x_[], const int* ncomp_, cubareal f_[], void* userdata_)" << '\n';
         outf << " {" << '\n';
-        outf << "   oneloop_momentum_impl::integrand_data* data_ = static_cast<integrand_data*>(userdata_);" << '\n';
+        outf << "   using oneloop_momentum_impl::integrand_data;" << '\n';
+        outf << "   integrand_data* data_ = static_cast<integrand_data*>(userdata_);" << '\n';
         outf << '\n';
-        outf << "   Mpc_units::energy k_ = data_->k;" << '\n';
-        outf << "   Mpc_units::energy q_ = data_->IR_cutoff + x_[0] * data_->q_range;" << '\n';
+        outf << "   double k_ = data_->k * Mpc_units::Mpc;" << '\n';
+        outf << "   double q_ = (data_->IR_cutoff + x_[0] * data_->q_range) * Mpc_units::Mpc;" << '\n';
         outf << "   double z_ = 2.0*x_[1] - 1.0;" << '\n';
         outf << '\n';
-        outf << "   auto value_ = " << kernel.print_integrand(subs_map) << ";" << '\n';
-        outf << "   value_ *= " << kernel.print_measure(subs_map) << ";" << '\n';
-        outf << "   value_ *= " << kernel.print_WickProduct(subs_map) << ";" << '\n';
-        outf << "   f_[0] = data_->jacobian_d3q * value_;" << '\n';
+        outf << "   double value_ = " << kernel.print_integrand(subs_map) << ";" << '\n';
+        outf << "   double measure_ = " << kernel.print_measure(subs_map) << ";" << '\n';
+        outf << "   double Wick_ = " << kernel.print_WickProduct(subs_map, external_momenta) << ";" << '\n';
+        outf << "   f_[0] = data_->jacobian_dqdx * value_ * measure_ * Wick_;" << '\n';
         outf << '\n';
         outf << "   return 0;" << '\n';
         outf << " }" << '\n';
+        outf << '\n';
       }
 
     outf.close();

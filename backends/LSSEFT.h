@@ -85,7 +85,7 @@ namespace LSSEFT_impl
         std::string print_measure(const GiNaC::exmap& subs_map) const;
 
         //! print Wick product
-        std::string print_WickProduct(const GiNaC::exmap& subs_map) const;
+        std::string print_WickProduct(const GiNaC::exmap& subs_map, const GiNaC_symbol_set& external_momenta) const;
 
 
         // INTERNAL DATA
