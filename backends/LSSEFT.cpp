@@ -1228,7 +1228,7 @@ void LSSEFT::write_Pk_makeidx_stmts() const
              << '\n';
 
         outf << "sqlite3_operations::create_index(this->handle, \"" << name
-             << "_mu7\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
+             << "_mu8\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
              << '\n';
 
         outf << '\n';
