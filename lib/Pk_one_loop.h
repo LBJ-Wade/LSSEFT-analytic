@@ -267,6 +267,7 @@ Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2
     this->build_22(ker1, ker2);
 
     // perform angular reduction on integrands using Rayleigh algorithm
+    this->Ptree.reduce_angular_integrals(loc, false);  // false = don't symmetrize q/s (meaningless at tree level)
     this->P13.reduce_angular_integrals(loc, false);    // false = don't symmetrize q/s
     this->P22.reduce_angular_integrals(loc, true);     // true = symmetrize q/s
 

@@ -264,16 +264,9 @@ one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, se
     loc(lc_),
     x(lc_.get_symbol_factory().make_symbol("x"))
   {
-    // throw if we were given a tree-level expression
-    if(loop_int.get_loop_order() == 0)
-      throw exception(ERROR_ONE_LOOP_REDUCE_WITH_TREE, exception_code::loop_transformation_error);
-
     // throw if we were given a 2+ loop expression
     if(loop_int.get_loop_order() > 1)
       throw exception(ERROR_ONE_LOOP_REDUCE_WITH_MULTIPLE_LOOPS, exception_code::loop_transformation_error);
-
-    // cache loop momentum
-    loop_q = *loop_int.get_loop_momenta().begin();
 
     // extract momentum kernel from integral
     auto K = loop_int.get_kernel();
@@ -282,22 +275,37 @@ one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, se
     // suitable for term-by-term decomposition into a sum of products of Legendre polynomials
     K = dot_products_to_cos(K).expand();
 
-    // apply term-by-term decomposition to K
-    if(GiNaC::is_a<GiNaC::mul>(K))
+    if(loop_int.get_loop_order() == 1)
       {
-        // just a single product at the top level, so reduce that
-        this->reduce(K);
-      }
-    else if(GiNaC::is_a<GiNaC::add>(K))
-      {
-        // a sum of terms at top level; work through each one and reduce them term-by-term
-        for(size_t i = 0; i < K.nops(); ++i)
+        // cache loop momentum
+        loop_q = *loop_int.get_loop_momenta().begin();
+
+        // apply term-by-term decomposition to K
+        if(GiNaC::is_a<GiNaC::mul>(K))
           {
-            this->reduce(K.op(i));
+            // just a single product at the top level, so reduce that
+            this->reduce(K);
           }
+        else if(GiNaC::is_a<GiNaC::add>(K))
+          {
+            // a sum of terms at top level; work through each one and reduce them term-by-term
+            for(size_t i = 0; i < K.nops(); ++i)
+              {
+                this->reduce(K.op(i));
+              }
+          }
+        else
+          throw exception(ERROR_BADLY_FORMED_TOP_LEVEL_MOMENTUM_KERNEL, exception_code::loop_transformation_error);
       }
     else
-      throw exception(ERROR_BADLY_FORMED_TOP_LEVEL_MOMENTUM_KERNEL, exception_code::loop_transformation_error);
+      {
+        auto elt =
+          std::make_unique<one_loop_element>(K, 1, this->WickProduct, this->tm,
+                                             GiNaC_symbol_set{}, this->x, this->external_momenta);
+
+        // insert in database
+        this->emplace(std::move(elt));
+      }
   }
 
 
