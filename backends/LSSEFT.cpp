@@ -965,7 +965,7 @@ void LSSEFT::write_Pk_store() const
       {
         const std::string& name = record.first;
 
-        outf << "const oneloop_Pk& " << name << " = sample.at(\"" << name << "\");" << '\n';
+        outf << "const oneloop_Pk& " << name << " = record.at(\"" << name << "\");" << '\n';
         outf << "store_impl::store_one_loop_rsd_Pk(db, \"" << name << "_mu0\", " << name << ".get_dd_rsd_mu0(), model, " << name << ");" << '\n';
         outf << "store_impl::store_one_loop_rsd_Pk(db, \"" << name << "_mu2\", " << name << ".get_dd_rsd_mu2(), model, " << name << ");" << '\n';
         outf << "store_impl::store_one_loop_rsd_Pk(db, \"" << name << "_mu4\", " << name << ".get_dd_rsd_mu4(), model, " << name << ");" << '\n';
