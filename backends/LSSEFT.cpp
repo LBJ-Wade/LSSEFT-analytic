@@ -40,12 +40,14 @@
 namespace LSSEFT_impl
   {
 
-    LSSEFT_kernel::LSSEFT_kernel(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, GiNaC_symbol_set vs_, GiNaC_symbol_set em_)
+    LSSEFT_kernel::LSSEFT_kernel(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, GiNaC_symbol_set vs_, GiNaC_symbol_set em_,
+                                     mass_dimension dm_)
       : integrand(std::move(ig_)),
         measure(std::move(ms_)),
         WickProduct(std::move(wp_)),
         variables(std::move(vs_)),
-        external_momenta(std::move(em_))
+        external_momenta(std::move(em_)),
+        dim(dm_)
       {
       }
 
@@ -255,7 +257,7 @@ namespace LSSEFT_impl
 
         if(n != 3) throw exception(ERROR_BACKEND_PK_ARGUMENTS, exception_code::backend_error);
 
-        out << "(data_->Pk(data_->IR_cutoff, data_->UV_cutoff, " << format_print(expr.op(2)) << ") * Mpc_units::Mpc3)";
+        out << "(data_->Pk((" << format_print(expr.op(2)) << ")/Mpc_units::Mpc) / Mpc_units::Mpc3)";
 
         return out.str();
       }
@@ -291,6 +293,22 @@ namespace LSSEFT_impl
         else if(name == "varidx")    return print_ginac(expr);
         else if(name == "indexed")   return print_ginac(expr);
         else if(name == "Pk")        return print_Pk(expr);
+        else if(name == "D")         return std::string{"val.D_lin"};
+        else if(name == "DA")        return std::string{"val.A"};
+        else if(name == "DB")        return std::string{"val.B"};
+        else if(name == "DD")        return std::string{"val.D"};
+        else if(name == "DE")        return std::string{"val.E"};
+        else if(name == "DF")        return std::string{"val.F"};
+        else if(name == "DG")        return std::string{"val.G"};
+        else if(name == "DJ")        return std::string{"val.J"};
+        else if(name == "f")         return std::string("val.f_lin");
+        else if(name == "fA")        return std::string("val.fA");
+        else if(name == "fB")        return std::string("val.fB");
+        else if(name == "fD")        return std::string("val.fD");
+        else if(name == "fE")        return std::string("val.fE");
+        else if(name == "fF")        return std::string("val.fF");
+        else if(name == "fG")        return std::string("val.fG");
+        else if(name == "fJ")        return std::string("val.fJ");
 
         // not a standard operation, so assume it must be a special function
         // look up its C++ form in func_map, and then format its arguments,
@@ -307,6 +325,7 @@ namespace LSSEFT_impl
 
     std::string LSSEFT_kernel::print_measure(const GiNaC::exmap& subs_map) const
       {
+        // LSSEFT uses a constant normalization of 8pi^2 for the integrals
         return format_print(this->measure.subs(subs_map));
       }
 
@@ -393,21 +412,28 @@ LSSEFT& LSSEFT::add(const Pk_rsd& P, std::string name)
     if(!res.second) throw exception(ERROR_BACKEND_PK_INSERT_FAILED, exception_code::backend_error);
 
     // process P's kernels
-    this->process_kernels(P.get_13());
-    this->process_kernels(P.get_22());
+    using LSSEFT_impl::mass_dimension;
+    this->process_kernels(P.get_13(), mass_dimension::zero);
+    this->process_kernels(P.get_22(), mass_dimension::minus3);
 
     return *this;
   }
 
 
-void LSSEFT::process_kernels(const Pk_rsd_group& group)
+std::string LSSEFT::make_unique_kernel_name()
+  {
+    return this->kernel_root + std::to_string(this->kernel_count++);
+  }
+
+
+void LSSEFT::process_kernels(const Pk_rsd_group& group, LSSEFT_impl::mass_dimension dim)
   {
     auto visitor = [&](const one_loop_element& elt) -> void
       {
         using LSSEFT_impl::LSSEFT_kernel;
 
         LSSEFT_kernel ker{elt.get_integrand(), elt.get_measure(), elt.get_Wick_product(),
-                          elt.get_integration_variables(), elt.get_external_momenta()};
+                          elt.get_integration_variables(), elt.get_external_momenta(), dim};
 
         auto it = this->kernel_db.find(ker);
 
@@ -429,20 +455,87 @@ void LSSEFT::write() const
     // generate create statements
     this->write_create();
 
+
+    // KERNELS
+
+    // generate container class
+    this->write_container_class();
+
+    // generate 'missing' statements for kernels
+    this->write_kernel_missing();
+
+    // generate store statements for kernels
+    this->write_kernel_store();
+
+    // generate find statements for kernels
+    this->write_kernel_find();
+
     // generate kernel integrands
-    this->write_kernels();
+    this->write_kernel_integrands();
+
+    // write kernel integrate statements
+    this->write_integrate_stmts();
+
+    // write kernel drop-index statements
+    this->write_kernel_dropidx_stmts();
+
+    // write kernel make-index statements
+    this->write_kernel_makeidx_stmts();
+
+
+    // ONE LOOP POWER SPECTRA
+
+    // generate 'missing' statements for one-loop Pks
+    this->write_Pk_missing();
+
+    // generate store statements for kernels
+    this->write_Pk_store();
+
+    // write compute statements for the different Pk
+    this->write_Pk_compute_stmts();
+
+    // write find statements for the different Pk
+    this->write_Pk_find();
+
+    // write compute functions for the different Pk
+    this->write_Pk_expressions();
+
+    //! write Pk drop-index statements
+    this->write_Pk_dropidx_stmts();
+
+    //! write Pk make-index statements
+    this->write_Pk_makeidx_stmts();
+
+
+    // MULTIPOLE POWER SPECTRA
+
+    // generate 'missing' statements for one-loop Pks
+    this->write_multipole_missing();
+
+    // write 'decompose' statements to construct Legendre modes
+    this->write_multipole_decompose_stmts();
+
+    // write store statements for Pn
+    this->write_multipole_store();
+
+    //! write multipole drop-index statements
+    this->write_multipole_dropidx_stmts();
+
+    //! write multiple mkake-index statements
+    this->write_multipole_makeidx_stmts();
   }
 
 
-boost::filesystem::path LSSEFT::make_output_path(std::string append) const
+boost::filesystem::path LSSEFT::make_output_path(const boost::filesystem::path& leaf) const
   {
-    return this->root.parent_path() / boost::filesystem::path{this->root.stem().string() + "_" + append + ".cpp"};
+    auto path = this->root / boost::filesystem::path{"autogenerated"} / leaf;
+    return path;
   }
 
 
 void LSSEFT::write_create() const
   {
-    auto output = this->make_output_path("create");
+    auto output = this->make_output_path("create_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
 
@@ -478,11 +571,11 @@ void LSSEFT::write_create() const
   }
 
 
-void LSSEFT::write_kernels() const
+void LSSEFT::write_kernel_integrands() const
   {
     using LSSEFT_impl::LSSEFT_kernel;
 
-    auto output = this->make_output_path("kernels");
+    auto output = this->make_output_path("kernel_integrands.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
 
@@ -517,7 +610,7 @@ void LSSEFT::write_kernels() const
         outf << "   double value_ = " << kernel.print_integrand(subs_map) << ";" << '\n';
         outf << "   double measure_ = " << kernel.print_measure(subs_map) << ";" << '\n';
         outf << "   double Wick_ = " << kernel.print_WickProduct(subs_map, external_momenta) << ";" << '\n';
-        outf << "   f_[0] = data_->jacobian_dqdx * value_ * measure_ * Wick_;" << '\n';
+        outf << "   f_[0] = (data_->jacobian_dqdx * Mpc_units::Mpc) * value_ * measure_ * Wick_;" << '\n';
         outf << '\n';
         outf << "   return 0;" << '\n';
         outf << " }" << '\n';
@@ -528,7 +621,764 @@ void LSSEFT::write_kernels() const
   }
 
 
-std::string LSSEFT::make_unique_kernel_name()
+const std::map< LSSEFT_impl::mass_dimension, std::string > integral_type_map
+  = { { LSSEFT_impl::mass_dimension::zero, "dimless_integral" },
+      { LSSEFT_impl::mass_dimension::minus3, "inverse_energy3_integral" } };
+
+
+const std::map< LSSEFT_impl::mass_dimension, std::string > integral_1322_map
+  = { { LSSEFT_impl::mass_dimension::zero, "loop_integral_type::P22" },
+      { LSSEFT_impl::mass_dimension::minus3, "loop_integral_type::P13" } };
+
+
+void LSSEFT::write_container_class() const
   {
-    return this->kernel_root + std::to_string(this->kernel_count++);
+    using LSSEFT_impl::LSSEFT_kernel;
+    using LSSEFT_impl::mass_dimension;
+
+    auto output = this->make_output_path("kernel_class.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    outf << "class kernels" << '\n';
+    outf << " {" << '\n';
+    outf << '\n';
+
+    outf << " public:" << '\n';
+
+    // value constructor
+    outf << '\n';
+    outf << "    //! value constructor" << '\n';
+    outf << "    kernels(";
+
+    // constructor argument list
+    unsigned int count = 0;
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        mass_dimension dim = kernel.get_dimension();
+
+        if(count > 0) outf << ", ";
+        outf << "const " << integral_type_map.at(dim) << "& " << name << "_";
+        ++count;
+      }
+    outf << ")" << '\n';
+
+    // constructor initializer list
+    outf << "     : fail(false)";
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        outf << ", " << name << "(" << name << "_)";
+      }
+    outf << '\n';
+    outf << "     {" << '\n';
+    outf << "     }" << '\n';
+
+    // empty constructor
+    outf << '\n';
+    outf << "    //! empty constructor" << '\n';
+    outf << "    kernels()" << '\n';
+    outf << "     : fail(false)";
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        outf << ", " << name << "()";
+      }
+    outf << '\n';
+    outf << "     {" << '\n';
+    outf << "     }" << '\n';
+
+    // destructor
+    outf << '\n';
+    outf << "   //! destructor is default" << '\n';
+    outf << "   ~kernels() = default;" << '\n';
+
+    outf << '\n';
+    outf << "public:" << '\n';
+
+    outf << "    //! get failure state" << '\n'
+         << "    bool get_fail() const { return this->fail; }" << '\n'
+         << '\n'
+         << "    //! set failed flag" << '\n'
+         << "    void mark_failed() { this->fail = true; }" << '\n';
+
+    // accessors
+    outf << '\n';
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        mass_dimension dim = kernel.get_dimension();
+
+        outf << "    " << integral_type_map.at(dim) << "& get_" << name << "() { return this->" << name << "; }" << '\n';
+        outf << "    const " << integral_type_map.at(dim) << "& get_" << name << "() const { return this->" << name << "; }" << '\n';
+      }
+
+    // internal data
+    outf << '\n';
+    outf << " private:" << '\n';
+
+    outf << '\n';
+    outf << "    bool fail;" << '\n';
+
+    outf << '\n';
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        mass_dimension dim = kernel.get_dimension();
+
+        outf << "    " << integral_type_map.at(dim) << " " << name << ";" << '\n';
+      }
+
+    outf << '\n';
+    outf << "    friend class boost::serialization::access;" << '\n';
+
+    outf << '\n';
+    outf << "    template <typename Archive>" << '\n'
+         << "    void serialize(Archive& ar, unsigned int version)" << '\n'
+         << "     {" << '\n'
+         << "       ar & fail;" << '\n';
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        outf << "       ar & " << name << ";" << '\n';
+      }
+    outf << "     }" << '\n';
+
+    // close class brace
+    outf << " };" << '\n';
+  }
+
+
+void LSSEFT::write_integrate_stmts() const
+  {
+    using LSSEFT_impl::mass_dimension;
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("integrate_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    outf << "    kernels ker;" << '\n';
+    outf << "    bool fail = false;" << '\n';
+
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        mass_dimension dim = kernel.get_dimension();
+
+        outf << "    fail |= this->kernel_integral(model, k, UV_cutoff, IR_cutoff, Pk, &oneloop_momentum_impl::" << name
+             << "_integrand, ker.get_" << name << "(), " << integral_1322_map.at(dim) << ", \"" << name << "\");" << '\n';
+      }
+
+    outf << '\n';
+    outf << "    if(fail) ker.mark_failed();" << '\n';
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_kernel_store() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("store_kernel_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        outf << "store_impl::store_loop_kernel(db, \"" << name << "\", ker.get_" << name << "(), model, params, sample);" << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_kernel_missing() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("missing_kernel_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        outf << "loop_configs " << name
+             << " = update_missing_loop_integral_configurations(db, model, params, Pk_lin, \"" << name
+             << "\", required_configs, total_missing);" << '\n';
+      }
+    outf << '\n';
+
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        outf << "drop_inconsistent_configurations(db, model, params, Pk_lin, \"" << name << "\", " << name << ", total_missing);" << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_kernel_find() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("find_kernel_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    outf << "kernels ker;" << '\n';
+
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        outf << "find_impl::read_loop_kernel(db, \"" << name << "\", model, params, k, Pk, UV_cutoff, ker.get_" << name << "(), IR_cutoff);" << '\n';
+
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_Pk_missing() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("missing_Pk_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+
+        outf << "std::set<unsigned int> " << name
+             << "_mu0 = update_missing_one_loop_Pk(db, model, growth_params, loop_params, init_Pk, final_Pk, \"" << name
+             << "_mu0\", z_table, record, missing);" << '\n';
+
+        outf << "std::set<unsigned int> " << name
+             << "_mu2 = update_missing_one_loop_Pk(db, model, growth_params, loop_params, init_Pk, final_Pk, \"" << name
+             << "_mu2\", z_table, record, missing);" << '\n';
+
+        outf << "std::set<unsigned int> " << name
+             << "_mu4 = update_missing_one_loop_Pk(db, model, growth_params, loop_params, init_Pk, final_Pk, \"" << name
+             << "_mu4\", z_table, record, missing);" << '\n';
+
+        outf << "std::set<unsigned int> " << name
+             << "_mu6 = update_missing_one_loop_Pk(db, model, growth_params, loop_params, init_Pk, final_Pk, \"" << name
+             << "_mu6\", z_table, record, missing);" << '\n';
+
+        outf << "std::set<unsigned int> " << name
+             << "_mu8 = update_missing_one_loop_Pk(db, model, growth_params, loop_params, init_Pk, final_Pk, \"" << name
+             << "_mu8\", z_table, record, missing);" << '\n';
+      }
+    outf << '\n';
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+
+        outf << "drop_inconsistent_redshifts(db, model, init_Pk, growth_params, loop_params, final_Pk, \"" << name
+             << "_mu0\", record, " << name << "_mu0, missing);" << '\n';
+
+        outf << "drop_inconsistent_redshifts(db, model, init_Pk, growth_params, loop_params, final_Pk, \"" << name
+             << "_mu2\", record, " << name << "_mu2, missing);" << '\n';
+
+        outf << "drop_inconsistent_redshifts(db, model, init_Pk, growth_params, loop_params, final_Pk, \"" << name
+             << "_mu4\", record, " << name << "_mu4, missing);" << '\n';
+
+        outf << "drop_inconsistent_redshifts(db, model, init_Pk, growth_params, loop_params, final_Pk, \"" << name
+             << "_mu6\", record, " << name << "_mu6, missing);" << '\n';
+
+        outf << "drop_inconsistent_redshifts(db, model, init_Pk, growth_params, loop_params, final_Pk, \"" << name
+             << "_mu8\", record, " << name << "_mu8, missing);" << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_Pk_compute_stmts() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("compute_Pk_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+
+        outf << "rsd_dd_Pk " << name << "_mu0 = compute_" << name << "_mu0(k, val.second, loop_data, Ptr_init, Ptr_final);" << '\n';
+        outf << "rsd_dd_Pk " << name << "_mu2 = compute_" << name << "_mu2(k, val.second, loop_data, Ptr_init, Ptr_final);" << '\n';
+        outf << "rsd_dd_Pk " << name << "_mu4 = compute_" << name << "_mu4(k, val.second, loop_data, Ptr_init, Ptr_final);" << '\n';
+        outf << "rsd_dd_Pk " << name << "_mu6 = compute_" << name << "_mu6(k, val.second, loop_data, Ptr_init, Ptr_final);" << '\n';
+        outf << "rsd_dd_Pk " << name << "_mu8 = compute_" << name << "_mu8(k, val.second, loop_data, Ptr_init, Ptr_final);" << '\n';
+
+        outf << "Pks.emplace(std::make_pair(\"" << name
+             << "\", oneloop_Pk{k_tok, gf_factors.get_params_token(), loop_data.get_params_token(), Pk_init.get_token(),final_tok, loop_data.get_IR_token(), loop_data.get_UV_token(), val.first.get_id(), "
+             << name << "_mu0, " << name << "_mu2, " << name << "_mu4, " << name << "_mu6, " << name << "_mu8}));"
+             << '\n';
+        outf << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_Pk_store() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("store_Pk_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+
+        outf << "const oneloop_Pk& " << name << " = sample.at(\"" << name << "\");" << '\n';
+        outf << "store_impl::store_one_loop_rsd_Pk(db, \"" << name << "_mu0\", " << name << ".get_dd_rsd_mu0(), model, " << name << ");" << '\n';
+        outf << "store_impl::store_one_loop_rsd_Pk(db, \"" << name << "_mu2\", " << name << ".get_dd_rsd_mu2(), model, " << name << ");" << '\n';
+        outf << "store_impl::store_one_loop_rsd_Pk(db, \"" << name << "_mu4\", " << name << ".get_dd_rsd_mu4(), model, " << name << ");" << '\n';
+        outf << "store_impl::store_one_loop_rsd_Pk(db, \"" << name << "_mu6\", " << name << ".get_dd_rsd_mu6(), model, " << name << ");" << '\n';
+        outf << "store_impl::store_one_loop_rsd_Pk(db, \"" << name << "_mu8\", " << name << ".get_dd_rsd_mu8(), model, " << name << ");" << '\n';
+        outf << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_Pk_find() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("find_Pk_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+
+        outf << "rsd_dd_Pk " << name << "_mu0;" << '\n';
+        outf << "rsd_dd_Pk " << name << "_mu2;" << '\n';
+        outf << "rsd_dd_Pk " << name << "_mu4;" << '\n';
+        outf << "rsd_dd_Pk " << name << "_mu6;" << '\n';
+        outf << "rsd_dd_Pk " << name << "_mu8;" << '\n';
+
+        outf << "find_impl::read_dd_rsd_Pk(db, \"" << name << "_mu0\", model, growth_params, loop_params, k, z, init_Pk_lin, final_Pk_lin, IR_cutoff, UV_cutoff, " << name << "_mu0);" << '\n';
+        outf << "find_impl::read_dd_rsd_Pk(db, \"" << name << "_mu2\", model, growth_params, loop_params, k, z, init_Pk_lin, final_Pk_lin, IR_cutoff, UV_cutoff, " << name << "_mu2);" << '\n';
+        outf << "find_impl::read_dd_rsd_Pk(db, \"" << name << "_mu4\", model, growth_params, loop_params, k, z, init_Pk_lin, final_Pk_lin, IR_cutoff, UV_cutoff, " << name << "_mu4);" << '\n';
+        outf << "find_impl::read_dd_rsd_Pk(db, \"" << name << "_mu6\", model, growth_params, loop_params, k, z, init_Pk_lin, final_Pk_lin, IR_cutoff, UV_cutoff, " << name << "_mu6);" << '\n';
+        outf << "find_impl::read_dd_rsd_Pk(db, \"" << name << "_mu8\", model, growth_params, loop_params, k, z, init_Pk_lin, final_Pk_lin, IR_cutoff, UV_cutoff, " << name << "_mu8);" << '\n';
+
+        outf << "payload->emplace(std::make_pair(\"" << name
+             << "\", oneloop_Pk{k, growth_params, loop_params, init_Pk_lin, final_Pk_lin, IR_cutoff, UV_cutoff, z, "
+             << name << "_mu0, " << name << "_mu2, " << name << "_mu4, " << name << "_mu6, " << name << "_mu8}));"
+             << '\n';
+
+        outf << '\n';
+      }
+  }
+
+
+void LSSEFT::write_mu_component(std::ofstream& outf, const std::string& name, const Pk_rsd& Pk, unsigned int mu) const
+  {
+    std::string tag = std::string{"mu"} + std::to_string(mu);
+
+    outf << "rsd_dd_Pk compute_" << name << "_" << tag
+         << "(const Mpc_units::energy& k, const oneloop_growth_record& val, const loop_integral& loop_data, const Pk_value& Ptr_init, const boost::optional<Pk_value>& Ptr_final)"
+         << '\n';
+
+    outf << " {" << '\n';
+
+    outf << "   const kernels& ker = loop_data.get_kernels();" << '\n';
+    outf << '\n';
+
+    const auto& tree = Pk.get_tree();
+    outf << "   Pk_value tree";
+    std::ostringstream tree_buffer;
+    unsigned int count = 0;
+    auto tree_writer = [&](const one_loop_element& elt) -> void
+      {
+        using LSSEFT_impl::format_print;
+
+        if(count > 0) tree_buffer << " + ";
+        tree_buffer << format_print(elt.get_integrand()*elt.get_time_function());    // have to include "integrand" at tree-level, which is really a normalization factor
+        ++count;
+      };
+    tree.visit({mu}, tree_writer);
+    if(count == 0) outf << ";   // no contribution at mu^" << mu;
+    else           outf << " = (" << tree_buffer.str() << ") * (Ptr_final ? *Ptr_final : Ptr_init);";
+    outf << '\n' << '\n';
+
+    const auto& P13 = Pk.get_13();
+    outf << "   Pk_value P13";
+    std::ostringstream P13_buffer;
+    count = 0;
+    auto P13_writer = [&](const one_loop_element& elt) -> void
+      {
+        using LSSEFT_impl::LSSEFT_kernel;
+        using LSSEFT_impl::mass_dimension;
+        using LSSEFT_impl::format_print;
+
+        LSSEFT_kernel ker{elt.get_integrand(), elt.get_measure(), elt.get_Wick_product(),
+                          elt.get_integration_variables(), elt.get_external_momenta(), mass_dimension::zero};
+
+        const std::string& kname = this->kernel_db.at(ker);
+
+        if(count > 0) P13_buffer << " + ";
+        P13_buffer << "(" << format_print(elt.get_time_function()) << ")*ker.get_" << kname << "()";
+        ++count;
+      };
+    P13.visit({mu}, P13_writer);
+    if(count == 0) outf << ";   // no contribution at mu^" << mu;
+    else           outf << " = Ptr_init * (" << P13_buffer.str() << ");";
+    outf << '\n' << '\n';
+
+    const auto& P22 = Pk.get_22();
+    outf << "   Pk_value P22";
+    std::ostringstream P22_buffer;
+    count = 0;
+    auto P22_writer = [&](const one_loop_element& elt) -> void
+      {
+        using LSSEFT_impl::LSSEFT_kernel;
+        using LSSEFT_impl::mass_dimension;
+        using LSSEFT_impl::format_print;
+
+        LSSEFT_kernel ker{elt.get_integrand(), elt.get_measure(), elt.get_Wick_product(),
+                          elt.get_integration_variables(), elt.get_external_momenta(), mass_dimension::minus3};
+
+        const std::string& kname = this->kernel_db.at(ker);
+
+        if(count > 0) P22_buffer << " + ";
+        P22_buffer << "(" << format_print(elt.get_time_function()) << ")*ker.get_" << kname << "()";
+        ++count;
+      };
+    P22.visit({mu}, P22_writer);
+    if(count == 0) outf << ";   // no contribution at mu^" << mu;
+    else           outf << " = " << P22_buffer.str() << ";";
+    outf << '\n' << '\n';
+
+    outf << "   return rsd_dd_Pk{tree, P13, P22};" << '\n';
+
+    outf << " }" << '\n';
+    outf << '\n';
+  }
+
+
+void LSSEFT::write_Pk_expressions() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("Pk_expressions.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+        const Pk_rsd& Pk = record.second;
+
+        this->write_mu_component(outf, name, Pk, 0);
+        this->write_mu_component(outf, name, Pk, 2);
+        this->write_mu_component(outf, name, Pk, 4);
+        this->write_mu_component(outf, name, Pk, 6);
+        this->write_mu_component(outf, name, Pk, 8);
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_kernel_dropidx_stmts() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("dropidx_kernel_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        outf << "sqlite3_operations::drop_index(this->handle, \"" << name << "\", { \"mid\", \"params_id\", \"kid\", \"Pk_id\", \"IR_id\", \"UV_id\" });" << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_kernel_makeidx_stmts() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("makeidx_kernel_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->kernel_db)
+      {
+        const LSSEFT_kernel& kernel = record.first;
+        const std::string& name = record.second;
+
+        outf << "sqlite3_operations::create_index(this->handle, \"" << name << "\", { \"mid\", \"params_id\", \"kid\", \"Pk_id\", \"IR_id\", \"UV_id\" });" << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_Pk_dropidx_stmts() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("dropidx_Pk_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+        const Pk_rsd& Pk = record.second;
+
+        outf << "sqlite3_operations::drop_index(this->handle, \"" << name
+             << "_mu0\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
+             << '\n';
+
+        outf << "sqlite3_operations::drop_index(this->handle, \"" << name
+             << "_mu2\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
+             << '\n';
+
+        outf << "sqlite3_operations::drop_index(this->handle, \"" << name
+             << "_mu4\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
+             << '\n';
+
+        outf << "sqlite3_operations::drop_index(this->handle, \"" << name
+             << "_mu6\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
+             << '\n';
+
+        outf << "sqlite3_operations::drop_index(this->handle, \"" << name
+             << "_mu8\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
+             << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_Pk_makeidx_stmts() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("makeidx_Pk_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+
+        outf << "sqlite3_operations::create_index(this->handle, \"" << name
+             << "_mu0\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
+             << '\n';
+
+        outf << "sqlite3_operations::create_index(this->handle, \"" << name
+             << "_mu2\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
+             << '\n';
+
+        outf << "sqlite3_operations::create_index(this->handle, \"" << name
+             << "_mu4\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
+             << '\n';
+
+        outf << "sqlite3_operations::create_index(this->handle, \"" << name
+             << "_mu6\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
+             << '\n';
+
+        outf << "sqlite3_operations::create_index(this->handle, \"" << name
+             << "_mu7\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
+             << '\n';
+
+        outf << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_multipole_missing() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("missing_multipole_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+
+        outf << "std::set<unsigned int> " << name
+             << "_P0 = update_missing_multipole_Pk(db, model, growth_params, loop_params, XY_params, init_Pk, final_Pk, \""
+             << name << "_P0\", z_table, record, missing);" << '\n';
+
+        outf << "std::set<unsigned int> " << name
+             << "_P2 = update_missing_multipole_Pk(db, model, growth_params, loop_params, XY_params, init_Pk, final_Pk, \""
+             << name << "_P2\", z_table, record, missing);" << '\n';
+
+        outf << "std::set<unsigned int> " << name
+             << "_P4 = update_missing_multipole_Pk(db, model, growth_params, loop_params, XY_params, init_Pk, final_Pk, \""
+             << name << "_P4\", z_table, record, missing);" << '\n';
+      }
+    outf << '\n';
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+
+        outf << "drop_inconsistent_redshifts(db, model, growth_params, loop_params, XY_params, init_Pk, final_Pk, \""
+             << name << "_P0\", record, " << name << "_P0, missing);" << '\n';
+
+        outf << "drop_inconsistent_redshifts(db, model, growth_params, loop_params, XY_params, init_Pk, final_Pk, \""
+             << name << "_P2\", record, " << name << "_P2, missing);" << '\n';
+
+        outf << "drop_inconsistent_redshifts(db, model, growth_params, loop_params, XY_params, init_Pk, final_Pk, \""
+             << name << "_P4\", record, " << name << "_P4, missing);" << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_multipole_decompose_stmts() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("multipole_compute_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+
+        outf << "apply(\"" << name << "\");" << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_multipole_store() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("store_multipole_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+
+        outf << "const multipole_Pk& " << name << " = sample.at(\"" << name << "\");" << '\n';
+        outf << "store_impl::store_multipole_Pk(db, \"" << name << "_P0\", " << name << ".get_P0(), model, " << name << ");" << '\n';
+        outf << "store_impl::store_multipole_Pk(db, \"" << name << "_P2\", " << name << ".get_P2(), model, " << name << ");" << '\n';
+        outf << "store_impl::store_multipole_Pk(db, \"" << name << "_P4\", " << name << ".get_P4(), model, " << name << ");" << '\n';
+        outf << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_multipole_dropidx_stmts() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("dropidx_multipole_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+        const Pk_rsd& Pk = record.second;
+
+        outf << "sqlite3_operations::drop_index(this->handle, \"" << name
+             << "_P0\", { \"mid\", \"growth_params\", \"loop_params\", \"XY_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_cutoff_id\", \"UV_cutoff_id\", \"IR_resum_id\" });"
+             << '\n';
+
+        outf << "sqlite3_operations::drop_index(this->handle, \"" << name
+             << "_P2\", { \"mid\", \"growth_params\", \"loop_params\", \"XY_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_cutoff_id\", \"UV_cutoff_id\", \"IR_resum_id\" });"
+             << '\n';
+
+        outf << "sqlite3_operations::drop_index(this->handle, \"" << name
+             << "_P4\", { \"mid\", \"growth_params\", \"loop_params\", \"XY_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_cutoff_id\", \"UV_cutoff_id\", \"IR_resum_id\" });"
+             << '\n';
+      }
+
+    outf.close();
+  }
+
+
+void LSSEFT::write_multipole_makeidx_stmts() const
+  {
+    using LSSEFT_impl::LSSEFT_kernel;
+
+    auto output = this->make_output_path("makeidx_multipole_stmts.cpp");
+
+    std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+
+    for(const auto& record : this->Pk_db)
+      {
+        const std::string& name = record.first;
+        const Pk_rsd& Pk = record.second;
+
+        outf << "sqlite3_operations::create_index(this->handle, \"" << name
+             << "_P0\", { \"mid\", \"growth_params\", \"loop_params\", \"XY_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_cutoff_id\", \"UV_cutoff_id\", \"IR_resum_id\" });"
+             << '\n';
+
+        outf << "sqlite3_operations::create_index(this->handle, \"" << name
+             << "_P2\", { \"mid\", \"growth_params\", \"loop_params\", \"XY_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_cutoff_id\", \"UV_cutoff_id\", \"IR_resum_id\" });"
+             << '\n';
+
+        outf << "sqlite3_operations::create_index(this->handle, \"" << name
+             << "_P4\", { \"mid\", \"growth_params\", \"loop_params\", \"XY_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_cutoff_id\", \"UV_cutoff_id\", \"IR_resum_id\" });"
+             << '\n';
+      }
+
+    outf.close();
   }

@@ -40,6 +40,9 @@
 namespace LSSEFT_impl
   {
 
+    enum class mass_dimension { zero, minus3 };
+
+
     //! holds the details of a single LSSEFT kernel
     class LSSEFT_kernel
       {
@@ -49,7 +52,8 @@ namespace LSSEFT_impl
       public:
 
         //! constructor
-        LSSEFT_kernel(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, GiNaC_symbol_set vs_, GiNaC_symbol_set em_);
+        LSSEFT_kernel(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, GiNaC_symbol_set vs_, GiNaC_symbol_set em_,
+                      mass_dimension dm_);
 
         //! destructor is default
         ~LSSEFT_kernel() = default;
@@ -58,6 +62,9 @@ namespace LSSEFT_impl
         // ACCESSORS
 
       public:
+
+        //! get mass dimension
+        mass_dimension get_dimension() const { return this->dim; }
 
         //! get external momenta
         const GiNaC_symbol_set& get_external_momenta() const { return this->external_momenta; }
@@ -106,6 +113,9 @@ namespace LSSEFT_impl
 
         //! set of external momenta
         GiNaC_symbol_set external_momenta;
+
+        //! mass dimension of integrand
+        mass_dimension dim;
 
       };
 
@@ -177,7 +187,7 @@ class LSSEFT
   protected:
 
     //! process the kernels associated with an added power spectrum
-    void process_kernels(const Pk_rsd_group& group);
+    void process_kernels(const Pk_rsd_group& group, LSSEFT_impl::mass_dimension dim);
 
     //! generate a unique kernel name
     std::string make_unique_kernel_name();
@@ -188,13 +198,86 @@ class LSSEFT
   protected:
 
     //! construct an output file name from the cached root
-    boost::filesystem::path make_output_path(std::string append) const;
+    boost::filesystem::path make_output_path(const boost::filesystem::path& leaf) const;
+
+
+    // SQL
 
     //! write create block
     void write_create() const;
 
+
+    // KERNELS
+
+    //! write container class
+    void write_container_class() const;
+
+    //! write 'missing' statements for kernels
+    void write_kernel_missing() const;
+
+    //! write store statements for kernels
+    void write_kernel_store() const;
+
+    //! write find statements for kernels
+    void write_kernel_find() const;
+
     //! write kernels
-    void write_kernels() const;
+    void write_kernel_integrands() const;
+
+    //! write kernel integrate statements
+    void write_integrate_stmts() const;
+
+    //! write kernel drop-idx statements
+    void write_kernel_dropidx_stmts() const;
+
+    //! write kernel make-idx statements
+    void write_kernel_makeidx_stmts() const;
+
+
+    // ONE LOOP POWER SPECTRA
+
+    //! write 'missing' statements for Pks
+    void write_Pk_missing() const;
+
+    //! write store statements for Pks
+    void write_Pk_store() const;
+
+    //! write compute statements for the Pks
+    void write_Pk_compute_stmts() const;
+
+    //! write find statements for the Pks
+    void write_Pk_find() const;
+
+    //! write expressions for the different Pk
+    void write_Pk_expressions() const;
+
+    //! write Pk drop-idx statements
+    void write_Pk_dropidx_stmts() const;
+
+    //! write Pk make-idx statements
+    void write_Pk_makeidx_stmts() const;
+
+
+    //! write expression for a single mu component of a given Ok
+    void write_mu_component(std::ofstream& outf, const std::string& name, const Pk_rsd& Pk, unsigned int mu) const;
+
+
+    // MULTIPOLE POWER SPECTRA
+
+    //! write 'missing' statements for Pn
+    void write_multipole_missing() const;
+
+    //! write 'decompose' statements for Pn
+    void write_multipole_decompose_stmts() const;
+
+    //! write store statements for Pn
+    void write_multipole_store() const;
+
+    //! write multipole drop-idx statements
+    void write_multipole_dropidx_stmts() const;
+
+    //! write multipole make-idx statements
+    void write_multipole_makeidx_stmts() const;
 
 
     // INTERNAL DATA
