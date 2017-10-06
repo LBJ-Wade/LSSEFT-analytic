@@ -614,8 +614,7 @@ void LSSEFT::write_kernel_integrands() const
           }
         else
           {
-            std::cout << "-- kernel '" << name << "' has no dx integral" << '\n';
-            outf << "   // no z_ integral in this kernel; should divide measure by 2 to compensate" << '\n';
+            outf << "   // no z_ integral in this kernel; measure should be jacobian_dq" << '\n';
           }
 
         outf << '\n';
