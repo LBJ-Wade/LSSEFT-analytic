@@ -63,7 +63,6 @@ namespace LSSEFT_impl
         // test for equality of Wick product
         if(!static_cast<bool>(this->WickProduct == obj.WickProduct)) return false;
 
-
         // test for equality of integration variables
         auto a_iv = order_symbol_set(this->variables);
         auto b_iv = order_symbol_set(obj.variables);
@@ -592,6 +591,7 @@ void LSSEFT::write_kernel_integrands() const
         const LSSEFT_kernel& kernel = record.first;
         const std::string& name = record.second;
 
+        const auto& integration_vars = kernel.get_integration_variables();
         const auto& external_momenta = kernel.get_external_momenta();
         const auto& k = *external_momenta.begin();
 
@@ -605,12 +605,35 @@ void LSSEFT::write_kernel_integrands() const
         outf << '\n';
         outf << "   double k_ = data_->k * Mpc_units::Mpc;" << '\n';
         outf << "   double q_ = (data_->IR_cutoff + x_[0] * data_->q_range) * Mpc_units::Mpc;" << '\n';
-        outf << "   double z_ = 2.0*x_[1] - 1.0;" << '\n';
+
+        bool has_x_integral = false;
+        if(integration_vars.find(x) != integration_vars.end())
+          {
+            has_x_integral = true;
+            outf << "   double z_ = 2.0*x_[1] - 1.0;" << '\n';
+          }
+        else
+          {
+            std::cout << "-- kernel '" << name << "' has no dx integral" << '\n';
+            outf << "   // no z_ integral in this kernel; should divide measure by 2 to compensate" << '\n';
+          }
+
         outf << '\n';
         outf << "   double value_ = " << kernel.print_integrand(subs_map) << ";" << '\n';
         outf << "   double measure_ = " << kernel.print_measure(subs_map) << ";" << '\n';
         outf << "   double Wick_ = " << kernel.print_WickProduct(subs_map, external_momenta) << ";" << '\n';
-        outf << "   f_[0] = (data_->jacobian_dqdx * Mpc_units::Mpc) * value_ * measure_ * Wick_;" << '\n';
+        outf << "   f_[0] = (";
+
+        if(has_x_integral)
+          {
+            outf << "data_->jacobian_dqdx";
+          }
+        else
+          {
+            outf << "data_->jacobian_dq";
+          }
+
+        outf << " * Mpc_units::Mpc) * value_ * measure_ * Wick_;" << '\n';
         outf << '\n';
         outf << "   return 0;" << '\n';
         outf << " }" << '\n';
@@ -1012,7 +1035,7 @@ void LSSEFT::write_Pk_find() const
   }
 
 
-void LSSEFT::write_mu_component(std::ofstream& outf, const std::string& name, const Pk_rsd& Pk, unsigned int mu) const
+void LSSEFT::write_Pk_mu_component(std::ofstream& outf, const std::string& name, const Pk_rsd& Pk, unsigned int mu) const
   {
     std::string tag = std::string{"mu"} + std::to_string(mu);
 
@@ -1110,11 +1133,11 @@ void LSSEFT::write_Pk_expressions() const
         const std::string& name = record.first;
         const Pk_rsd& Pk = record.second;
 
-        this->write_mu_component(outf, name, Pk, 0);
-        this->write_mu_component(outf, name, Pk, 2);
-        this->write_mu_component(outf, name, Pk, 4);
-        this->write_mu_component(outf, name, Pk, 6);
-        this->write_mu_component(outf, name, Pk, 8);
+        this->write_Pk_mu_component(outf, name, Pk, 0);
+        this->write_Pk_mu_component(outf, name, Pk, 2);
+        this->write_Pk_mu_component(outf, name, Pk, 4);
+        this->write_Pk_mu_component(outf, name, Pk, 6);
+        this->write_Pk_mu_component(outf, name, Pk, 8);
       }
 
     outf.close();

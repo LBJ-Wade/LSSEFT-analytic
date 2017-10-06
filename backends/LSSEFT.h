@@ -69,6 +69,9 @@ namespace LSSEFT_impl
         //! get external momenta
         const GiNaC_symbol_set& get_external_momenta() const { return this->external_momenta; }
 
+        //! get integration variables
+        const GiNaC_symbol_set& get_integration_variables() const { return this->variables; }
+
 
         // SERVICES
 
@@ -259,7 +262,7 @@ class LSSEFT
 
 
     //! write expression for a single mu component of a given Ok
-    void write_mu_component(std::ofstream& outf, const std::string& name, const Pk_rsd& Pk, unsigned int mu) const;
+    void write_Pk_mu_component(std::ofstream& outf, const std::string& name, const Pk_rsd& Pk, unsigned int mu) const;
 
 
     // MULTIPOLE POWER SPECTRA
