@@ -185,7 +185,15 @@ namespace LSSEFT_impl
         for(const auto& arg : expr)
           {
             if(c > 0) rval.append(op);
+
+            // determine whether we should bracket this operand
+            // this should happen any time the operand has lower precedence than the current operand, but at the moment
+            // we only deal with + and * so we can simply check for +
+            bool bracket = GiNaC::is_a<GiNaC::add>(arg);
+
+            if(bracket) rval.append("(");
             rval.append(format_print(arg));
+            if(bracket) rval.append(")");
 
             ++c;
           }
@@ -196,7 +204,9 @@ namespace LSSEFT_impl
 
     static std::string unwrap_power(const GiNaC::ex& base, unsigned int factors)
       {
-        bool simple = GiNaC::is_a<GiNaC::symbol>(base) || GiNaC::is_a<GiNaC::constant>(base);
+        bool simple = GiNaC::is_a<GiNaC::symbol>(base)
+                      || GiNaC::is_a<GiNaC::constant>(base)
+                      || GiNaC::is_a<GiNaC::function>(base);
         std::ostringstream str;
 
         std::string base_str = format_print(base);
