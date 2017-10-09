@@ -194,6 +194,28 @@ namespace LSSEFT_impl
       }
 
 
+    static std::string unwrap_power(const GiNaC::ex& base, unsigned int factors)
+      {
+        bool simple = GiNaC::is_a<GiNaC::symbol>(base) || GiNaC::is_a<GiNaC::constant>(base);
+        std::ostringstream str;
+
+        std::string base_str = format_print(base);
+
+        unsigned int count = 0;
+        while(factors > 0)
+          {
+            if(count > 0) str << "*";
+            if(simple) str << base_str;
+            else       str << "(" << base_str << ")";
+
+            --factors;
+            ++count;
+          }
+
+        return str.str();
+      }
+
+
     // treat powers specially, because it's better to unroll them and
     // avoid a function call if we have an exact integral power
     static std::string print_power(const GiNaC::ex& expr)
@@ -203,45 +225,37 @@ namespace LSSEFT_impl
 
         if(n != 2) throw exception(ERROR_BACKEND_POW_ARGUMENTS, exception_code::backend_error);
 
-        // perform use-counting on exponent, which is necessary since its values may have been
-        // used elsewhere in the CSE tree, even if it is an integer that we will unroll and not use explicitly
-        std::string exponent = format_print(expr.op(1));
+        const GiNaC::ex& base_expr = expr.op(0);
+        const GiNaC::ex& exp_expr = expr.op(1);
 
-        const GiNaC::ex& exp_generic = expr.op(1);
-
-        if(GiNaC::is_a<GiNaC::numeric>(exp_generic))
+        if(GiNaC::is_a<GiNaC::numeric>(exp_expr))
           {
-            const auto& exp_numeric = GiNaC::ex_to<GiNaC::numeric>(exp_generic);
-
-            std::string base = format_print(expr.op(0));
+            const auto& exp_numeric = GiNaC::ex_to<GiNaC::numeric>(exp_expr);
 
             if(GiNaC::is_integer(exp_numeric))
               {
-
                 if(GiNaC::is_nonneg_integer(exp_numeric))
                   {
                     if(exp_numeric.to_int() == 0) out << "1.0";
-                    else if(exp_numeric.to_int() == 1) out << base;
-                    else if(exp_numeric.to_int() == 2) out << base << "*" << base;
-                    else if(exp_numeric.to_int() == 3) out << base << "*" << base << "*" << base;
-                    else if(exp_numeric.to_int() == 4) out << base << "*" << base << "*" << base << "*" << base;
-                    else out << "std::pow(" << base << "," << exp_numeric.to_int() << ")";
+                    else if(exp_numeric.to_int() == 1) out << unwrap_power(base_expr, 1);
+                    else if(exp_numeric.to_int() == 2) out << "(" << unwrap_power(base_expr, 2) << ")";
+                    else if(exp_numeric.to_int() == 3) out << "(" << unwrap_power(base_expr, 3) << ")";
+                    else if(exp_numeric.to_int() == 4) out << "(" << unwrap_power(base_expr, 4) << ")";
+                    else out << "std::pow(" << format_print(base_expr) << "," << exp_numeric.to_int() << ")";
                   }
                 else  // negative integer
                   {
-                    out << "1.0/";
                     if(exp_numeric.to_int() == -0) out << "1.0";
-                    else if(exp_numeric.to_int() == -1) out << base;
-                    else if(exp_numeric.to_int() == -2) out << "(" << base << "*" << base << ")";
-                    else if(exp_numeric.to_int() == -3) out << "(" << base << "*" << base << "*" << base << ")";
-                    else if(exp_numeric.to_int() == -4)
-                      out << "(" << base << "*" << base << "*" << base << "*" << base << ")";
-                    else out << "std::pow(" << base << "," << -exp_numeric.to_int() << ")";
+                    else if(exp_numeric.to_int() == -1) out << "1.0/" << unwrap_power(base_expr, 1);
+                    else if(exp_numeric.to_int() == -2) out << "1.0/" << "(" << unwrap_power(base_expr, 2) << ")";
+                    else if(exp_numeric.to_int() == -3) out << "1.0/" << "(" << unwrap_power(base_expr, 3) << ")";
+                    else if(exp_numeric.to_int() == -4) out << "1.0/" << "(" << unwrap_power(base_expr, 4) << ")";
+                    else out << "std::pow(" << format_print(base_expr) << "," << exp_numeric.to_int() << ")";
                   }
               }
             else  // not an integer
               {
-                out << "std::pow(" << base << "," << exponent << ")";
+                out << "std::pow(" << format_print(base_expr) << "," << format_print(exp_expr) << ")";
               }
           }
 
