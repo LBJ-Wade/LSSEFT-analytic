@@ -500,6 +500,32 @@ namespace fourier_kernel_impl
       }
 
 
+    void kernel::to_EdS()
+      {
+        auto z = this->loc.get_symbol_factory().get_z();
+
+        GiNaC::exmap map =
+          {
+            { SPT::DA(z), 3*SPT::D(z)*SPT::D(z)/7 },
+            { SPT::DB(z), 2*SPT::D(z)*SPT::D(z)/7 },
+            { SPT::DD(z), 2*SPT::D(z)*SPT::D(z)*SPT::D(z)/21 },
+            { SPT::DE(z), 4*SPT::D(z)*SPT::D(z)*SPT::D(z)/63 },
+            { SPT::DF(z), SPT::D(z)*SPT::D(z)*SPT::D(z)/14 },
+            { SPT::DG(z), SPT::D(z)*SPT::D(z)*SPT::D(z)/21 },
+            { SPT::DJ(z), SPT::D(z)*SPT::D(z)*SPT::D(z)/9 },
+            { SPT::fA(z), 2*SPT::f(z) },
+            { SPT::fB(z), 2*SPT::f(z) },
+            { SPT::fD(z), 3*SPT::f(z) },
+            { SPT::fE(z), 3*SPT::f(z) },
+            { SPT::fF(z), 3*SPT::f(z) },
+            { SPT::fG(z), 3*SPT::f(z) },
+            { SPT::fJ(z), 3*SPT::f(z) },
+          };
+
+        this->tm = this->tm.subs(map);
+      }
+
+
     std::ostream& operator<<(std::ostream& str, const kernel& a)
       {
         a.write(str);

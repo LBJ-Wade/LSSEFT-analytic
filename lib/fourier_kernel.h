@@ -164,6 +164,9 @@ namespace fourier_kernel_impl
         
         //! adjust kernel by a factor, generating a new substitution rule
         kernel& multiply_kernel(GiNaC::ex f, GiNaC::symbol s, GiNaC::ex rule);
+
+        //! convert to EdS approximation in which all time-dependent factors are multiples of D_lin
+        void to_EdS();
         
         
         // SERVICES
@@ -488,6 +491,9 @@ class fourier_kernel
 
     //! get size
     size_t size() const { return this->kernels.size(); }
+
+    //! convert to EdS approximation in which all time-dependent functions are multiples of D_lin
+    void to_EdS();
     
     
     // SERVICES
@@ -1156,6 +1162,17 @@ fourier_kernel<N> Galileon3(const fourier_kernel<N>& a)
     KernelProduct(a, a, a, ins);
 
     return r;
+  }
+
+
+template <unsigned int N>
+void fourier_kernel<N>::to_EdS()
+  {
+    // convert all kernels in the database
+    for(const auto& kernel : this->kernels)
+      {
+        kernel.second->to_EdS();
+      }
   }
 
 
