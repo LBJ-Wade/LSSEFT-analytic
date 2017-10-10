@@ -66,7 +66,7 @@ class Pk_rsd_group
 
   protected:
 
-    //! perform emplace on a specific database
+    //! perform emplace on a specific database (ie. the database for mu0, mu2, ...)
     void emplace(std::unique_ptr<one_loop_element> elt, one_loop_element_db& db);
 
 
@@ -96,7 +96,7 @@ class Pk_rsd_group
     //! write self to stream
     void write(std::ostream& out) const;
 
-    //! apply visitor
+    //! apply visitor to the one-loop records for any given pattern of mus
     template <typename VisitorFunction>
     void visit(visit_list pattern, VisitorFunction f) const;
 
