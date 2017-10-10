@@ -88,11 +88,10 @@ namespace LSSEFT_impl
 
       public:
 
-        //! print integrand
-        std::string print_integrand(const GiNaC::exmap& subs_map) const;
-
-        //! print measure
-        std::string print_measure(const GiNaC::exmap& subs_map) const;
+        //! print integrand constructed from 3D integrand plus any factors from the measure
+        //! the optional normalization allows common factors (eg. powers of pi) to be extracted for
+        //! numerical reasons, if desired
+        std::string print_integrand(const GiNaC::exmap& subs_map, const GiNaC::ex& normalize = GiNaC::ex{1}) const;
 
         //! print Wick product
         std::string print_WickProduct(const GiNaC::exmap& subs_map, const GiNaC_symbol_set& external_momenta) const;

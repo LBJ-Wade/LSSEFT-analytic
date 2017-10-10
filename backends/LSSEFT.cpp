@@ -340,16 +340,10 @@ namespace LSSEFT_impl
       }
 
 
-    std::string LSSEFT_kernel::print_integrand(const GiNaC::exmap& subs_map) const
+    std::string LSSEFT_kernel::print_integrand(const GiNaC::exmap& subs_map, const GiNaC::ex& normalize) const
       {
-        return format_print(this->integrand.subs(subs_map));
-      }
-
-
-    std::string LSSEFT_kernel::print_measure(const GiNaC::exmap& subs_map) const
-      {
-        // LSSEFT uses a constant normalization of 8pi^2 for the integrals
-        return format_print(this->measure.subs(subs_map));
+        auto expr = (normalize*this->integrand*this->measure).subs(subs_map).expand();
+        return format_print(GiNaC::collect_common_factors(expr));
       }
 
 
@@ -642,8 +636,7 @@ void LSSEFT::write_kernel_integrands() const
           }
 
         outf << '\n';
-        outf << "   double value_ = " << kernel.print_integrand(subs_map) << ";" << '\n';
-        outf << "   double measure_ = " << kernel.print_measure(subs_map) << ";" << '\n';
+        outf << "   double value_ = " << kernel.print_integrand(subs_map, 8*GiNaC::Pi*GiNaC::Pi) << ";" << '\n';
         outf << "   double Wick_ = " << kernel.print_WickProduct(subs_map, external_momenta) << ";" << '\n';
         outf << "   f_[0] = (";
 
@@ -656,7 +649,7 @@ void LSSEFT::write_kernel_integrands() const
             outf << "data_->jacobian_dq";
           }
 
-        outf << " * Mpc_units::Mpc) * value_ * measure_ * Wick_;" << '\n';
+        outf << " * Mpc_units::Mpc) * value_ * Wick_;" << '\n';
         outf << '\n';
         outf << "   return 0;" << '\n';
         outf << " }" << '\n';
