@@ -196,65 +196,6 @@ void write_map(const Pk_rsd& Pk_nobias, const Pk_rsd& Pk_b1, const Pk_rsd& Pk_b2
   }
 
 
-void count_kernels(const Pk_rsd& Pk_nobias, const Pk_rsd& Pk_b1, const Pk_rsd& Pk_b2, const Pk_rsd& Pk_b3,
-                   const Pk_rsd& Pk_bG2, const Pk_rsd& Pk_bdG2, const Pk_rsd& Pk_bGamma3,
-                   const Pk_rsd& Pk_b1b1, const Pk_rsd& Pk_b1b2, const Pk_rsd& Pk_b1b3, const Pk_rsd& Pk_b2b2,
-                   const Pk_rsd& Pk_b1bG2, const Pk_rsd& Pk_bG2bG2, const Pk_rsd& Pk_b2bG2, const Pk_rsd& Pk_b1bdG2,
-                   const Pk_rsd& Pk_b1bGamma3)
-  {
-    size_t kernels = 0;
-
-    auto count = [&](std::string name, const Pk_rsd& group) -> void
-      {
-        const auto& P13 = group.get_13();
-        const auto& P22 = group.get_22();
-
-        const auto P13_time = P13.get_time_functions();
-        const auto P22_time = P22.get_time_functions();
-
-        size_t kernels_13 = 0;
-        for(unsigned int i = 0; i < P13_time.size(); ++i)
-          {
-            kernels_13 += P13_time[i].size();
-          }
-
-        size_t kernels_22 = 0;
-        for(unsigned int i = 0; i < P22_time.size(); ++i)
-          {
-            kernels_22 += P22_time[i].size();
-          }
-
-        std::cout << "-- " << name << " -> 13 kernels = " << kernels_13 << ", 22 kernels = " << kernels_22 << '\n';
-
-        kernels += kernels_13 + kernels_22;
-      };
-
-    count("no bias", Pk_nobias);
-
-    count("b1", Pk_b1);
-    count("b2", Pk_b2);
-    count("b3", Pk_b3);
-    count("bG2", Pk_bG2);
-    // bG3 gives zero
-    count("bdG2", Pk_bdG2);
-    count("bGamma3", Pk_bGamma3);
-
-    count("b1 x b1", Pk_b1b1);
-    count("b1 x b2", Pk_b1b2);
-    count("b1 x b3", Pk_b1b3);
-    count("b2 x b2", Pk_b2b2);
-
-    count("b1 x bG2", Pk_b1bG2);
-    count("b2 x bG2", Pk_b2bG2);
-    count("bG2 x bG2", Pk_bG2bG2);
-    // b1 x bG3 gives zero
-    count("b1 x bdG2", Pk_b1bdG2);
-    count("b1 x bGamma3", Pk_b1bGamma3);
-
-    std::cout << '\n' << "TOTAL KERNELS = " << kernels << '\n';
-  }
-
-
 int main(int argc, char* argv[])
   {
     // generate service objects
