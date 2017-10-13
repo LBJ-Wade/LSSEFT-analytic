@@ -76,7 +76,7 @@ class symbol_factory
   public:
     
     //! get GiNaC symbol representing redshift z
-    const GiNaC::symbol& get_z();
+    const GiNaC::symbol& get_z() const;
 
     //! manufacture a GiNaC symbol corresponding to a given name
     const GiNaC::symbol& make_symbol(std::string name, boost::optional<std::string> latex_name = boost::none);
@@ -131,6 +131,9 @@ class symbol_factory
 
     //! get parameter set
     const GiNaC_symbol_set& get_parameters() const { return this->parameters; }
+
+    //! determine whether a symbol is a parameter
+    bool is_parameter(const GiNaC::symbol& s) const { return this->parameters.find(s) != this->parameters.end(); }
     
     
     // INTERNAL DATA

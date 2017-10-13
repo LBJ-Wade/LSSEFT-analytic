@@ -292,29 +292,41 @@ namespace fourier_kernel_impl
       {
         kernel c = b;
 
+        // multiply kernel b by the GiNaC expression a
+        // depending what is in a, we want to handle this operation differently
+        // we'd like the timefunction to include only SPT time-dependent function and possibly numeric constants
+        // we'd like everything else, such as parameters (eg. halo bias) to go into the integrand
+
         // explicitly distribute a over a top-level sum if one is present
         // this is because GiNaC is very reluctant to simplify cancelling factors in such cases,
-        // meaning that we get uncancelled factors of 1+z in the result, even though they all cancel down to 1
-        if(GiNaC::is_a<GiNaC::add>(c.tm))
-          {
-            GiNaC::ex temp{0};
-            const size_t nops = c.tm.nops();
+        // meaning that we may get uncancelled factors of (eg.) 1+z in the result, even though they all cancel down to 1
+        GiNaC::ex time_factor;
+        GiNaC::ex integrand_factor;
 
-            for(size_t i = 0; i < nops; ++i)
-              {
-                temp += c.tm.op(i).expand() * a;
-              }
+        std::tie(time_factor, integrand_factor) = partition_factor(a, b.loc);
 
-            c.tm = GiNaC::collect_common_factors(temp);
-          }
-        else
-          {
-            auto temp = GiNaC::collect_common_factors(c.tm.expand() * a);
-            c.tm = temp;
-          }
+        c.tm = GiNaC::collect_common_factors(c.tm.expand() * time_factor);
+        c.K *= integrand_factor;
 
+//        if(GiNaC::is_a<GiNaC::add>(c.tm))
+//          {
+//            GiNaC::ex temp{0};
+//            const size_t nops = c.tm.nops();
+//
+//            for(size_t i = 0; i < nops; ++i)
+//              {
+//                temp += c.tm.op(i).expand() * a;
+//              }
+//
+//            c.tm = GiNaC::collect_common_factors(temp);
+//          }
+//        else
+//          {
+//            auto temp = GiNaC::collect_common_factors(c.tm.expand() * a);
+//            c.tm = temp;
+//          }
 
-        // renormalize time function
+        // adjust normalization of time function if needed
         auto norm = get_normalization_factor(c.tm, c.loc);
         c.tm /= norm;
         c.K *= norm;
@@ -689,10 +701,22 @@ namespace get_normalization_factor_impl
 
         if(GiNaC::is_a<GiNaC::symbol>(term))
           {
-            // ignore if this symbol is the redshift z
-            const auto& z = sl.get_symbol_factory().get_z();
-            if(static_cast<bool>(z == term)) return GiNaC::numeric{1};
-            return term;
+            // ignore if this symbol is the redshift z or is a parameter
+            const auto& sym = GiNaC::ex_to<GiNaC::symbol>(term);
+
+            const auto& sf = sl.get_symbol_factory();
+            const auto& z = sf.get_z();
+
+            if(static_cast<bool>(z == sym)) return GiNaC::numeric{1};
+            if(sf.is_parameter(sym))
+              {
+                error_handler err;
+                std::ostringstream msg;
+                msg << WARNING_PARAMETER_APPEARS_IN_TIME_FUNCTION_RENORMALIZATION << ": '" << sym << "'";
+                err.warn(msg.str());
+              }
+
+            return sym;
           }
 
         if(GiNaC::is_a<GiNaC::power>(term))
@@ -796,4 +820,132 @@ symmetrization_db build_symmetrizations(const GiNaC::ex& K, const initial_value_
       }
 
     return db;
+  }
+
+
+enum class factor_type { time, K, either };
+
+factor_type classify_factor(const GiNaC::ex& expr, service_locator& loc)
+  {
+    // numbers can go anywhere
+    if(GiNaC::is_a<GiNaC::numeric>(expr)) return factor_type::either;
+
+    if(GiNaC::is_a<GiNaC::symbol>(expr))
+      {
+        const auto& sym = GiNaC::ex_to<GiNaC::symbol>(expr);
+
+        auto& sf = loc.get_symbol_factory();
+        const auto& z = sf.get_z();
+
+        if(static_cast<bool>(sym == z)) return factor_type::time;
+        if(sf.is_parameter(sym)) return factor_type::K;
+        return factor_type::K;    // should perhaps be either, but other symbols are likely to be momenta and not allowed in time factor
+      }
+
+    if(GiNaC::is_a<GiNaC::add>(expr) || GiNaC::is_a<GiNaC::mul>(expr) || GiNaC::is_a<GiNaC::function>(expr) || GiNaC::is_a<GiNaC::power>(expr))
+      {
+        unsigned int t_only = 0;
+        unsigned int K_only = 0;
+
+        for(size_t i = 0; i < expr.nops(); ++i)
+          {
+            const auto& term = expr.op(i);
+            auto type = classify_factor(term, loc);
+
+            if(type == factor_type::time) ++t_only;
+            if(type == factor_type::K) ++K_only;
+          }
+
+        if(t_only > 0 && K_only > 0)
+          {
+            std::ostringstream msg;
+            msg << ERROR_INCONSISTENT_KERNEL_FACTOR << " " << expr;
+            throw exception(msg.str(), exception_code::kernel_error);
+          }
+
+        if(t_only > 0) return factor_type::time;
+        if(K_only > 0) return factor_type::K;
+        return factor_type::either;
+      }
+
+    return factor_type::either;
+  }
+
+
+std::pair<GiNaC::ex, GiNaC::ex> sort_factors(const GiNaC::mul& expr, service_locator& loc)
+  {
+    GiNaC::ex tf{1};
+    GiNaC::ex Kf{1};
+
+    for(size_t i = 0; i < expr.nops(); ++i)
+      {
+        const auto& factor = expr.op(i);
+
+        auto type = classify_factor(factor, loc);
+
+        switch(type)
+          {
+            case factor_type::time:
+              {
+                tf *= factor;
+                break;
+              }
+
+            case factor_type::K:
+              {
+                Kf *= factor;
+                break;
+              }
+
+            case factor_type::either:
+              {
+                // prefer to move to kernel
+                Kf *= factor;
+                break;
+              }
+          }
+      }
+
+    return std::make_pair(tf, Kf);
+  };
+
+
+std::pair<GiNaC::ex, GiNaC::ex> partition_factor(const GiNaC::ex& expr, service_locator& loc)
+  {
+    GiNaC::ex tf{1};
+    GiNaC::ex Kf{1};
+
+    auto work_expr = GiNaC::collect_common_factors(expr.expand());
+
+    if(GiNaC::is_a<GiNaC::mul>(work_expr))    // most common case, expr is a product of factors which we must sort
+      {
+        return sort_factors(GiNaC::ex_to<GiNaC::mul>(work_expr), loc);
+      }
+
+    // otherwise, factor is of a single type (even if it is a sum)
+    auto type = classify_factor(work_expr, loc);
+
+    switch(type)
+      {
+        case factor_type::time:
+          {
+            tf *= work_expr;
+            break;
+          }
+
+        case factor_type::K:
+          {
+            Kf *= work_expr;
+            break;
+          }
+
+        case factor_type::either:
+          {
+            // prefer to move to kernel
+            Kf *= work_expr;
+            break;
+          }
+      }
+
+    return std::make_pair(tf, Kf);
   }

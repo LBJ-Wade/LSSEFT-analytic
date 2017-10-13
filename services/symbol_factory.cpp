@@ -73,7 +73,7 @@ const GiNaC::symbol& symbol_factory::make_symbol(std::string name, boost::option
   }
 
 
-const GiNaC::symbol& symbol_factory::get_z()
+const GiNaC::symbol& symbol_factory::get_z() const
   {
     return this->z;
   }

@@ -72,10 +72,10 @@ namespace fourier_kernel_impl
     //! subtraction of kernels
     kernel operator-(const kernel& a, const kernel& b);
     
-    //! multiplication by arbitrary expression
+    //! multiplication by arbitrary expression: expr * kernel
     kernel operator*(const GiNaC::ex a, const kernel& b);
     
-    //! multiplication by arbitrary expression, other way ground
+    //! multiplication by arbitrary expression: kernel * expr
     kernel operator*(const kernel& a, const GiNaC::ex b);
     
     //! multiplication of kernels
@@ -348,10 +348,6 @@ fourier_kernel<N> operator*(const GiNaC::ex a, const fourier_kernel<N>& b);
 template <unsigned int N>
 fourier_kernel<N> operator/(const fourier_kernel<N>& a, const GiNaC::ex b);
 
-//! multiply a Fourier kernel by a fixed expression, kernel * expr
-template <unsigned int N>
-fourier_kernel<N> operator*(const fourier_kernel<N>& a, const GiNaC::ex b);
-
 //! multiply two Fourier kernels
 template <unsigned int N>
 fourier_kernel<N> operator*(const fourier_kernel<N>& a, const fourier_kernel<N>& b);
@@ -566,6 +562,10 @@ GiNaC::ex get_normalization_factor(const time_function& tm, service_locator& sl)
 using symmetrization_db = std::vector< GiNaC::exmap >;
 symmetrization_db build_symmetrizations(const GiNaC::ex& K, const initial_value_set& s);
 
+//! partition a GiNaC expression into factors, one for the
+//! time factor (first member of pair) and one for the integrand (second member of pair)
+std::pair<GiNaC::ex, GiNaC::ex> partition_factor(const GiNaC::ex& expr, service_locator& loc);
+
 
 template <unsigned int N>
 fourier_kernel<N>& fourier_kernel<N>::add(kernel_type k)
@@ -683,7 +683,7 @@ fourier_kernel<N> fourier_kernel<N>::order(unsigned int ord) const
   {
     auto r = this->loc.template make_fourier_kernel<N>();
     
-    if(ord > N) return r;
+    if(ord > N) return std::move(r);
     
     for(const auto& t : this->kernels)
       {
@@ -697,7 +697,7 @@ fourier_kernel<N> fourier_kernel<N>::order(unsigned int ord) const
           }
       }
     
-    return r;
+    return std::move(r);
   }
 
 
@@ -749,7 +749,7 @@ fourier_kernel<N> fourier_kernel_impl::transform_kernel(const fourier_kernel<N>&
         r.add(new_ker, true);
       }
     
-    return r;
+    return std::move(r);
   }
 
 
@@ -771,7 +771,7 @@ fourier_kernel<N> fourier_kernel_impl::transform_kernel(const fourier_kernel<N>&
         r.add(new_ker, true);
       }
     
-    return r;
+    return std::move(r);
   }
 
 
@@ -805,7 +805,7 @@ fourier_kernel<N> operator*(const GiNaC::ex a, const fourier_kernel<N>& b)
 template <unsigned int N>
 fourier_kernel<N> operator/(const fourier_kernel<N>& a, const GiNaC::ex b)
   {
-    return a * (GiNaC::ex{1}/b);
+    return a * (GiNaC::numeric{1}/b);
   }
 
 

@@ -83,9 +83,13 @@ class Pk_rsd_group
     //! prune empty records from the database
     void prune();
 
+    //! determine whether empty
+    bool empty() const
+      { return this->mu0.empty() && this->mu2.empty() && this->mu4.empty() && this->mu6.empty() && this->mu8.empty(); }
+
   protected:
 
-    //! prune a specific database
+    //! prune the database for a specific power of mu
     void prune(one_loop_element_db& db);
 
 

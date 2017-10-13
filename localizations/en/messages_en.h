@@ -102,6 +102,8 @@ constexpr auto ERROR_FABJ_FIRST_ARG_NONZERO = "First argument of FabJ is not zer
 constexpr auto ERROR_FABJ_SECOND_ARGS_NOT_EQUAL = "Second and third arguments of FabJ are not zero";
 constexpr auto ERROR_FABJ_SECOND_ARGS_NEGATIVE = "Second and third arguments of FabJ are negative";
 
+constexpr auto ERROR_INCONSISTENT_KERNEL_FACTOR = "Cannot classify kernel multiplicand";
+
 constexpr auto ERROR_COMPOSE_LOOP_INTEGRAL_MISMATCHING_TYPE = "Internal error: attempt to compose loop integrals of mismatching types";
 constexpr auto ERROR_COMPOSE_ONE_LOOP_ELEMENT_MISMATCHING_TYPE = "Internal error: attempt to compose one-loop integral elements of mismatching types";
 
@@ -117,6 +119,8 @@ constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on availa
 constexpr auto WARNING_ORDER_ZERO_KERNEL = "Ignoring order-zero kernel";
 constexpr auto WARNING_KERNEL_EXPRESSION = "Kernel expression";
 constexpr auto WARNING_UNEVALUATED_FABRIKANT = "Unevaluated Fabrikant integral of order";
+constexpr auto WARNING_PARAMETER_APPEARS_IN_TIME_FUNCTION_RENORMALIZATION = "Encountered normalization of time-dependent function with parameter";
+constexpr auto WARNING_PK_RSD_EMPTY = "Empty RSD Pk group for filter pattern";
 
 
 #endif //LSSEFT_ANALYTIC_MESSAGES_EN_H

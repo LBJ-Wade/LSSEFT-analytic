@@ -210,6 +210,21 @@ Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_, const filter_lis
     this->Ptree.prune();
     this->P13.prune();
     this->P22.prune();
+
+    error_handler err;
+    if(this->Ptree.empty() && this->P13.empty() && this->P22.empty())
+      {
+        GiNaC::ex factor{1};
+
+        for(const auto& item : pattern)
+          {
+            factor *= GiNaC::pow(item.first, item.second);
+          }
+
+        std::ostringstream msg;
+        msg << WARNING_PK_RSD_EMPTY << " '" << factor << "'";
+        err.warn(msg.str());
+      }
   }
 
 
