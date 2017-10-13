@@ -172,8 +172,9 @@ initial_value symbol_factory::make_initial_value(const GiNaC::symbol& s)
     return initial_value{k, s, *this};
   }
 
-void symbol_factory::declare_parameter(const GiNaC::symbol& s)
+symbol_factory& symbol_factory::declare_parameter(const GiNaC::symbol& s)
   {
     // TODO: could perhaps perform more checking to ensure that momenta are not declared as parameters ...
     this->parameters.insert(s);
+    return *this;
   }

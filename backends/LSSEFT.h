@@ -37,6 +37,9 @@
 #include "boost/filesystem/operations.hpp"
 
 
+using Pk_rsd_set = std::map< std::string, std::reference_wrapper<Pk_rsd> >;
+
+
 namespace LSSEFT_impl
   {
 
@@ -182,6 +185,9 @@ class LSSEFT
 
     //! add a new power spectrum
     LSSEFT& add(const Pk_rsd& P, std::string name);
+
+    //! add a group of new power spectra
+    LSSEFT& add(const Pk_rsd_set& Ps);
 
     //! write output files
     void write() const;

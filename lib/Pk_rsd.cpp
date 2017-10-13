@@ -51,7 +51,9 @@ void Pk_rsd_group::emplace(const one_loop_element& elt)
         // That means we can later modify the Pk_one_loop object if we require
         auto f = std::make_unique<one_loop_element>(e);
 
-        // filter for pattern
+        // filter for pattern; note that this assumes the pattern symbols are all in the integrand,
+        // and none in the time function (which is certainly the intention, but things could go wrong
+        // if somehow not all symbols are normalized out of the time function)
         for(const auto& pat : this->pattern)
           {
             f->filter(pat.first, pat.second);

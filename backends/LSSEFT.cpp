@@ -437,6 +437,19 @@ LSSEFT& LSSEFT::add(const Pk_rsd& P, std::string name)
   }
 
 
+LSSEFT& LSSEFT::add(const Pk_rsd_set& Ps)
+  {
+    for(const auto& item : Ps)
+      {
+        const std::string& name = item.first;
+        const Pk_rsd& Pk = item.second.get();
+        this->add(Pk, name);
+      }
+
+    return *this;
+  }
+
+
 std::string LSSEFT::make_unique_kernel_name()
   {
     return this->kernel_root + std::to_string(this->kernel_count++);

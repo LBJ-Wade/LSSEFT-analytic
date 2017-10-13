@@ -42,6 +42,8 @@
 #include "backends/LSSEFT.h"
 
 
+
+
 std::vector<std::string> generate_UV_limit(const Pk_rsd_group& group, const GiNaC::symbol& k, unsigned int max_mu, unsigned int max_k)
   {
     std::vector<std::string> output;
@@ -152,11 +154,7 @@ std::vector<std::string> stochastic_divergences(const Pk_rsd& rsd, const GiNaC::
 
 
 template <typename MapGenerator>
-void write_map(const Pk_rsd& Pk_nobias, const Pk_rsd& Pk_b1, const Pk_rsd& Pk_b2, const Pk_rsd& Pk_b3,
-               const Pk_rsd& Pk_bG2, const Pk_rsd& Pk_bdG2, const Pk_rsd& Pk_bGamma3,
-               const Pk_rsd& Pk_b1b1, const Pk_rsd& Pk_b1b2, const Pk_rsd& Pk_b1b3, const Pk_rsd& Pk_b2b2,
-               const Pk_rsd& Pk_b1bG2, const Pk_rsd& Pk_bG2bG2, const Pk_rsd& Pk_b2bG2, const Pk_rsd& Pk_b1bdG2,
-               const Pk_rsd& Pk_b1bGamma3, const GiNaC::symbol& k, MapGenerator make_map)
+void write_map(const Pk_rsd_set& Pks, const GiNaC::symbol& k, MapGenerator make_map)
   {
     auto write = [&](std::string name, const Pk_rsd& rsd) -> void
       {
@@ -172,27 +170,13 @@ void write_map(const Pk_rsd& Pk_nobias, const Pk_rsd& Pk_b1, const Pk_rsd& Pk_b2
           }
       };
 
-    write("no bias", Pk_nobias);
+    for(const auto& item : Pks)
+      {
+        const std::string& name = item.first;
+        const Pk_rsd& Pk = item.second.get();
 
-    write("b1", Pk_b1);
-    write("b2", Pk_b2);
-    write("b3", Pk_b3);
-    write("bG2", Pk_bG2);
-    // bG3 gives zero
-    write("bdG2", Pk_bdG2);
-    write("bGamma3", Pk_bGamma3);
-
-    write("b1 x b1", Pk_b1b1);
-    write("b1 x b2", Pk_b1b2);
-    write("b1 x b3", Pk_b1b3);
-    write("b2 x b2", Pk_b2b2);
-
-    write("b1 x bG2", Pk_b1bG2);
-    write("b2 x bG2", Pk_b2bG2);
-    write("bG2 x bG2", Pk_bG2bG2);
-    // b1 x bG3 gives zero
-    write("b1 x bdG2", Pk_b1bdG2);
-    write("b1 x bGamma3", Pk_b1bGamma3);
+        write(name, Pk);
+      }
   }
 
 
@@ -211,8 +195,9 @@ int main(int argc, char* argv[])
     // redshift z is the time variable
     const auto& z = sf.get_z();
 
-    // H is the Hubble rate
+    // H is the Hubble rate, f is linear growth factor
     GiNaC::ex H = FRW::Hub(z);
+    GiNaC::ex f = SPT::f(z);
 
     // r is the unit line-of-sight vector to Earth
     auto r_sym = sf.make_symbol("r");
@@ -224,18 +209,25 @@ int main(int argc, char* argv[])
     sf.declare_parameter(mu);
 
     // define halo bias parameters
-    auto b1 = sf.make_symbol("b1");
-    auto b2 = sf.make_symbol("b2");
+    auto b1_1 = sf.make_symbol("b1_1");
+    auto b1_2 = sf.make_symbol("b1_2");
+    auto b1_3 = sf.make_symbol("b1_3");
+
+    auto b2_2 = sf.make_symbol("b2_2");
+    auto b2_3 = sf.make_symbol("b2_3");
+
+    auto bG2_2 = sf.make_symbol("bG2_2");
+    auto bG2_3 = sf.make_symbol("bG2_3");
+
     auto b3 = sf.make_symbol("b3");
-    auto bG2 = sf.make_symbol("bG2");
     auto bG3 = sf.make_symbol("bG3");
     auto bdG2 = sf.make_symbol("bdG2");
     auto bGamma3 = sf.make_symbol("bGamma3");
 
-    sf.declare_parameter(b1);
-    sf.declare_parameter(b2);
+    sf.declare_parameter(b1_1).declare_parameter(b1_2).declare_parameter(b1_3);
+    sf.declare_parameter(b2_2).declare_parameter(b2_3);
+    sf.declare_parameter(bG2_2).declare_parameter(bG2_3);
     sf.declare_parameter(b3);
-    sf.declare_parameter(bG2);
     sf.declare_parameter(bG3);
     sf.declare_parameter(bdG2);
     sf.declare_parameter(bGamma3);
@@ -284,11 +276,20 @@ int main(int argc, char* argv[])
     delta.add(SPT::DJ(z)                * (alpha(s+t, q, gamma_bar(s, t, qst_base, loc), loc)
                                            - 2*alpha(s+t, q, alpha_bar(s, t, qst_base, loc), loc)));
 
-    // compute kernels for the dark matter velocity potential \phi, v = grad phi -> v(k) = i k phi
+    // convert time dependence to EdS approximation
+    delta.to_EdS();
+
+    // extract different orders of \delta
     auto delta1 = delta.order(1);
     auto delta2 = delta.order(2);
     auto delta3 = delta.order(3);
 
+    // extract different orders of \delta^2
+    auto deltasq = delta*delta;
+    auto deltasq_2 = deltasq.order(2);
+    auto deltasq_3 = deltasq.order(3);
+
+    // compute kernels for the dark matter velocity potential \phi, v = grad phi -> v(k) = i k phi
     auto phi1 = InverseLaplacian(-diff_t(delta1));
     auto phi2 = InverseLaplacian(-diff_t(delta2) - delta1*Laplacian(phi1) - gradgrad(phi1, delta1));
     auto phi3 = InverseLaplacian(-diff_t(delta3)
@@ -304,11 +305,30 @@ int main(int argc, char* argv[])
     auto Phi_v = -phi/H;
 
     auto G2 = Galileon2(Phi_delta);
+    auto G2_2 = G2.order(2);
+    auto G2_3 = G2.order(3);
+
     auto G3 = Galileon3(Phi_delta);
     auto Gamma3 = Galileon2(Phi_delta) - Galileon2(Phi_v);
 
-    auto deltah = b1*delta + (b2/2)*delta*delta + (b3/6)*delta*delta*delta
-                  + bG2*G2 + bdG2*G2*delta + bG3*G3 + bGamma3*Gamma3;
+    auto vp1 = phi1 / (H*f);
+    auto vp2 = phi2 / (H*f);
+
+    auto deltah_b1 = b1_1*delta1 + b1_2*delta2 + b1_3*delta3
+                     + (b1_1 - b1_2)*gradgrad(vp1, delta1)
+                     + (b1_2 - b1_3)*gradgrad(vp1, delta2)
+                     + (b1_1 - b1_3)*gradgrad(vp2, delta1)/2;
+//                     + ((b1_1 + b1_3)/2 - b1_2)*
+
+    auto deltah_b2 = (b2_2/2)*deltasq_2 + (b2_3/2)*deltasq_3
+                     + (b2_2/2-b2_3/2)*gradgrad(vp1, deltasq_2);
+
+    auto deltah_G2 = bG2_2*G2_2 + bG2_3*G2_3
+                     + (bG2_2-bG2_3)*gradgrad(vp1, G2_2);
+
+    auto deltah_cubic = (b3/6)*delta*delta*delta + bdG2*G2*delta + bG3*G3 + bGamma3*Gamma3;
+
+    auto deltah = deltah_b1 + deltah_b2 + deltah_G2 + deltah_cubic;
 
 
     // set up momentum label k, corresponding to external momentum in 2pf
@@ -345,7 +365,7 @@ int main(int argc, char* argv[])
     auto deltah_rsd_k2 = make_delta_rsd(k2mu, deltah);
 
     // construct 1-loop \delta power spectrum
-    Pk_one_loop Pk_delta{deltah_rsd_k1, deltah_rsd_k2, k, loc};
+    Pk_one_loop Pk_delta{deltah, deltah, k, loc};
 
     // simplify mu-dependence
     Pk_delta.canonicalize_external_momenta();
@@ -354,73 +374,153 @@ int main(int argc, char* argv[])
     // remove unwanted r factors, which are equal to unity (r is a unit vector)
     Pk_delta.simplify(GiNaC::exmap{ {r_sym, GiNaC::ex{1}} });
 
-//    auto& tree = Pk_delta.get_tree();
-//    std::cout << "Tree-level P(k):" << '\n';
-//    std::cout << tree << '\n';
+    auto& tree = Pk_delta.get_tree();
+    std::cout << "Tree-level P(k):" << '\n';
+    std::cout << tree << '\n';
 
-//    auto& P13 = Pk_delta.get_13();
-//    std::cout << "Loop-level 13 P(k):" << '\n';
-//    std::cout << P13 << '\n';
+    auto& P13 = Pk_delta.get_13();
+    std::cout << "Loop-level 13 P(k):" << '\n';
+    std::cout << P13 << '\n';
 
-//    auto& P22 = Pk_delta.get_22();
-//    std::cout << "Loop-level 22 P(k):" << '\n';
-//    std::cout << P22 << '\n';
+    auto& P22 = Pk_delta.get_22();
+    std::cout << "Loop-level 22 P(k):" << '\n';
+    std::cout << P22 << '\n';
 
     // break result into powers of mu, grouped by the bias coefficients involved
-    GiNaC_symbol_set filter_syms{b1, b2, b3, bG2, bdG2, bG3, bGamma3};
+    GiNaC_symbol_set filter_syms{b1_1, b1_2, b1_3, b2_2, b2_3, b3, bG2_2, bG2_3, bdG2, bG3, bGamma3};
 
     Pk_rsd Pk_nobias{Pk_delta, mu, filter_list{}, filter_syms};
 
-    Pk_rsd Pk_b1{Pk_delta, mu, filter_list{ {b1,1} }, filter_syms};
-    Pk_rsd Pk_b2{Pk_delta, mu, filter_list{ {b2,1} }, filter_syms};
+    Pk_rsd Pk_b1_1{Pk_delta, mu, filter_list{ {b1_1,1} }, filter_syms};
+    Pk_rsd Pk_b1_2{Pk_delta, mu, filter_list{ {b1_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_3{Pk_delta, mu, filter_list{ {b1_3,1} }, filter_syms};
+
+    Pk_rsd Pk_b2_2{Pk_delta, mu, filter_list{ {b2_2,1} }, filter_syms};
+    Pk_rsd Pk_b2_3{Pk_delta, mu, filter_list{ {b2_3,1} }, filter_syms};
+
+    Pk_rsd Pk_bG2_2{Pk_delta, mu, filter_list{ {bG2_2,1} }, filter_syms};
+    Pk_rsd Pk_bG2_3{Pk_delta, mu, filter_list{ {bG2_3,1} }, filter_syms};
+
     Pk_rsd Pk_b3{Pk_delta, mu, filter_list{ {b3,1} }, filter_syms};
-    Pk_rsd Pk_bG2{Pk_delta, mu, filter_list{ {bG2,1} }, filter_syms};
     Pk_rsd Pk_bG3{Pk_delta, mu, filter_list{ {bG3,1} }, filter_syms};                           // zero
     Pk_rsd Pk_bdG2{Pk_delta, mu, filter_list{ {bdG2,1} }, filter_syms};
     Pk_rsd Pk_bGamma3{Pk_delta, mu, filter_list{ {bGamma3,1} }, filter_syms};
 
-    Pk_rsd Pk_b1b1{Pk_delta, mu, filter_list{ {b1,2} }, filter_syms};
-    Pk_rsd Pk_b1b2{Pk_delta, mu, filter_list{ {b1,1}, {b2,1} }, filter_syms};
-    Pk_rsd Pk_b1b3{Pk_delta, mu, filter_list{ {b1,1}, {b3,1} }, filter_syms};
-    Pk_rsd Pk_b2b2{Pk_delta, mu, filter_list{ {b2,2} }, filter_syms};
+    Pk_rsd Pk_b1_1_b1_1{Pk_delta, mu, filter_list{ {b1_1,2} }, filter_syms};
+    Pk_rsd Pk_b1_2_b1_2{Pk_delta, mu, filter_list{ {b1_2,2} }, filter_syms};
+    Pk_rsd Pk_b1_3_b1_3{Pk_delta, mu, filter_list{ {b1_3,2} }, filter_syms};
+    Pk_rsd Pk_b1_1_b1_2{Pk_delta, mu, filter_list{ {b1_1,1}, {b1_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_b1_3{Pk_delta, mu, filter_list{ {b1_1,1}, {b1_3,1} }, filter_syms};
+    Pk_rsd Pk_b1_2_b1_3{Pk_delta, mu, filter_list{ {b1_2,1}, {b1_3,1} }, filter_syms};
 
-    Pk_rsd Pk_b1bG2{Pk_delta, mu, filter_list{ {b1,1}, {bG2,1} }, filter_syms};
-    Pk_rsd Pk_bG2bG2{Pk_delta, mu, filter_list{ {bG2,2} }, filter_syms};
-    Pk_rsd Pk_b2bG2{Pk_delta, mu, filter_list{ {b2,1}, {bG2,1} }, filter_syms};
-    Pk_rsd Pk_b1bG3{Pk_delta, mu, filter_list{ {b1,1}, {bG3,1} }, filter_syms};                 // zero
-    Pk_rsd Pk_b1bdG2{Pk_delta, mu, filter_list{ {b1,1}, {bdG2,1} }, filter_syms};
-    Pk_rsd Pk_b1bGamma3{Pk_delta, mu, filter_list{ {b1,1}, {bGamma3,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_b2_2{Pk_delta, mu, filter_list{ {b1_1,1}, {b2_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_b2_3{Pk_delta, mu, filter_list{ {b1_1,1}, {b2_3,1} }, filter_syms};
+    Pk_rsd Pk_b1_2_b2_2{Pk_delta, mu, filter_list{ {b1_2,1}, {b2_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_2_b2_3{Pk_delta, mu, filter_list{ {b1_2,1}, {b2_3,1} }, filter_syms};
+    Pk_rsd Pk_b1_3_b2_2{Pk_delta, mu, filter_list{ {b1_3,1}, {b2_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_3_b2_3{Pk_delta, mu, filter_list{ {b1_3,1}, {b2_3,1} }, filter_syms};
+
+    Pk_rsd Pk_b1_1_b3{Pk_delta, mu, filter_list{ {b1_1,1}, {b3,1} }, filter_syms};
+    Pk_rsd Pk_b1_2_b3{Pk_delta, mu, filter_list{ {b1_2,1}, {b3,1} }, filter_syms};
+    Pk_rsd Pk_b1_3_b3{Pk_delta, mu, filter_list{ {b1_3,1}, {b3,1} }, filter_syms};
+
+    Pk_rsd Pk_b2_2_b2_2{Pk_delta, mu, filter_list{ {b2_2,2} }, filter_syms};
+    Pk_rsd Pk_b2_3_b2_3{Pk_delta, mu, filter_list{ {b2_3,2} }, filter_syms};
+    Pk_rsd Pk_b2_2_b2_3{Pk_delta, mu, filter_list{ {b2_2,1}, {b2_3,1} }, filter_syms};
+
+    Pk_rsd Pk_b1_1_bG2_2{Pk_delta, mu, filter_list{ {b1_1,1}, {bG2_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_bG2_3{Pk_delta, mu, filter_list{ {b1_1,1}, {bG2_3,1} }, filter_syms};
+    Pk_rsd Pk_b1_2_bG2_2{Pk_delta, mu, filter_list{ {b1_2,1}, {bG2_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_2_bG2_3{Pk_delta, mu, filter_list{ {b1_2,1}, {bG2_3,1} }, filter_syms};
+    Pk_rsd Pk_b1_3_bG2_2{Pk_delta, mu, filter_list{ {b1_3,1}, {bG2_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_3_bG2_3{Pk_delta, mu, filter_list{ {b1_3,1}, {bG2_3,1} }, filter_syms};
+
+    Pk_rsd Pk_bG2_2_bG2_2{Pk_delta, mu, filter_list{ {bG2_2,2} }, filter_syms};
+    Pk_rsd Pk_bG2_3_bG2_3{Pk_delta, mu, filter_list{ {bG2_3,2} }, filter_syms};
+    Pk_rsd Pk_bG2_2_bG2_3{Pk_delta, mu, filter_list{ {bG2_2,1}, {bG2_3,1} }, filter_syms};
+
+    Pk_rsd Pk_b2_2_bG2_2{Pk_delta, mu, filter_list{ {b2_2,1}, {bG2_2,1} }, filter_syms};
+    Pk_rsd Pk_b2_2_bG2_3{Pk_delta, mu, filter_list{ {b2_2,1}, {bG2_3,1} }, filter_syms};
+    Pk_rsd Pk_b2_3_bG2_2{Pk_delta, mu, filter_list{ {b2_3,1}, {bG2_2,1} }, filter_syms};
+    Pk_rsd Pk_b2_3_bG2_3{Pk_delta, mu, filter_list{ {b2_3,1}, {bG2_3,1} }, filter_syms};
+
+    Pk_rsd Pk_b1_1_bG3{Pk_delta, mu, filter_list{ {b1_1,1}, {bG3,1} }, filter_syms};                 // zero
+    Pk_rsd Pk_b1_2_bG3{Pk_delta, mu, filter_list{ {b1_2,1}, {bG3,1} }, filter_syms};                 // zero
+    Pk_rsd Pk_b1_3_bG3{Pk_delta, mu, filter_list{ {b1_3,1}, {bG3,1} }, filter_syms};                 // zero
+
+    Pk_rsd Pk_b1_1_bdG2{Pk_delta, mu, filter_list{ {b1_1,1}, {bdG2,1} }, filter_syms};
+    Pk_rsd Pk_b1_2_bdG2{Pk_delta, mu, filter_list{ {b1_2,1}, {bdG2,1} }, filter_syms};
+    Pk_rsd Pk_b1_3_bdG2{Pk_delta, mu, filter_list{ {b1_3,1}, {bdG2,1} }, filter_syms};
+
+    Pk_rsd Pk_b1_1_bGamma3{Pk_delta, mu, filter_list{ {b1_1,1}, {bGamma3,1} }, filter_syms};
+    Pk_rsd Pk_b1_2_bGamma3{Pk_delta, mu, filter_list{ {b1_2,1}, {bGamma3,1} }, filter_syms};
+    Pk_rsd Pk_b1_3_bGamma3{Pk_delta, mu, filter_list{ {b1_3,1}, {bGamma3,1} }, filter_syms};
+
+    Pk_rsd_set Pks =
+      {
+        {"nobias", std::ref(Pk_nobias)},
+        {"b1_1", std::ref(Pk_b1_1)},
+        {"b1_2", std::ref(Pk_b1_2)},
+        {"b1_3", std::ref(Pk_b1_3)},
+        {"b2_2", std::ref(Pk_b2_2)},
+        {"b2_3", std::ref(Pk_b2_3)},
+        {"bG2_2", std::ref(Pk_bG2_2)},
+        {"bG2_3", std::ref(Pk_bG2_3)},
+        {"b3", std::ref(Pk_b3)},
+        {"bdG2", std::ref(Pk_bdG2)},
+        {"bGamma3", std::ref(Pk_bGamma3)},
+        {"b1_1_b1_1", std::ref(Pk_b1_1_b1_1)},
+        {"b1_2_b1_2", std::ref(Pk_b1_2_b1_2)},
+        {"b1_3_b1_3", std::ref(Pk_b1_3_b1_3)},
+        {"b1_1_b1_2", std::ref(Pk_b1_1_b1_2)},
+        {"b1_1_b1_3", std::ref(Pk_b1_1_b1_3)},
+        {"b1_2_b1_3", std::ref(Pk_b1_2_b1_3)},
+        {"b1_1_b2_2", std::ref(Pk_b1_1_b2_2)},
+        {"b1_1_b2_3", std::ref(Pk_b1_1_b2_3)},
+        {"b1_2_b2_2", std::ref(Pk_b1_2_b2_2)},
+        {"b1_2_b2_3", std::ref(Pk_b1_2_b2_3)},
+        {"b1_3_b2_2", std::ref(Pk_b1_3_b2_2)},
+        {"b1_3_b2_3", std::ref(Pk_b1_3_b2_3)},
+        {"b1_1_b3", std::ref(Pk_b1_1_b3)},
+        {"b1_2_b3", std::ref(Pk_b1_2_b3)},
+        {"b1_3_b3", std::ref(Pk_b1_3_b3)},
+        {"b1_1_bG2_2", std::ref(Pk_b1_1_bG2_2)},
+        {"b1_1_bG2_3", std::ref(Pk_b1_1_bG2_3)},
+        {"b1_2_bG2_2", std::ref(Pk_b1_2_bG2_2)},
+        {"b1_2_bG2_3", std::ref(Pk_b1_2_bG2_3)},
+        {"b1_3_bG2_2", std::ref(Pk_b1_3_bG2_2)},
+        {"b1_3_bG2_3", std::ref(Pk_b1_3_bG2_3)},
+        {"bG2_2_bG2_2", std::ref(Pk_bG2_2_bG2_2)},
+        {"bG2_3_bG2_3", std::ref(Pk_bG2_3_bG2_3)},
+        {"bG2_2_bG2_3", std::ref(Pk_bG2_2_bG2_3)},
+        {"b2_2_bG2_2", std::ref(Pk_b2_2_bG2_2)},
+        {"b2_2_bG2_3", std::ref(Pk_b2_2_bG2_3)},
+        {"b2_3_bG2_2", std::ref(Pk_b2_3_bG2_2)},
+        {"b2_3_bG2_3", std::ref(Pk_b2_3_bG2_3)},
+        {"b1_1_bdG2", std::ref(Pk_b1_1_bdG2)},
+        {"b1_2_bdG2", std::ref(Pk_b1_2_bdG2)},
+        {"b1_3_bdG2", std::ref(Pk_b1_3_bdG2)},
+        {"b1_1_bGamma3", std::ref(Pk_b1_1_bGamma3)},
+        {"b1_2_bGamma3", std::ref(Pk_b1_2_bGamma3)},
+        {"b1_3_bGamma3", std::ref(Pk_b1_3_bGamma3)},
+      };
 
     if(args.get_counterterms())
       {
         std::cout << "** COUNTERTERM MAP" << '\n' << '\n';
 
+
         std::cout << "OPERATOR MIXING:" << '\n';
-        write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
-                  Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
-                  Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
-                  Pk_b1bGamma3, k, mixing_divergences);
+        write_map(Pks, k, mixing_divergences);
 
         std::cout << "STOCHASTIC COUNTERTERMS:" << '\n';
-        write_map(Pk_nobias, Pk_b1, Pk_b2, Pk_b3, Pk_bG2, Pk_bdG2, Pk_bGamma3,
-                  Pk_b1b1, Pk_b1b2, Pk_b1b3, Pk_b2b2,
-                  Pk_b1bG2, Pk_bG2bG2, Pk_b2bG2, Pk_b1bdG2,
-                  Pk_b1bGamma3, k, stochastic_divergences);
+        write_map(Pks, k, stochastic_divergences);
       }
 
     if(!args.get_output_root().empty())
       {
         LSSEFT backend{args.get_output_root(), loc};
-
-        backend.add(Pk_nobias, "nobias");
-
-        backend.add(Pk_b1, "b1").add(Pk_b2, "b2").add(Pk_b3, "b3").add(Pk_bG2, "bG2").add(Pk_bG3, "bG3");
-        backend.add(Pk_bdG2, "bdG2").add(Pk_bGamma3, "bGamma3");
-
-        backend.add(Pk_b1b1, "b1b1").add(Pk_b1b2, "b1b2").add(Pk_b1b3, "b1b3").add(Pk_b2b2, "b2b2");
-
-        backend.add(Pk_b1bG2, "b1bG2").add(Pk_bG2bG2, "bG2bG2").add(Pk_b2bG2, "b2bG2").add(Pk_b1bG2, "b1bG3");
-        backend.add(Pk_b1bdG2, "b1bdG2").add(Pk_b1bGamma3, "b1bGamma3");
+        backend.add(Pks);
 
         backend.write();
       }

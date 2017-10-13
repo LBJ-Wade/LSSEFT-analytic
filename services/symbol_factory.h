@@ -127,7 +127,7 @@ class symbol_factory
   public:
 
     //! declare a symbol to be a parameter
-    void declare_parameter(const GiNaC::symbol& s);
+    symbol_factory& declare_parameter(const GiNaC::symbol& s);
 
     //! get parameter set
     const GiNaC_symbol_set& get_parameters() const { return this->parameters; }
