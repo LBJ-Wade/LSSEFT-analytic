@@ -280,9 +280,9 @@ int main(int argc, char* argv[])
     delta.to_EdS();
 
     // extract different orders of \delta
-    auto delta1 = delta.order(1);
-    auto delta2 = delta.order(2);
-    auto delta3 = delta.order(3);
+    auto delta_1 = delta.order(1);
+    auto delta_2 = delta.order(2);
+    auto delta_3 = delta.order(3);
 
     // extract different orders of \delta^2
     auto deltasq = delta*delta;
@@ -290,11 +290,11 @@ int main(int argc, char* argv[])
     auto deltasq_3 = deltasq.order(3);
 
     // compute kernels for the dark matter velocity potential \phi, v = grad phi -> v(k) = i k phi
-    auto phi1 = InverseLaplacian(-diff_t(delta1));
-    auto phi2 = InverseLaplacian(-diff_t(delta2) - delta1*Laplacian(phi1) - gradgrad(phi1, delta1));
-    auto phi3 = InverseLaplacian(-diff_t(delta3)
-                                 - delta1*Laplacian(phi2) - delta2*Laplacian(phi1)
-                                 - gradgrad(phi1, delta2) - gradgrad(phi2, delta1));
+    auto phi1 = InverseLaplacian(-diff_t(delta_1));
+    auto phi2 = InverseLaplacian(-diff_t(delta_2) - delta_1*Laplacian(phi1) - gradgrad(phi1, delta_1));
+    auto phi3 = InverseLaplacian(-diff_t(delta_3)
+                                 - delta_1*Laplacian(phi2) - delta_2*Laplacian(phi1)
+                                 - gradgrad(phi1, delta_2) - gradgrad(phi2, delta_1));
 
     auto phi = phi1 + phi2 + phi3;
 
@@ -314,10 +314,10 @@ int main(int argc, char* argv[])
     auto vp1 = phi1 / (H*f);
     auto vp2 = phi2 / (H*f);
 
-    auto deltah_b1 = b1_1*delta1 + b1_2*delta2 + b1_3*delta3
-                     + (b1_1 - b1_2)*gradgrad(vp1, delta1)
-                     + (b1_2 - b1_3)*gradgrad(vp1, delta2)
-                     + (b1_1 - b1_3)*gradgrad(vp2, delta1)/2;
+    auto deltah_b1 = b1_1*delta_1 + b1_2*delta_2 + b1_3*delta_3
+                     + (b1_1 - b1_2)*gradgrad(vp1, delta_1)
+                     + (b1_2 - b1_3)*gradgrad(vp1, delta_2)
+                     + (b1_1 - b1_3)*gradgrad(vp2, delta_1)/2;
 //                     + ((b1_1 + b1_3)/2 - b1_2)*
 
     auto deltah_b2 = (b2_2/2)*deltasq_2 + (b2_3/2)*deltasq_3
@@ -365,7 +365,7 @@ int main(int argc, char* argv[])
     auto deltah_rsd_k2 = make_delta_rsd(k2mu, deltah);
 
     // construct 1-loop \delta power spectrum
-    Pk_one_loop Pk_delta{deltah, deltah, k, loc};
+    Pk_one_loop Pk_delta{deltah_rsd_k1, deltah_rsd_k2, k, loc};
 
     // simplify mu-dependence
     Pk_delta.canonicalize_external_momenta();
@@ -374,17 +374,17 @@ int main(int argc, char* argv[])
     // remove unwanted r factors, which are equal to unity (r is a unit vector)
     Pk_delta.simplify(GiNaC::exmap{ {r_sym, GiNaC::ex{1}} });
 
-    auto& tree = Pk_delta.get_tree();
-    std::cout << "Tree-level P(k):" << '\n';
-    std::cout << tree << '\n';
+//    auto& tree = Pk_delta.get_tree();
+//    std::cout << "Tree-level P(k):" << '\n';
+//    std::cout << tree << '\n';
 
-    auto& P13 = Pk_delta.get_13();
-    std::cout << "Loop-level 13 P(k):" << '\n';
-    std::cout << P13 << '\n';
+//    auto& P13 = Pk_delta.get_13();
+//    std::cout << "Loop-level 13 P(k):" << '\n';
+//    std::cout << P13 << '\n';
 
-    auto& P22 = Pk_delta.get_22();
-    std::cout << "Loop-level 22 P(k):" << '\n';
-    std::cout << P22 << '\n';
+//    auto& P22 = Pk_delta.get_22();
+//    std::cout << "Loop-level 22 P(k):" << '\n';
+//    std::cout << P22 << '\n';
 
     // break result into powers of mu, grouped by the bias coefficients involved
     GiNaC_symbol_set filter_syms{b1_1, b1_2, b1_3, b2_2, b2_3, b3, bG2_2, bG2_3, bdG2, bG3, bGamma3};
@@ -408,53 +408,30 @@ int main(int argc, char* argv[])
 
     Pk_rsd Pk_b1_1_b1_1{Pk_delta, mu, filter_list{ {b1_1,2} }, filter_syms};
     Pk_rsd Pk_b1_2_b1_2{Pk_delta, mu, filter_list{ {b1_2,2} }, filter_syms};
-    Pk_rsd Pk_b1_3_b1_3{Pk_delta, mu, filter_list{ {b1_3,2} }, filter_syms};
     Pk_rsd Pk_b1_1_b1_2{Pk_delta, mu, filter_list{ {b1_1,1}, {b1_2,1} }, filter_syms};
     Pk_rsd Pk_b1_1_b1_3{Pk_delta, mu, filter_list{ {b1_1,1}, {b1_3,1} }, filter_syms};
-    Pk_rsd Pk_b1_2_b1_3{Pk_delta, mu, filter_list{ {b1_2,1}, {b1_3,1} }, filter_syms};
 
     Pk_rsd Pk_b1_1_b2_2{Pk_delta, mu, filter_list{ {b1_1,1}, {b2_2,1} }, filter_syms};
     Pk_rsd Pk_b1_1_b2_3{Pk_delta, mu, filter_list{ {b1_1,1}, {b2_3,1} }, filter_syms};
     Pk_rsd Pk_b1_2_b2_2{Pk_delta, mu, filter_list{ {b1_2,1}, {b2_2,1} }, filter_syms};
-    Pk_rsd Pk_b1_2_b2_3{Pk_delta, mu, filter_list{ {b1_2,1}, {b2_3,1} }, filter_syms};
-    Pk_rsd Pk_b1_3_b2_2{Pk_delta, mu, filter_list{ {b1_3,1}, {b2_2,1} }, filter_syms};
-    Pk_rsd Pk_b1_3_b2_3{Pk_delta, mu, filter_list{ {b1_3,1}, {b2_3,1} }, filter_syms};
 
     Pk_rsd Pk_b1_1_b3{Pk_delta, mu, filter_list{ {b1_1,1}, {b3,1} }, filter_syms};
-    Pk_rsd Pk_b1_2_b3{Pk_delta, mu, filter_list{ {b1_2,1}, {b3,1} }, filter_syms};
-    Pk_rsd Pk_b1_3_b3{Pk_delta, mu, filter_list{ {b1_3,1}, {b3,1} }, filter_syms};
 
     Pk_rsd Pk_b2_2_b2_2{Pk_delta, mu, filter_list{ {b2_2,2} }, filter_syms};
-    Pk_rsd Pk_b2_3_b2_3{Pk_delta, mu, filter_list{ {b2_3,2} }, filter_syms};
-    Pk_rsd Pk_b2_2_b2_3{Pk_delta, mu, filter_list{ {b2_2,1}, {b2_3,1} }, filter_syms};
 
     Pk_rsd Pk_b1_1_bG2_2{Pk_delta, mu, filter_list{ {b1_1,1}, {bG2_2,1} }, filter_syms};
     Pk_rsd Pk_b1_1_bG2_3{Pk_delta, mu, filter_list{ {b1_1,1}, {bG2_3,1} }, filter_syms};
     Pk_rsd Pk_b1_2_bG2_2{Pk_delta, mu, filter_list{ {b1_2,1}, {bG2_2,1} }, filter_syms};
-    Pk_rsd Pk_b1_2_bG2_3{Pk_delta, mu, filter_list{ {b1_2,1}, {bG2_3,1} }, filter_syms};
-    Pk_rsd Pk_b1_3_bG2_2{Pk_delta, mu, filter_list{ {b1_3,1}, {bG2_2,1} }, filter_syms};
-    Pk_rsd Pk_b1_3_bG2_3{Pk_delta, mu, filter_list{ {b1_3,1}, {bG2_3,1} }, filter_syms};
 
     Pk_rsd Pk_bG2_2_bG2_2{Pk_delta, mu, filter_list{ {bG2_2,2} }, filter_syms};
-    Pk_rsd Pk_bG2_3_bG2_3{Pk_delta, mu, filter_list{ {bG2_3,2} }, filter_syms};
-    Pk_rsd Pk_bG2_2_bG2_3{Pk_delta, mu, filter_list{ {bG2_2,1}, {bG2_3,1} }, filter_syms};
 
     Pk_rsd Pk_b2_2_bG2_2{Pk_delta, mu, filter_list{ {b2_2,1}, {bG2_2,1} }, filter_syms};
-    Pk_rsd Pk_b2_2_bG2_3{Pk_delta, mu, filter_list{ {b2_2,1}, {bG2_3,1} }, filter_syms};
-    Pk_rsd Pk_b2_3_bG2_2{Pk_delta, mu, filter_list{ {b2_3,1}, {bG2_2,1} }, filter_syms};
-    Pk_rsd Pk_b2_3_bG2_3{Pk_delta, mu, filter_list{ {b2_3,1}, {bG2_3,1} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_bG3{Pk_delta, mu, filter_list{ {b1_1,1}, {bG3,1} }, filter_syms};                 // zero
-    Pk_rsd Pk_b1_2_bG3{Pk_delta, mu, filter_list{ {b1_2,1}, {bG3,1} }, filter_syms};                 // zero
-    Pk_rsd Pk_b1_3_bG3{Pk_delta, mu, filter_list{ {b1_3,1}, {bG3,1} }, filter_syms};                 // zero
+    Pk_rsd Pk_b1_1_bG3{Pk_delta, mu, filter_list{ {b1_1,1}, {bG3,1} }, filter_syms};            // zero
 
     Pk_rsd Pk_b1_1_bdG2{Pk_delta, mu, filter_list{ {b1_1,1}, {bdG2,1} }, filter_syms};
-    Pk_rsd Pk_b1_2_bdG2{Pk_delta, mu, filter_list{ {b1_2,1}, {bdG2,1} }, filter_syms};
-    Pk_rsd Pk_b1_3_bdG2{Pk_delta, mu, filter_list{ {b1_3,1}, {bdG2,1} }, filter_syms};
 
     Pk_rsd Pk_b1_1_bGamma3{Pk_delta, mu, filter_list{ {b1_1,1}, {bGamma3,1} }, filter_syms};
-    Pk_rsd Pk_b1_2_bGamma3{Pk_delta, mu, filter_list{ {b1_2,1}, {bGamma3,1} }, filter_syms};
-    Pk_rsd Pk_b1_3_bGamma3{Pk_delta, mu, filter_list{ {b1_3,1}, {bGamma3,1} }, filter_syms};
 
     Pk_rsd_set Pks =
       {
@@ -471,38 +448,19 @@ int main(int argc, char* argv[])
         {"bGamma3", std::ref(Pk_bGamma3)},
         {"b1_1_b1_1", std::ref(Pk_b1_1_b1_1)},
         {"b1_2_b1_2", std::ref(Pk_b1_2_b1_2)},
-        {"b1_3_b1_3", std::ref(Pk_b1_3_b1_3)},
         {"b1_1_b1_2", std::ref(Pk_b1_1_b1_2)},
         {"b1_1_b1_3", std::ref(Pk_b1_1_b1_3)},
-        {"b1_2_b1_3", std::ref(Pk_b1_2_b1_3)},
         {"b1_1_b2_2", std::ref(Pk_b1_1_b2_2)},
         {"b1_1_b2_3", std::ref(Pk_b1_1_b2_3)},
         {"b1_2_b2_2", std::ref(Pk_b1_2_b2_2)},
-        {"b1_2_b2_3", std::ref(Pk_b1_2_b2_3)},
-        {"b1_3_b2_2", std::ref(Pk_b1_3_b2_2)},
-        {"b1_3_b2_3", std::ref(Pk_b1_3_b2_3)},
         {"b1_1_b3", std::ref(Pk_b1_1_b3)},
-        {"b1_2_b3", std::ref(Pk_b1_2_b3)},
-        {"b1_3_b3", std::ref(Pk_b1_3_b3)},
         {"b1_1_bG2_2", std::ref(Pk_b1_1_bG2_2)},
         {"b1_1_bG2_3", std::ref(Pk_b1_1_bG2_3)},
         {"b1_2_bG2_2", std::ref(Pk_b1_2_bG2_2)},
-        {"b1_2_bG2_3", std::ref(Pk_b1_2_bG2_3)},
-        {"b1_3_bG2_2", std::ref(Pk_b1_3_bG2_2)},
-        {"b1_3_bG2_3", std::ref(Pk_b1_3_bG2_3)},
         {"bG2_2_bG2_2", std::ref(Pk_bG2_2_bG2_2)},
-        {"bG2_3_bG2_3", std::ref(Pk_bG2_3_bG2_3)},
-        {"bG2_2_bG2_3", std::ref(Pk_bG2_2_bG2_3)},
         {"b2_2_bG2_2", std::ref(Pk_b2_2_bG2_2)},
-        {"b2_2_bG2_3", std::ref(Pk_b2_2_bG2_3)},
-        {"b2_3_bG2_2", std::ref(Pk_b2_3_bG2_2)},
-        {"b2_3_bG2_3", std::ref(Pk_b2_3_bG2_3)},
         {"b1_1_bdG2", std::ref(Pk_b1_1_bdG2)},
-        {"b1_2_bdG2", std::ref(Pk_b1_2_bdG2)},
-        {"b1_3_bdG2", std::ref(Pk_b1_3_bdG2)},
         {"b1_1_bGamma3", std::ref(Pk_b1_1_bGamma3)},
-        {"b1_2_bGamma3", std::ref(Pk_b1_2_bGamma3)},
-        {"b1_3_bGamma3", std::ref(Pk_b1_3_bGamma3)},
       };
 
     if(args.get_counterterms())
