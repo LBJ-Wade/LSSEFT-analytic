@@ -315,16 +315,16 @@ int main(int argc, char* argv[])
     auto vp2 = phi2 / (H*f);
 
     auto deltah_b1 = b1_1*delta_1 + b1_2*delta_2 + b1_3*delta_3
-                     + (b1_1 - b1_2)*gradgrad(vp1, delta_1)
-                     + (b1_2 - b1_3)*gradgrad(vp1, delta_2)
-                     + (b1_1 - b1_3)*gradgrad(vp2, delta_1)/2;
-//                     + ((b1_1 + b1_3)/2 - b1_2)*
+                     - (b1_1 - b1_2)*gradgrad(vp1, delta_1)
+                     - (b1_2 - b1_3)*gradgrad(vp1, delta_2)
+                     - (b1_1 - b1_3)*gradgrad(vp2, delta_1)/2;
+                     + ((b1_1 + b1_3)/2 - b1_2)*convective_bias_term(vp1, delta_1);
 
     auto deltah_b2 = (b2_2/2)*deltasq_2 + (b2_3/2)*deltasq_3
-                     + (b2_2/2-b2_3/2)*gradgrad(vp1, deltasq_2);
+                     - (b2_2/2-b2_3/2)*gradgrad(vp1, deltasq_2);
 
     auto deltah_G2 = bG2_2*G2_2 + bG2_3*G2_3
-                     + (bG2_2-bG2_3)*gradgrad(vp1, G2_2);
+                     - (bG2_2-bG2_3)*gradgrad(vp1, G2_2);
 
     auto deltah_cubic = (b3/6)*delta*delta*delta + bdG2*G2*delta + bG3*G3 + bGamma3*Gamma3;
 

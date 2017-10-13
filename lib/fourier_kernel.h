@@ -390,6 +390,11 @@ template <unsigned int N>
 fourier_kernel<N> Galileon3(const fourier_kernel<N>& a);
 
 
+//! compute the special convective term needed at third order in the bias expansion
+template <unsigned int N>
+fourier_kernel<N> convective_bias_term(const fourier_kernel<N>& vp, const fourier_kernel<N>& delta);
+
+
 //! kernel represents an object defined by an integral kernel and early-time
 //! values for each stochastic quantity such as the density constrast \delta*_k
 //! the template parameter N represents the maximum order we wish to keep
@@ -537,6 +542,8 @@ class fourier_kernel
 
     friend fourier_kernel Galileon2<>(const fourier_kernel& a);
     friend fourier_kernel Galileon3<>(const fourier_kernel& b);
+
+    friend fourier_kernel convective_bias_term<>(const fourier_kernel& vp, const fourier_kernel& delta);
     
   };
 
@@ -921,7 +928,7 @@ fourier_kernel<N> operator*(const fourier_kernel<N>& a, const fourier_kernel<N>&
     
     KernelProduct(a, b, ins);
     
-    return r;
+    return std::move(r);
   }
 
 
@@ -1020,7 +1027,7 @@ fourier_kernel<N> gradgrad(const fourier_kernel<N>& a, const fourier_kernel<N>& 
     
     KernelProduct(a, b, ins);
     
-    return r;
+    return std::move(r);
   }
 
 
@@ -1042,6 +1049,75 @@ fourier_kernel<N> dotgrad(const vector& a, const fourier_kernel<N>& b)
         
         return c;
       });
+  }
+
+
+template <unsigned int N>
+fourier_kernel<N> convective_bias_term(const fourier_kernel<N>& vp, const fourier_kernel<N>& delta)
+  {
+    static_assert(N == 3, "convective_bias_term() is currently configured only for N=3 kernels");
+
+    using fourier_kernel_impl::kernel;
+
+    auto& sf = delta.loc.get_symbol_factory();
+
+    // manufacture a blank fourier kernel of max order N
+    auto r = delta.loc.template make_fourier_kernel<N>();
+
+    // get linear kernels from vp and delta
+    auto vp_1 = vp.order(1);
+    auto delta_1 = delta.order(1);
+
+    for(auto ta = vp_1.cbegin(); ta != vp_1.cend(); ++ta)
+      {
+        for(auto tb = vp_1.cbegin(); tb != vp_1.cend(); ++tb)
+          {
+            for(auto tc = delta_1.cbegin(); tc != delta_1.cend(); ++tc)
+              {
+                auto idx_i = sf.make_unique_index();
+                auto idx_j = sf.make_unique_index();
+
+                auto ker_a = *ta->second;
+                auto ker_b = *tb->second;
+                auto ker_c = *tc->second;
+
+                auto k_a = ker_a.get_total_momentum();
+                auto k_b = ker_b.get_total_momentum();
+                auto k_c = ker_c.get_total_momentum();
+
+                auto k_a_i = k_a[idx_i];
+                auto k_b_i = k_b[idx_i];
+                auto k_b_j = k_b[idx_j];
+                auto k_c_j = k_c[idx_j];
+
+                auto ker_d = ker_a;
+                auto ker_e = ker_b;
+                auto ker_f = ker_c;
+
+                auto k_d = ker_d.get_total_momentum();
+                auto k_e = ker_e.get_total_momentum();
+                auto k_f = ker_f.get_total_momentum();
+
+                auto k_d_i = k_d[idx_i];
+                auto k_e_j = k_e[idx_j];
+                auto k_f_i = k_f[idx_i];
+                auto k_f_j = k_f[idx_j];
+
+                ker_a.multiply_kernel(GiNaC::I*k_a_i);
+                ker_b.multiply_kernel(-k_b_i*k_b_j);
+                ker_c.multiply_kernel(GiNaC::I*k_c_j);
+
+                ker_d.multiply_kernel(GiNaC::I*k_d_i);
+                ker_e.multiply_kernel(GiNaC::I*k_e_j);
+                ker_f.multiply_kernel(-k_f_i*k_f_j);
+
+                auto ker = ker_a*ker_b*ker_c + ker_d*ker_e*ker_f;
+                r.add(ker, true);
+              }
+          }
+      }
+
+    return std::move(r);
   }
 
 
@@ -1087,7 +1163,7 @@ fourier_kernel<N> Galileon2(const fourier_kernel<N>& a)
 
     KernelProduct(a, a, ins);
 
-    return r;
+    return std::move(r);
   }
 
 
@@ -1161,7 +1237,7 @@ fourier_kernel<N> Galileon3(const fourier_kernel<N>& a)
 
     KernelProduct(a, a, a, ins);
 
-    return r;
+    return std::move(r);
   }
 
 
