@@ -399,6 +399,38 @@ namespace LSSEFT_impl
         return format_print(filtered.subs(subs_map));
       }
 
+
+    bool LSSEFT_kernel::is_IR_safe() const
+      {
+        auto total_integrand = this->integrand*this->measure;
+
+        for(const auto& sym : this->variables)
+          {
+            auto IR_part = GiNaC::series_to_poly(total_integrand.series(sym, 4));
+
+            // simplify square roots, which are often left behind after making a Taylor expansion;
+            // this can be critical if cancellation of IR-divergent terms depends on such simplifications
+            for(const auto& var : this->variables)
+              {
+                IR_part = IR_part.subs(GiNaC::exmap{ {GiNaC::sqrt(var*var), var},
+                                                     {GiNaC::pow(var*var, GiNaC::wild()), GiNaC::pow(var, GiNaC::numeric{2}*GiNaC::wild())} });
+              }
+            for(const auto& var : this->external_momenta)
+              {
+                IR_part = IR_part.subs(GiNaC::exmap{ {GiNaC::sqrt(var*var), var},
+                                                     {GiNaC::pow(var*var, GiNaC::wild()), GiNaC::pow(var, GiNaC::numeric{2}*GiNaC::wild())} });
+              }
+
+            if(IR_part.ldegree(sym) < 0)
+              {
+                std::cout << IR_part << '\n';
+                return false;
+              }
+          }
+
+        return true;
+      }
+
   }   // namespace LSSEFT_impl
 
 
@@ -621,6 +653,15 @@ void LSSEFT::write_kernel_integrands() const
       {
         const LSSEFT_kernel& kernel = record.first;
         const std::string& name = record.second;
+
+        // check kernel integrand for IR safety in all variables
+        if(!kernel.is_IR_safe())
+          {
+            error_handler err;
+            std::ostringstream msg;
+            msg << WARNING_KERNEL_IS_NOT_IR_SAFE << " '" << name << "'";
+            err.warn(msg.str());
+          }
 
         const auto& integration_vars = kernel.get_integration_variables();
         const auto& external_momenta = kernel.get_external_momenta();

@@ -121,6 +121,7 @@ constexpr auto WARNING_KERNEL_EXPRESSION = "Kernel expression";
 constexpr auto WARNING_UNEVALUATED_FABRIKANT = "Unevaluated Fabrikant integral of order";
 constexpr auto WARNING_PARAMETER_APPEARS_IN_TIME_FUNCTION_RENORMALIZATION = "Encountered normalization of time-dependent function with parameter";
 constexpr auto WARNING_PK_RSD_EMPTY = "Empty RSD Pk group for filter pattern";
+constexpr auto WARNING_KERNEL_IS_NOT_IR_SAFE = "Detected failure of IR safety for LSSEFT kernel";
 
 
 #endif //LSSEFT_ANALYTIC_MESSAGES_EN_H

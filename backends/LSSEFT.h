@@ -80,6 +80,9 @@ namespace LSSEFT_impl
 
       public:
 
+        //! test for IR safety
+        bool is_IR_safe() const;
+
         //! test for equality
         bool is_equal(const LSSEFT_kernel& obj) const;
 
