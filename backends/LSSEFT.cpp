@@ -189,7 +189,8 @@ namespace LSSEFT_impl
             // determine whether we should bracket this operand
             // this should happen any time the operand has lower precedence than the current operand, but at the moment
             // we only deal with + and * so we can simply check for +
-            bool bracket = GiNaC::is_a<GiNaC::add>(arg);
+            // we can kill the brackets if the operands are a comma-separated list of arguments, though
+            bool bracket = op != "," && GiNaC::is_a<GiNaC::add>(arg);
 
             if(bracket) rval.append("(");
             rval.append(format_print(arg));
