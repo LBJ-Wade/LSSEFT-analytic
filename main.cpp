@@ -276,9 +276,6 @@ int main(int argc, char* argv[])
     delta.add(SPT::DJ(z)                * (alpha(s+t, q, gamma_bar(s, t, qst_base, loc), loc)
                                            - 2*alpha(s+t, q, alpha_bar(s, t, qst_base, loc), loc)));
 
-    // convert time dependence to EdS approximation
-    delta.to_EdS();
-
     // extract different orders of \delta
     auto delta_1 = delta.order(1);
     auto delta_2 = delta.order(2);
