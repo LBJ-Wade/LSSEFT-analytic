@@ -135,7 +135,7 @@ std::vector<std::string> mixing_map(const Pk_rsd& rsd, const GiNaC::symbol& k)
 std::vector<std::string> stochastic_map(const Pk_rsd& rsd, const GiNaC::symbol& k)
   {
     const auto& rsd_22 = rsd.get_22();
-    return generate_map(rsd_22, k, 4, 2);
+    return generate_map(rsd_22, k, 4, 1);
   }
 
 
@@ -149,7 +149,7 @@ std::vector<std::string> mixing_divergences(const Pk_rsd& rsd, const GiNaC::symb
 std::vector<std::string> stochastic_divergences(const Pk_rsd& rsd, const GiNaC::symbol& k)
   {
     const auto& rsd_22 = rsd.get_22();
-    return generate_UV_limit(rsd_22, k, 4, 2);
+    return generate_UV_limit(rsd_22, k, 4, 1);
   }
 
 
