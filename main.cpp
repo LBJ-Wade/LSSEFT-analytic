@@ -278,6 +278,9 @@ int main(int argc, char* argv[])
     delta.add(SPT::DJ(z)                * (alpha(s+t, q, gamma_bar(s, t, qst_base, loc), loc)
                                            - 2*alpha(s+t, q, alpha_bar(s, t, qst_base, loc), loc)));
 
+    // conver to EdS approximation
+    delta.to_EdS();
+
     // extract different orders of \delta
     auto delta_1 = delta.order(1);
     auto delta_2 = delta.order(2);
@@ -352,6 +355,22 @@ int main(int argc, char* argv[])
     // set up momentum label k, corresponding to external momentum in 2pf
     auto k = sf.make_symbol("k");
     sf.declare_parameter(k);
+
+
+    Pk_one_loop test_Pk_b3{delta_1, delta*delta*delta, k, loc};
+    Pk_one_loop test_Pk_bdG2{delta_1, G2*delta, k, loc};
+    Pk_one_loop test_Pk_G3{delta_1, G3, k, loc};
+    Pk_one_loop test_Pk_Gamma3{delta_1, Gamma3, k, loc};
+
+    std::cout << "CUBIC TERMS" << '\n';
+    std::cout << "(b3/6) delta^3" << '\n' << '\n';
+    std::cout << test_Pk_b3 << '\n';
+    std::cout << "bdG2 G2 delta" << '\n' << '\n';
+    std::cout << test_Pk_bdG2 << '\n';
+    std::cout << "bG3 G3" << '\n' << '\n';
+    std::cout << test_Pk_G3 << '\n';
+    std::cout << "bGamma3 Gamma3" << '\n' << '\n';
+    std::cout << test_Pk_Gamma3;
 
 
     // build expression for the redshift-space overdensities,
