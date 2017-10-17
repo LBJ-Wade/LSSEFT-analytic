@@ -34,6 +34,10 @@ constexpr auto FORMAT_SECOND_LABEL = "s";
 
 constexpr auto WARNING_LABEL = "warning:";
 
+constexpr auto LABEL_PK_TREE = "Tree level";
+constexpr auto LABEL_PK_13 = "Loop level 13";
+constexpr auto LABEL_PK_22 = "Loop level 22";
+
 constexpr auto ERROR_SYMBOL_INSERTION_FAILED = "Internal error: symbol insertion failed";
 constexpr auto ERROR_INITIAL_VALUE_INSERT_FAILED = "Internal error: initial value insertion failed";
 constexpr auto ERROR_KERNEL_INSERT_FAILED = "Internal error: kernel insertion failed";

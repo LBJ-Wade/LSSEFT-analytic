@@ -220,6 +220,14 @@ class Pk_one_loop
 
     //! canonicalize external momenta
     void canonicalize_external_momenta();
+
+
+    // SERVICES
+
+  public:
+
+    //! write self to stream
+    void write(std::ostream& out) const;
     
     
     // INTERNAL DATA
@@ -250,6 +258,10 @@ class Pk_one_loop
     Pk_db P22;
   
   };
+
+
+//! perform stream insertion
+std::ostream& operator<<(std::ostream& str, const Pk_one_loop& obj);
 
 
 template <unsigned int N1, unsigned int N2>

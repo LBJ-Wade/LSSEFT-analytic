@@ -150,7 +150,25 @@ void Pk_one_loop::canonicalize_external_momenta()
   }
 
 
+void Pk_one_loop::write(std::ostream& out) const
+  {
+    out << LABEL_PK_TREE << '\n';
+    out << this->get_tree() << '\n';
+    out << LABEL_PK_13 << '\n';
+    out << this->get_13() << '\n';
+    out << LABEL_PK_22 << '\n';
+    out << this->get_22() << '\n';
+  }
+
+
 std::ostream& operator<<(std::ostream& str, const Pk_one_loop_impl::Pk_db& obj)
+  {
+    obj.write(str);
+    return str;
+  }
+
+
+std::ostream& operator<<(std::ostream& str, const Pk_one_loop& obj)
   {
     obj.write(str);
     return str;
