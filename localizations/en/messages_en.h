@@ -28,6 +28,10 @@
 #define LSSEFT_ANALYTIC_MESSAGES_EN_H
 
 
+constexpr auto FORMAT_HOUR_LABEL = "h";
+constexpr auto FORMAT_MINUTE_LABEL = "m";
+constexpr auto FORMAT_SECOND_LABEL = "s";
+
 constexpr auto WARNING_LABEL = "warning:";
 
 constexpr auto ERROR_SYMBOL_INSERTION_FAILED = "Internal error: symbol insertion failed";

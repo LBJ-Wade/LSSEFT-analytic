@@ -36,6 +36,7 @@ ENDIF()
 ADD_EXECUTABLE(LSSEFT_analytic
   main.cpp
   backends/LSSEFT.cpp
+  instruments/timing_instrument.cpp
   lib/fourier_kernel.cpp
   lib/initial_value.cpp
   lib/loop_integral.cpp
@@ -55,6 +56,7 @@ ADD_EXECUTABLE(LSSEFT_analytic
   shared/exceptions.cpp
   SPT/one_loop_kernels.cpp
   SPT/time_functions.cpp
+  utilities/formatter.cpp
   utilities/GiNaC_utils.cpp
   )
 
@@ -74,6 +76,11 @@ TARGET_INCLUDE_DIRECTORIES(LSSEFT_analytic PRIVATE
 SET(BACKEND_FILES
   backends/LSSEFT.cpp
   backends/LSSEFT.h
+  )
+
+SET(INSTRUMENTS_FILES
+  instruments/timing_instrument.cpp
+  instruments/timing_instrument.h
   )
 
 SET(LIBRARY_FILES
@@ -140,6 +147,8 @@ SET(SPT_FILES
   )
 
 SET(UTILITIES_FILES
+  utilities/formatter.cpp
+  utilities/formatter.h
   utilities/GiNaC_utils.cpp
   utilities/GiNaC_utils.h
   utilities/hash_combine.h
@@ -151,6 +160,7 @@ SET(TOP_LEVEL_FILES
 
 ADD_EXECUTABLE(clion_dummy_target
   ${BACKEND_FILES}
+  ${INSTRUMENTS_FILES}
   ${LIBRARY_FILES}
   ${LIBRARY_DETAIL_FILES}
   ${LOCALIZATIONS_FILES}
