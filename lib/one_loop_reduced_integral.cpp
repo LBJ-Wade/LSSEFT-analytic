@@ -281,7 +281,7 @@ one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, se
         loop_q = *loop_int.get_loop_momenta().begin();
 
         // apply term-by-term decomposition to K
-        if(GiNaC::is_a<GiNaC::mul>(K))
+        if(GiNaC::is_a<GiNaC::mul>(K) || GiNaC::is_a<GiNaC::numeric>(K) || GiNaC::is_a<GiNaC::power>(K))
           {
             // just a single product at the top level, so reduce that
             this->reduce(K);
@@ -491,32 +491,36 @@ GiNaC::ex one_loop_reduced_integral::apply_Legendre_orthogonality(const GiNaC::e
   {
     GiNaC::ex temp{1};
 
-    if(!GiNaC::is_a<GiNaC::mul>(expr))
-      throw exception(ERROR_BADLY_FORMED_LEGENDRE_SUM_TERM, exception_code::loop_transformation_error);
-
     using Legendre_list = std::vector< std::pair< GiNaC::symbol, unsigned int > >;
     Legendre_list partner_q;
 
-    // run through each factor in the expression
-    // if it is a Legendre polynomial involving q then record the momentum it occurs with, and its order
-    for(size_t i = 0; i < expr.nops(); ++i)
+    if(GiNaC::is_a<GiNaC::numeric>(expr) || GiNaC::is_a<GiNaC::power>(expr)) temp = expr;
+    else if(GiNaC::is_a<GiNaC::mul>(expr))
       {
-        const auto term = expr.op(i);
-        if(!GiNaC::is_a<GiNaC::function>(term)) { temp *= term; continue; }
+        // run through each factor in the expression
+        // if it is a Legendre polynomial involving q then record the momentum it occurs with, and its order
+        for(size_t i = 0; i < expr.nops(); ++i)
+          {
+            const GiNaC::ex& term = expr.op(i);
 
-        const auto& fn = GiNaC::ex_to<GiNaC::function>(term);
-        if(fn.get_name() != "LegP") { temp *= term; continue; }
+            if(!GiNaC::is_a<GiNaC::function>(term)) { temp *= term; continue; }
 
-        auto n = static_cast<unsigned int>(GiNaC::ex_to<GiNaC::numeric>(fn.op(0)).to_int());
-        auto p1 = GiNaC::ex_to<GiNaC::symbol>(fn.op(1));
-        auto p2 = GiNaC::ex_to<GiNaC::symbol>(fn.op(2));
+            const auto& fn = GiNaC::ex_to<GiNaC::function>(term);
+            if(fn.get_name() != "LegP") { temp *= term; continue; }
 
-        if(p1 == q) { partner_q.emplace_back(p2, n); continue; }
-        if(p2 == q) { partner_q.emplace_back(p1, n); continue; }
+            auto n = static_cast<unsigned int>(GiNaC::ex_to<GiNaC::numeric>(fn.op(0)).to_int());
+            auto p1 = GiNaC::ex_to<GiNaC::symbol>(fn.op(1));
+            auto p2 = GiNaC::ex_to<GiNaC::symbol>(fn.op(2));
 
-        // not a Legendre polynomial involving q, so move on
-        temp *= term;
+            if(p1 == q) { partner_q.emplace_back(p2, n); continue; }
+            if(p2 == q) { partner_q.emplace_back(p1, n); continue; }
+
+            // not a Legendre polynomial involving q, so shift into temp
+            temp *= term;
+          }
       }
+    else
+      throw exception(ERROR_BADLY_FORMED_LEGENDRE_SUM_TERM, exception_code::loop_transformation_error);
 
     // if no Legendre polynomials, equivalent to LegP(0, x)
     if(partner_q.empty())

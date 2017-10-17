@@ -367,7 +367,7 @@ GiNaC::ex one_loop_reduced_integral::integrate_Legendre(const GiNaC::ex& term, c
   {
     auto term_ex = term.expand();
 
-    if(GiNaC::is_a<GiNaC::mul>(term_ex))
+    if(GiNaC::is_a<GiNaC::mul>(term_ex) || GiNaC::is_a<GiNaC::numeric>(term_ex) || GiNaC::is_a<GiNaC::power>(term_ex))
       {
         return f(term_ex, q);
       }
