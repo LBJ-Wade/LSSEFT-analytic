@@ -119,9 +119,12 @@ class one_loop_element
     void filter(const GiNaC::symbol& pattern, unsigned int order = 1);
 
 
-    // UV LIMIT
+    // SERVICES
 
   public:
+
+    //! convert self to Mathematica format expression
+    std::string to_Mathematica() const;
 
     //! construct UV limit
     GiNaC::ex get_UV_limit(unsigned int order=2) const;
@@ -298,20 +301,18 @@ class one_loop_reduced_integral
                                            const GiNaC::symbol& k, const GiNaC::numeric& kcoeff, const GiNaC::symbol& R);
 
 
-    // UV LIMIT
-
-  public:
-
-    //! get UV limit
-    GiNaC::ex get_UV_limit(unsigned int order=2) const;
-
-
     // SERVICES
 
   public:
 
     //! write self to stream
     void write(std::ostream& out) const;
+
+    //! format self as Mathematica expressions
+    std::string to_Mathematica() const;
+
+    //! get UV limit
+    GiNaC::ex get_UV_limit(unsigned int order=2) const;
 
 
     // INTERNAL DATA
