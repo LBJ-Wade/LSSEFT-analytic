@@ -50,5 +50,8 @@ constexpr auto SWITCH_OUTPUT             = "output,o";
 constexpr auto SWITCH_OUTPUT_LONG        = "output";
 constexpr auto HELP_OUTPUT               = "set output root name";
 
+constexpr auto SWITCH_MATHEMATICA_OUTPUT = "mathematica-output";
+constexpr auto HELP_MATHEMATICA_OUTPUT   = "write Mathematica script for loop integrals";
+
 
 #endif //LSSEFT_ANALYTIC_SWITCHES_H
