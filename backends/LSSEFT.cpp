@@ -36,6 +36,8 @@
 #include "shared/exceptions.h"
 #include "localizations/messages.h"
 
+#include "boost/date_time/posix_time/posix_time.hpp"
+
 
 namespace LSSEFT_impl
   {
@@ -601,6 +603,7 @@ void LSSEFT::write_create() const
     auto output = this->make_output_path("create_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->kernel_db)
       {
@@ -641,8 +644,11 @@ void LSSEFT::write_kernel_integrands() const
     auto output = this->make_output_path("kernel_integrands.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     auto& sf = this->loc.get_symbol_factory();
+    auto& ac = this->loc.get_argunent_cache();
+
     auto q0 = sf.make_canonical_loop_momentum(0);
     auto x = sf.make_symbol("x");
 
@@ -673,6 +679,7 @@ void LSSEFT::write_kernel_integrands() const
         // write create statements for all kernels that we require
         outf << "static int " << name << "_integrand(const int* ndim_, const cubareal x_[], const int* ncomp_, cubareal f_[], void* userdata_)" << '\n';
         outf << " {" << '\n';
+        outf << "   // computed using auto-symmetrize = " << ac.get_auto_symmetrize() << ", symmetrize-22 = " << ac.get_symmetrize_22() << '\n';
         outf << "   using oneloop_momentum_impl::integrand_data;" << '\n';
         outf << "   integrand_data* data_ = static_cast<integrand_data*>(userdata_);" << '\n';
         outf << '\n';
@@ -733,6 +740,7 @@ void LSSEFT::write_container_class() const
     auto output = this->make_output_path("kernel_class.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     outf << "class kernels" << '\n';
     outf << " {" << '\n';
@@ -864,6 +872,7 @@ void LSSEFT::write_integrate_stmts() const
     auto output = this->make_output_path("integrate_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     outf << "    kernels ker;" << '\n';
     outf << "    bool fail = false;" << '\n';
@@ -893,6 +902,7 @@ void LSSEFT::write_kernel_store() const
     auto output = this->make_output_path("store_kernel_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->kernel_db)
       {
@@ -913,6 +923,7 @@ void LSSEFT::write_kernel_missing() const
     auto output = this->make_output_path("missing_kernel_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->kernel_db)
       {
@@ -944,6 +955,7 @@ void LSSEFT::write_kernel_find() const
     auto output = this->make_output_path("find_kernel_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     outf << "kernels ker;" << '\n';
 
@@ -967,6 +979,7 @@ void LSSEFT::write_Pk_missing() const
     auto output = this->make_output_path("missing_Pk_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->Pk_db)
       {
@@ -1025,6 +1038,7 @@ void LSSEFT::write_Pk_compute_stmts() const
     auto output = this->make_output_path("compute_Pk_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->Pk_db)
       {
@@ -1054,6 +1068,7 @@ void LSSEFT::write_Pk_store() const
     auto output = this->make_output_path("store_Pk_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->Pk_db)
       {
@@ -1079,6 +1094,7 @@ void LSSEFT::write_Pk_find() const
     auto output = this->make_output_path("find_Pk_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->Pk_db)
       {
@@ -1198,6 +1214,7 @@ void LSSEFT::write_Pk_expressions() const
     auto output = this->make_output_path("Pk_expressions.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->Pk_db)
       {
@@ -1222,6 +1239,7 @@ void LSSEFT::write_kernel_dropidx_stmts() const
     auto output = this->make_output_path("dropidx_kernel_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->kernel_db)
       {
@@ -1242,6 +1260,7 @@ void LSSEFT::write_kernel_makeidx_stmts() const
     auto output = this->make_output_path("makeidx_kernel_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->kernel_db)
       {
@@ -1262,6 +1281,7 @@ void LSSEFT::write_Pk_dropidx_stmts() const
     auto output = this->make_output_path("dropidx_Pk_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->Pk_db)
       {
@@ -1300,6 +1320,7 @@ void LSSEFT::write_Pk_makeidx_stmts() const
     auto output = this->make_output_path("makeidx_Pk_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->Pk_db)
       {
@@ -1339,6 +1360,7 @@ void LSSEFT::write_multipole_missing() const
     auto output = this->make_output_path("missing_multipole_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->Pk_db)
       {
@@ -1383,6 +1405,7 @@ void LSSEFT::write_multipole_decompose_stmts() const
     auto output = this->make_output_path("multipole_compute_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->Pk_db)
       {
@@ -1402,6 +1425,7 @@ void LSSEFT::write_multipole_store() const
     auto output = this->make_output_path("store_multipole_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->Pk_db)
       {
@@ -1425,6 +1449,7 @@ void LSSEFT::write_multipole_dropidx_stmts() const
     auto output = this->make_output_path("dropidx_multipole_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->Pk_db)
       {
@@ -1455,6 +1480,7 @@ void LSSEFT::write_multipole_makeidx_stmts() const
     auto output = this->make_output_path("makeidx_multipole_stmts.cpp");
 
     std::ofstream outf{output.string(), std::ios_base::out | std::ios_base::trunc};
+    this->write_header(outf);
 
     for(const auto& record : this->Pk_db)
       {
@@ -1475,4 +1501,14 @@ void LSSEFT::write_multipole_makeidx_stmts() const
       }
 
     outf.close();
+  }
+
+
+void LSSEFT::write_header(std::ofstream& outf) const
+  {
+    auto now = boost::posix_time::second_clock::universal_time();
+    auto now_string = boost::posix_time::to_simple_string(now);
+
+    outf << "// Generated at " << now_string << '\n';
+    outf << "//" << '\n';
   }

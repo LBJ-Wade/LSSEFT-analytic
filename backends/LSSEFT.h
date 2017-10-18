@@ -214,11 +214,15 @@ class LSSEFT
 
     // SQL
 
+  public:
+
     //! write create block
     void write_create() const;
 
 
     // KERNELS
+
+  public:
 
     //! write container class
     void write_container_class() const;
@@ -246,6 +250,8 @@ class LSSEFT
 
 
     // ONE LOOP POWER SPECTRA
+
+  public:
 
     //! write 'missing' statements for Pks
     void write_Pk_missing() const;
@@ -275,6 +281,8 @@ class LSSEFT
 
     // MULTIPOLE POWER SPECTRA
 
+  public:
+
     //! write 'missing' statements for Pn
     void write_multipole_missing() const;
 
@@ -289,6 +297,14 @@ class LSSEFT
 
     //! write multipole make-idx statements
     void write_multipole_makeidx_stmts() const;
+
+
+    // FILE HANDLIMG
+
+  public:
+
+    //! write generic header line
+    void write_header(std::ofstream& outf) const;
 
 
     // INTERNAL DATA
