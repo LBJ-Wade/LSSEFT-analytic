@@ -25,6 +25,7 @@
 //
 
 #include <iostream>
+#include <fstream>
 #include <functional>
 
 #include "services/service_locator.h"
@@ -189,7 +190,7 @@ int main(int argc, char* argv[])
     // build service locator
     service_locator loc{args, sf};
 
-    if(!args.get_counterterms() && args.get_output_root().empty())
+    if(!args.get_counterterms() && args.get_output_path().empty() && args.get_Mathematica_output().empty())
       exit(EXIT_SUCCESS);
 
     // redshift z is the time variable
@@ -329,18 +330,18 @@ int main(int argc, char* argv[])
 
     auto deltah_b1 = b1_1*delta_1 + b1_2*delta_2 + b1_3*delta_3;
 
-    auto deltah_b1_adv = -(b1_1 - b1_2) * gradgrad(vp1, delta_1)
+    auto deltah_b1_adv = - (b1_1 - b1_2) * gradgrad(vp1, delta_1)
                          - (b1_2 - b1_3) * gradgrad(vp1, delta_2)
                          - (b1_1 - b1_3) * gradgrad(vp2, delta_1) / 2
                          + ((b1_1 + b1_3) / 2 - b1_2) * convective_bias_term(vp1, delta_1);
 
     auto deltah_b2 = (b2_2/2)*deltasq_2 + (b2_3/2)*deltasq_3;
 
-    auto deltah_b2_adv = - (b2_2/2-b2_3/2)*gradgrad(vp1, deltasq_2);
+    auto deltah_b2_adv = - (b2_2/2-b2_3/2) * gradgrad(vp1, deltasq_2);
 
     auto deltah_G2 = bG2_2*G2_2 + bG2_3*G2_3;
 
-    auto deltah_G2_adv = - (bG2_2-bG2_3)*gradgrad(vp1, G2_2);
+    auto deltah_G2_adv = - (bG2_2 - bG2_3) * gradgrad(vp1, G2_2);
 
     auto deltah_cubic = (b3/6)*delta*delta*delta + bdG2*G2*delta + bG3*G3 + bGamma3*Gamma3;
 
@@ -389,7 +390,7 @@ int main(int argc, char* argv[])
 
     // construct 1-loop \delta power spectrum
     auto Pk_timer = std::make_unique<timing_instrument>("Construct 1-loop power spectrum");
-    Pk_one_loop Pk_delta{deltah_rsd_k1, deltah_rsd_k2, k, loc};
+    Pk_one_loop Pk_delta{"1-loop halo RSD P(k)", "halo", deltah_rsd_k1, deltah_rsd_k2, k, loc};
 
     // simplify mu-dependence
     Pk_delta.canonicalize_external_momenta();
@@ -397,6 +398,13 @@ int main(int argc, char* argv[])
 
     // remove unwanted r factors, which are equal to unity (r is a unit vector)
     Pk_delta.simplify(GiNaC::exmap{ {r_sym, GiNaC::ex{1}} });
+
+    if(!args.get_Mathematica_output().empty())
+      {
+        std::ofstream mma_out{args.get_Mathematica_output().string(), std::ios_base::out | std::ios_base::trunc};
+        Pk_delta.write_Mathematica(mma_out);
+        mma_out.close();
+      }
 
     Pk_timer.reset(nullptr);
 
@@ -507,9 +515,9 @@ int main(int argc, char* argv[])
         write_map(Pks, k, stochastic_divergences);
       }
 
-    if(!args.get_output_root().empty())
+    if(!args.get_output_path().empty())
       {
-        LSSEFT backend{args.get_output_root(), loc};
+        LSSEFT backend{args.get_output_path(), loc};
         backend.add(Pks);
 
         backend.write();
