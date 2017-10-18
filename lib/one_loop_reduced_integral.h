@@ -203,8 +203,8 @@ class one_loop_element_key
   };
 
 
-//! an integrand database is a map from integration variables to a list of integrands, here
-//! represented as a vector for efficiency (and because we don't need any features of eg std::list)
+//! an integrand database is a map from integration with given dummy variables, time function and Wick product
+//! to the cumulative integrand
 using one_loop_element_db = std::unordered_map< one_loop_element_key, std::unique_ptr<one_loop_element> >;
 
 //! stream insertion
