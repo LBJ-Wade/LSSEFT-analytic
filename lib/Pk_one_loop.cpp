@@ -155,6 +155,7 @@ void Pk_one_loop::canonicalize_external_momenta()
 
 void Pk_one_loop::write(std::ostream& out) const
   {
+    out << LABEL_PK << ": '" << this->name << "'" << '\n';
     out << LABEL_PK_TREE << '\n';
     out << this->get_tree() << '\n';
     out << LABEL_PK_13 << '\n';

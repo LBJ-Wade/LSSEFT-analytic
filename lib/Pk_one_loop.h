@@ -168,8 +168,8 @@ class Pk_one_loop
     
     //! constructor accepts two Fourier kernels and the corresponding momentum labels
     template <unsigned int N1, unsigned int N2>
-    Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
-                const GiNaC::symbol& k_, service_locator& lc_);
+    Pk_one_loop(std::string n_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
+                GiNaC::symbol k_, service_locator& lc_);
     
     //! destructor is default
     ~Pk_one_loop() = default;
@@ -243,7 +243,13 @@ class Pk_one_loop
     // RESERVED SYMBOLS
 
     //! cache momentum label k
-    GiNaC::symbol k;
+    const GiNaC::symbol k;
+
+
+    // METADATA
+
+    //! cache name
+    const std::string name;
 
 
     // POWER SPECTRUM EXPRESSIONS
@@ -265,9 +271,10 @@ std::ostream& operator<<(std::ostream& str, const Pk_one_loop& obj);
 
 
 template <unsigned int N1, unsigned int N2>
-Pk_one_loop::Pk_one_loop(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
-                         const GiNaC::symbol& k_, service_locator& lc_)
-  : k(k_),
+Pk_one_loop::Pk_one_loop(std::string n_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
+                         GiNaC::symbol k_, service_locator& lc_)
+  : name(std::move(n_)),
+    k(std::move(k_)),
     loc(lc_)
   {
     static_assert(N1 >= 3, "To construct a one-loop power spectrum requires a Fourier kernel of third-order or above");

@@ -34,6 +34,7 @@ constexpr auto FORMAT_SECOND_LABEL = "s";
 
 constexpr auto WARNING_LABEL = "warning:";
 
+constexpr auto LABEL_PK = "One-loop power spectrum";
 constexpr auto LABEL_PK_TREE = "Tree level";
 constexpr auto LABEL_PK_13 = "Loop level 13";
 constexpr auto LABEL_PK_22 = "Loop level 22";
