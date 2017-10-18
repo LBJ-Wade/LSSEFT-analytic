@@ -279,9 +279,6 @@ int main(int argc, char* argv[])
     delta.add(SPT::DJ(z)                * (alpha(s+t, q, gamma_bar(s, t, qst_base, loc), loc)
                                            - 2*alpha(s+t, q, alpha_bar(s, t, qst_base, loc), loc)));
 
-    // conver to EdS approximation
-    delta.to_EdS();
-
     // extract different orders of \delta
     auto delta_1 = delta.order(1);
     auto delta_2 = delta.order(2);
@@ -358,20 +355,26 @@ int main(int argc, char* argv[])
     sf.declare_parameter(k);
 
 
-    Pk_one_loop test_Pk_b3{delta_1, delta*delta*delta, k, loc};
-    Pk_one_loop test_Pk_bdG2{delta_1, G2*delta, k, loc};
-    Pk_one_loop test_Pk_G3{delta_1, G3, k, loc};
-    Pk_one_loop test_Pk_Gamma3{delta_1, Gamma3, k, loc};
+    Pk_one_loop test_Pk_b1{"delta_1 x delta_3", "d", delta_1,
+                           delta_3 + gradgrad(vp1, delta_2) + gradgrad(vp2, delta_1) / 2 +
+                           convective_bias_term(vp1, delta_1) / 2, k, loc};
+    Pk_one_loop test_Pk_b2{"delta_1 x delta^2_3", "dd", delta_1, deltasq_3 + gradgrad(vp1, deltasq_2), k, loc};
+    Pk_one_loop test_Pk_b3{"delta_1 x delta^3", "ddd", delta_1, delta*delta*delta, k, loc};
+    Pk_one_loop test_Pk_bG2{"delta_1 x G2_3", "G2", delta_1, G2_3 + gradgrad(vp1, G2_2), k, loc};
+    Pk_one_loop test_Pk_bdG2{"delta_1 x G2 delta", "G2d", delta_1, G2*delta, k, loc};
+    Pk_one_loop test_Pk_Gamma3{"delta_1 x Gamma3", "Gamma3", delta_1, Gamma3, k, loc};
 
-    std::cout << "CUBIC TERMS" << '\n';
-    std::cout << "(b3/6) delta^3" << '\n' << '\n';
-    std::cout << test_Pk_b3 << '\n';
-    std::cout << "bdG2 G2 delta" << '\n' << '\n';
-    std::cout << test_Pk_bdG2 << '\n';
-    std::cout << "bG3 G3" << '\n' << '\n';
-    std::cout << test_Pk_G3 << '\n';
-    std::cout << "bGamma3 Gamma3" << '\n' << '\n';
-    std::cout << test_Pk_Gamma3;
+    if(!args.get_Mathematica_output().empty())
+      {
+        std::ofstream mma_out{args.get_Mathematica_output().string(), std::ios_base::out | std::ios_base::trunc};
+        test_Pk_b1.write_Mathematica(mma_out);
+        test_Pk_b2.write_Mathematica(mma_out);
+        test_Pk_b3.write_Mathematica(mma_out);
+        test_Pk_bG2.write_Mathematica(mma_out);
+        test_Pk_bdG2.write_Mathematica(mma_out);
+        test_Pk_Gamma3.write_Mathematica(mma_out);
+        mma_out.close();
+      }
 
 
     // build expression for the redshift-space overdensities,
@@ -418,12 +421,12 @@ int main(int argc, char* argv[])
     // remove unwanted r factors, which are equal to unity (r is a unit vector)
     Pk_delta.simplify(GiNaC::exmap{ {r_sym, GiNaC::ex{1}} });
 
-    if(!args.get_Mathematica_output().empty())
-      {
-        std::ofstream mma_out{args.get_Mathematica_output().string(), std::ios_base::out | std::ios_base::trunc};
-        Pk_delta.write_Mathematica(mma_out);
-        mma_out.close();
-      }
+//    if(!args.get_Mathematica_output().empty())
+//      {
+//        std::ofstream mma_out{args.get_Mathematica_output().string(), std::ios_base::out | std::ios_base::trunc};
+//        Pk_delta.write_Mathematica(mma_out);
+//        mma_out.close();
+//      }
 
     Pk_timer.reset(nullptr);
 
