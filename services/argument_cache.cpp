@@ -54,6 +54,7 @@ argument_cache::argument_cache(int argc, char**& argv)
     backend.add_options()
       (SWITCH_COUNTERTERMS, HELP_COUNTERTERMS)
       (SWITCH_OUTPUT, boost::program_options::value<std::string>(), HELP_OUTPUT)
+      (SWITCH_MATHEMATICA_OUTPUT, boost::program_options::value<std::string>(), HELP_MATHEMATICA_OUTPUT)
       ;
 
     boost::program_options::options_description backend_hidden{"Hidden backed control options"};
@@ -107,6 +108,14 @@ argument_cache::argument_cache(int argc, char**& argv)
 
         this->output_root = std::move(outpath);
       }
+
+    if(option_map.count(SWITCH_MATHEMATICA_OUTPUT))
+      {
+        boost::filesystem::path outpath = option_map[SWITCH_MATHEMATICA_OUTPUT].as<std::string>();
+        if(!outpath.is_absolute()) outpath = boost::filesystem::absolute(outpath);
+
+        this->output_mma = std::move(outpath);
+      }
   }
 
 
@@ -122,7 +131,7 @@ bool argument_cache::get_symmetrize_22() const
   }
 
 
-const boost::filesystem::path& argument_cache::get_output_root() const
+const boost::filesystem::path& argument_cache::get_output_path() const
   {
     return this->output_root;
   }
@@ -131,6 +140,12 @@ const boost::filesystem::path& argument_cache::get_output_root() const
 bool argument_cache::get_counterterms() const
   {
     return this->counterterms;
+  }
+
+
+const boost::filesystem::path& argument_cache::get_Mathematica_output() const
+  {
+    return this->output_mma;
   }
 
 
