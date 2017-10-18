@@ -208,7 +208,7 @@ class one_loop_element_key
 using one_loop_element_db = std::unordered_map< one_loop_element_key, std::unique_ptr<one_loop_element> >;
 
 //! stream insertion
-std::ostream& operator<<(std::ostream& str, const one_loop_element_db& obj);
+std::ostream& operator<<(std::ostream& out, const one_loop_element_db& obj);
 
 
 // specialize std::hash<> and std::is_equal<> to key
@@ -390,7 +390,7 @@ GiNaC::ex one_loop_reduced_integral::integrate_Legendre(const GiNaC::ex& term, c
 
 
 //! perform stream insertion
-std::ostream& operator<<(std::ostream& str, const one_loop_reduced_integral& obj);
+std::ostream& operator<<(std::ostream& out, const one_loop_reduced_integral& obj);
 
 
 #endif //LSSEFT_ANALYTIC_ONE_LOOP_REDUCED_INTEGRAL_H

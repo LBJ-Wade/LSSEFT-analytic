@@ -33,6 +33,7 @@ namespace Pk_one_loop_impl
     void Pk_db::write(std::ostream& out) const
       {
         size_t count = 0;
+
         for(const auto& item : this->db)
           {
             const loop_integral& lp = *item.second.first;
@@ -48,6 +49,8 @@ namespace Pk_one_loop_impl
 
             ++count;
           }
+
+        if(count == 0) out << "<no elements>" << '\n';
       }
 
 

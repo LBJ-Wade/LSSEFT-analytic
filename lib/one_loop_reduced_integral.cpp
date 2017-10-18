@@ -786,22 +786,30 @@ void one_loop_reduced_integral::emplace(std::unique_ptr<one_loop_element> elt)
   }
 
 
-std::ostream& operator<<(std::ostream& str, const one_loop_reduced_integral& obj)
+std::ostream& operator<<(std::ostream& out, const one_loop_reduced_integral& obj)
   {
-    obj.write(str);
-    return str;
+    obj.write(out);
+    return out;
   }
 
 
-std::ostream& operator<<(std::ostream& str, const one_loop_element_db& obj)
+std::ostream& operator<<(std::ostream& out, const one_loop_element_db& obj)
   {
+    unsigned int count = 0;
+
     for(const auto& record : obj)
       {
         const auto& key = record.first;
         const auto& data = record.second;
 
-        if(data) str << *data;
+        if(data)
+          {
+            out << *data;
+            ++count;
+          }
       }
 
-    return str;
+    if(count == 0) out << "<no integrals>" << '\n';
+
+    return out;
   }
