@@ -134,6 +134,36 @@ namespace Pk_one_loop_impl
         if(!res.second) throw exception(ERROR_LOOP_INTEGRAL_INSERT_FAILED, exception_code::Pk_error);
       }
 
+
+    void Pk_db::write_Mathematica(std::ostream& out, std::string symbol) const
+      {
+        out << symbol << " = ";
+
+        unsigned int count = 0;
+        size_t chars_written = 0;
+
+        for(auto& record : this->db)
+          {
+            const loop_pair& pair = record.second;
+            const std::unique_ptr<one_loop_reduced_integral>& ri = pair.second;
+
+            if(ri)
+              {
+                if(count > 0) out << " + ";
+
+                auto output = ri->to_Mathematica();
+                out << output;
+
+                ++count;
+                chars_written += output.length();
+              }
+          }
+
+        if(chars_written == 0) out << "0";
+
+        out << ";" << '\n';
+      }
+
   }   // namespace Pk_one_loop_impl
 
 
@@ -162,6 +192,14 @@ void Pk_one_loop::write(std::ostream& out) const
     out << this->get_13() << '\n';
     out << LABEL_PK_22 << '\n';
     out << this->get_22() << '\n';
+  }
+
+
+void Pk_one_loop::write_Mathematica(std::ostream& out) const
+  {
+    this->Ptree.write_Mathematica(out, this->tag + "Tree");
+    this->P13.write_Mathematica(out, this->tag + "P13");
+    this->P22.write_Mathematica(out, this->tag + "P22");
   }
 
 

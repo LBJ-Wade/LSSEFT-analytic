@@ -118,20 +118,18 @@ namespace Pk_one_loop_impl
         void prune();
 
 
-        // UV LIMIT
-
-      public:
-
-        //! compute UV limit
-        GiNaC::ex get_UV_limit(unsigned int order=2) const;
-
-
         // SERVICES
 
       public:
 
         //! write self to steam
         void write(std::ostream& out) const;
+
+        //! write Mathematica-format expression
+        void write_Mathematica(std::ostream& out, std::string symbol) const;
+
+        //! compute UV limit
+        GiNaC::ex get_UV_limit(unsigned int order=2) const;
 
 
         // INTERNAL DATA
@@ -168,7 +166,7 @@ class Pk_one_loop
     
     //! constructor accepts two Fourier kernels and the corresponding momentum labels
     template <unsigned int N1, unsigned int N2>
-    Pk_one_loop(std::string n_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
+    Pk_one_loop(std::string n_, std::string t_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
                 GiNaC::symbol k_, service_locator& lc_);
     
     //! destructor is default
@@ -228,8 +226,11 @@ class Pk_one_loop
 
     //! write self to stream
     void write(std::ostream& out) const;
-    
-    
+
+    //! write Mathematica script for loop integrals
+    void write_Mathematica(std::ostream& out) const;
+
+
     // INTERNAL DATA
     
   private:
@@ -251,6 +252,9 @@ class Pk_one_loop
     //! cache name
     const std::string name;
 
+    //! cache tag
+    const std::string tag;
+
 
     // POWER SPECTRUM EXPRESSIONS
     
@@ -271,9 +275,10 @@ std::ostream& operator<<(std::ostream& str, const Pk_one_loop& obj);
 
 
 template <unsigned int N1, unsigned int N2>
-Pk_one_loop::Pk_one_loop(std::string n_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
+Pk_one_loop::Pk_one_loop(std::string n_, std::string t_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
                          GiNaC::symbol k_, service_locator& lc_)
   : name(std::move(n_)),
+    tag(std::move(t_)),
     k(std::move(k_)),
     loc(lc_)
   {

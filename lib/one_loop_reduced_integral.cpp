@@ -184,6 +184,184 @@ one_loop_element& one_loop_element::operator+=(const one_loop_element& rhs)
   }
 
 
+// forward-declare print functions
+static std::string format_print(const GiNaC::ex& expr);
+static std::string print_operands(const GiNaC::ex& expr, const std::string& op);
+
+
+static const std::map< std::string, std::string > func_convert
+  {
+    {"abs", "Abs"},
+    {"sqrt", "Sqrt"},
+    {"sin", "Sin"},
+    {"cos", "Cos"},
+    {"tan", "Tan"},
+    {"asin", "ArcSin"},
+    {"acos", "ArcCos"},
+    {"atan", "ArcTan"},
+    {"sinh", "Sinh"},
+    {"cosh", "Cosh"},
+    {"tanh", "Tanh"},
+    {"asinh", "ArcSinh"},
+    {"acosh", "ArcCosh"},
+    {"atanh", "ArcTanh"},
+    {"exp", "Exp"},
+    {"log", "Log"},
+    {"power", "Power"}
+  };
+
+
+static std::string print_func(const GiNaC::ex& expr, const std::string& name)
+  {
+    auto t = func_convert.find(name);
+    if(t == func_convert.end())
+      {
+        std::ostringstream msg;
+        msg << ERROR_UNKNOWN_GINAC_FUNCTION << " '" << name << "'";
+        throw exception(msg.str(), exception_code::backend_error);
+      }
+
+    std::string rval{t->second};
+    rval.append("[");
+    rval.append(print_operands(expr, ","));
+    rval.append("]");
+
+    return rval;
+  }
+
+
+static std::string print_ginac(const GiNaC::ex& expr)
+  {
+    std::ostringstream out;
+    out << expr;
+    return out.str();
+  }
+
+
+static std::string print_operands(const GiNaC::ex& expr, const std::string& op)
+  {
+    std::string rval;
+
+    unsigned int c = 0;
+    for(const auto& arg : expr)
+      {
+        if(c > 0) rval.append(op);
+
+        // determine whether we should bracket this operand
+        // this should happen any time the operand has lower precedence than the current operand, but at the moment
+        // we only deal with + and * so we can simply check for +
+        // we can kill the brackets if the operands are a comma-separated list of arguments, though
+        bool bracket = op != "," && GiNaC::is_a<GiNaC::add>(arg);
+
+        if(bracket) rval.append("(");
+        rval.append(format_print(arg));
+        if(bracket) rval.append(")");
+
+        ++c;
+      }
+
+    return rval;
+  }
+
+
+static std::string print_constant(const GiNaC::ex& expr)
+  {
+    const auto& c = GiNaC::ex_to<GiNaC::constant>(expr);
+
+    std::ostringstream buf;
+    buf << c;
+
+    if(buf.str() == "Pi") return std::string{"Pi"};
+    return buf.str();
+  }
+
+
+static std::string format_print(const GiNaC::ex& expr)
+  {
+    std::string name;
+
+    if(GiNaC::is_a<GiNaC::function>(expr)) name = GiNaC::ex_to<GiNaC::function>(expr).get_name();
+    else name = GiNaC::ex_to<GiNaC::basic>(expr).class_name();
+
+    if     (name == "numeric")   return print_ginac(expr);
+    else if(name == "symbol")    return print_ginac(expr);
+    else if(name == "add")       return print_operands(expr, "+");
+    else if(name == "mul")       return print_operands(expr, "*");
+    else if(name == "constant")  return print_constant(expr);
+    else if(name == "tensdelta") return print_ginac(expr);
+    else if(name == "idx")       return print_ginac(expr);
+    else if(name == "varidx")    return print_ginac(expr);
+    else if(name == "indexed")   return print_ginac(expr);
+    else if(name == "D")         return std::string{"Dz"};
+    else if(name == "DA")        return std::string{"DAz"};
+    else if(name == "DB")        return std::string{"DBz"};
+    else if(name == "DD")        return std::string{"DDz"};
+    else if(name == "DE")        return std::string{"DEz"};
+    else if(name == "DF")        return std::string{"DFz"};
+    else if(name == "DG")        return std::string{"DGz"};
+    else if(name == "DJ")        return std::string{"DJx"};
+    else if(name == "f")         return std::string("fz");
+    else if(name == "fA")        return std::string("fAz");
+    else if(name == "fB")        return std::string("fBz");
+    else if(name == "fD")        return std::string("fDz");
+    else if(name == "fE")        return std::string("fEz");
+    else if(name == "fF")        return std::string("fFz");
+    else if(name == "fG")        return std::string("fGz");
+    else if(name == "fJ")        return std::string("fJz");
+
+    // not a standard operation, so assume it must be a special function
+    // look up its C++ form in func_map, and then format its arguments,
+    // taking care to keep track of use counts
+    return print_func(expr, name);
+  }
+
+
+std::string one_loop_element::to_Mathematica() const
+  {
+    std::ostringstream result;
+
+    result << "(" << format_print(this->tm) << ")*";
+
+    bool xint = this->variables.find(this->angular_dx) != this->variables.end();
+
+    if(xint) result << "Integrate[";
+    else     result << "(";
+
+    result << format_print(this->measure*this->integrand);
+
+    if(xint)
+      {
+        result << ", {x,-1,1}";
+
+        std::ostringstream assume_list;
+        unsigned int count = 0;
+
+        for(const auto& sym : this->variables)
+          {
+            if(count >> 0) assume_list << " && ";
+            assume_list << sym << ">0";
+            ++count;
+          }
+        for(const auto& sym : this->external_momenta)
+          {
+            if(count >> 0) assume_list << " && ";
+            assume_list << sym << ">0";
+            ++count;
+          }
+
+        auto assume_str = assume_list.str();
+        if(!assume_str.empty())
+          {
+            result << ", Assumptions->{" << assume_str << "}";
+          }
+        result << "]";
+      }
+    else result << ")";
+
+    return result.str();
+  }
+
+
 one_loop_element_key::one_loop_element_key(const one_loop_element& elt_)
   : elt(elt_)
   {
@@ -783,6 +961,24 @@ void one_loop_reduced_integral::emplace(std::unique_ptr<one_loop_element> elt)
     // otherwise, we need to insert a new element
     auto res = this->integrand.emplace(std::move(key), std::move(elt));
     if(!res.second) throw exception(ERROR_ONE_LOOP_ELEMENT_INSERT_FAILED, exception_code::loop_integral_error);
+  }
+
+
+std::string one_loop_reduced_integral::to_Mathematica() const
+  {
+    std::ostringstream result;
+
+    unsigned int count = 0;
+    for(const auto& record : this->integrand)
+      {
+        const std::unique_ptr<one_loop_element>& elt = record.second;
+
+        if(count > 0) result << " + ";
+        result << elt->to_Mathematica();
+        ++count;
+      }
+
+    return result.str();
   }
 
 
