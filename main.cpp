@@ -279,8 +279,8 @@ int main(int argc, char* argv[])
     delta.add(SPT::DJ(z)                * (alpha(s+t, q, gamma_bar(s, t, qst_base, loc), loc)
                                            - 2*alpha(s+t, q, alpha_bar(s, t, qst_base, loc), loc)));
 
-    auto delta_new = delta.to_EdS();
-    delta.swap(delta_new);
+//    auto delta_new = delta.to_EdS();
+//    delta.swap(delta_new);
 
     // extract different orders of \delta
     auto delta_1 = delta.order(1);
@@ -369,13 +369,12 @@ int main(int argc, char* argv[])
 
     std::cout << "delta_2 - should be F2 kernel" << '\n' << delta_2 << '\n';
     std::cout << "b1 advected term " << '\n' << - gradgrad(vp1, delta_1) << '\n';
+    std::cout << "delta^2 term = " << '\n' << deltasq_2 << '\n';
+    std::cout << "G2_2" << '\n' << G2_2 << '\n';
 
     Pk_one_loop test_Pk_bG2_22{"delta^2_2 x G2", "G222", deltasq_2, G2_2, k, loc};
-    Pk_one_loop test_Pk_bG2_13{"delta_1 x G2", "G213", delta_1, - gradgrad(vp1, G2_2), k, loc};
-    Pk_one_loop test_Pk_b1adv_22{"delta_1 x b1adv", "b1adv22", deltasq_2, - gradgrad(vp1, delta_1), k, loc};
-    Pk_one_loop test_Pk_b1_22{"delta^2_2 x delta_2", "b122", deltasq_2, delta_2, k, loc};
+    Pk_one_loop test_Pk_b1_22{"delta^2_2 x delta_2", "b122", deltasq_2, delta_2 + gradgrad(vp1, delta_1), k, loc};
     Pk_one_loop test_Pk_b2_22{"delta^2_2 x delta^2_2", "b222", deltasq_2, deltasq_2, k, loc};
-    Pk_one_loop test_Pk_b2_13{"delta_1 x delta^2_2", "b213", delta_1, - gradgrad(vp1, deltasq_2), k, loc};
 
     if(!args.get_Mathematica_output().empty())
       {
@@ -388,11 +387,8 @@ int main(int argc, char* argv[])
         test_Pk_Gamma3.write_Mathematica(mma_out);
 
         test_Pk_bG2_22.write_Mathematica(mma_out);
-        test_Pk_bG2_13.write_Mathematica(mma_out);
-        test_Pk_b1adv_22.write_Mathematica(mma_out);
         test_Pk_b1_22.write_Mathematica(mma_out);
         test_Pk_b2_22.write_Mathematica(mma_out);
-        test_Pk_b2_13.write_Mathematica(mma_out);
         mma_out.close();
       }
 
