@@ -260,6 +260,9 @@ class one_loop_reduced_integral
     //! get database
     const one_loop_element_db& get_db() const { return this->integrand; }
 
+    //! query empty status
+    bool empty() const { return this->integrand.empty(); }
+
 
     // TRANSFORMATIONS
 

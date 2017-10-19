@@ -38,6 +38,7 @@ enum class exception_code
     kernel_error,
     initial_value_error,
     contraction_error,
+    index_error,
     Rayleigh_error,
     Pk_error,
     loop_integral_error,

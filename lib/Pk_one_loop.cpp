@@ -147,7 +147,7 @@ namespace Pk_one_loop_impl
             const loop_pair& pair = record.second;
             const std::unique_ptr<one_loop_reduced_integral>& ri = pair.second;
 
-            if(ri)
+            if(ri && !ri->empty())
               {
                 if(count > 0) out << " + ";
 

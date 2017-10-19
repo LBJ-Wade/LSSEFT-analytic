@@ -968,6 +968,8 @@ std::string one_loop_reduced_integral::to_Mathematica(bool do_dx) const
   {
     std::ostringstream result;
 
+    if(this->integrand.empty()) std::cout << "Warning: one_loop_reduced_integral database is empty" << '\n';
+
     unsigned int count = 0;
     for(const auto& record : this->integrand)
       {
