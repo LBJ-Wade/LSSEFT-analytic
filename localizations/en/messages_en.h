@@ -64,6 +64,10 @@ constexpr auto ERROR_KERNEL_INITIAL_VALUES_DISAGREE = "Internal error: operator 
 
 constexpr auto ERROR_RAYLEIGH_MOMENTUM_IS_ZERO = "Internal error: Rayleigh momentum is zero";
 
+constexpr auto ERROR_EXPONENT_OF_INDEXED_POWER_IS_NOT_NUMERIC = "Exponent in power of indexed object is not numeric";
+constexpr auto ERROR_EXPONENT_OF_INDEXED_POWER_IS_NOT_INTEGER = "Exponent in power of indexed object is not an integer";
+constexpr auto ERROR_EXPONENT_OF_INDEXED_POWER_IS_NOT_EVEN = "Exponent in power of indexed object is not an even integer";
+
 constexpr auto ERROR_ODD_CONTRACTIONS = "Odd number of fields in contraction: result is zero";
 constexpr auto ERROR_UNKNOWN_VERTEX = "Internal error: unknown vertex when traversing graph";
 constexpr auto ERROR_CONTRACTION_FAILURE = "Internal error: mismatch when constructing possible initial value contractions";
@@ -82,6 +86,9 @@ constexpr auto ERROR_EXPECTED_SYMBOL = "Expected dot product factor to be a symb
 constexpr auto EXPECTED_EXPONENT_TO_BE_NUMERIC = "Expected exponent to be numeric during loop transformation";
 constexpr auto EXPECTED_EXPONENT_TO_BE_INTEGER = "Expected exponent to be integer during loop transformation";
 constexpr auto EXPECTED_EXPONENT_TO_BE_EVEN_INTEGER = "Expected exponent to be even integer during loop transformation";
+constexpr auto ERROR_CANT_MATCH_NEGATIVE_INDEXED_POWER_TO_RAYLEIGH = "Can't match base of negative indexed power to a Rayleigh momentum";
+constexpr auto ERROR_INCONSISTENT_INDEXED_SUM = "Inconsistent indices on sum";
+constexpr auto ERROR_RAYLEIGH_MOMENTA_POSITIVE_POWER = "Expected Rayleigh momentum to appear with negative power";
 
 constexpr auto ERROR_COULDNT_COLLECT_COS = "Could not collect cosine terms for transformation to Legendre representation";
 constexpr auto ERROR_LEGENDRE_TRANSFORM_UNEXPECTED_SIZE = "Internal error: result matrix has unexpected dimensions during conversion to Legendre representation";

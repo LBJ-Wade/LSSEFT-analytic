@@ -91,6 +91,12 @@ GiNaC::idx symbol_factory::make_unique_index()
   }
 
 
+GiNaC::idx symbol_factory::make_wildcard_index(unsigned int num)
+  {
+    return GiNaC::idx{GiNaC::wild(num), this->index_dimension};
+  }
+
+
 GiNaC::symbol symbol_factory::make_unique_momentum()
   {
     // generate unique name for this momentum variable

@@ -105,6 +105,9 @@ class symbol_factory
     
     //! make a unique index
     GiNaC::idx make_unique_index();
+
+    //! make a wildcard index
+    GiNaC::idx make_wildcard_index(unsigned int num=0);
     
     //! make a unique momentum variable
     GiNaC::symbol make_unique_momentum();

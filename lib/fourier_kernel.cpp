@@ -174,7 +174,7 @@ namespace fourier_kernel_impl
         // now perform relabelling in the kernel
         // note there's no need to perform *index* relabelling since this is a sum -- relabelling indices
         // is needed only in a product
-        auto temp = simplify_index(this->K + rhs.K.subs(mma_map));
+        auto temp = simplify_index(this->K + rhs.K.subs(mma_map), this->vs, this->loc);
         this->K = temp;
 
         return *this;
@@ -237,7 +237,7 @@ namespace fourier_kernel_impl
 
         // build final expression, performing any necessary index (or other) relabellings on RHS
         using detail::relabel_index_product;
-        auto temp = simplify_index(relabel_index_product(this->K, rhs.K.subs(mma_map), this->loc));
+        auto temp = simplify_index(relabel_index_product(this->K, rhs.K.subs(mma_map), this->loc), this->vs, this->loc);
         this->K = temp;
 
         // renormalize time function
@@ -476,6 +476,8 @@ namespace fourier_kernel_impl
           }
         
         this->K *= f;
+
+        // insert new rule if needed
         if(t == this->vs.end()) this->vs[s] = rule;
 
         // renormalize time function

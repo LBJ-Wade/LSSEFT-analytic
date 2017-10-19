@@ -369,7 +369,7 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db&
                 // k.l, l.l and other inner products are supposed to be picked up later by
                 // loop integral transformations
 
-                K = simplify_index(K, dotp);
+                K = simplify_index(K, dotp, Rayleigh_list, this->loc);
 
                 // prune Rayleigh list to remove momenta that have dropped out
                 using detail::prune_Rayleigh_list;

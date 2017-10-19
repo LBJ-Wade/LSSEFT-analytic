@@ -616,7 +616,7 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
     K *= norm;
 
     // simplify index structure in K if possible
-    K = simplify_index(K);
+    K = simplify_index(K, vs, this->loc);
 
     // validate that K is structurally OK (scalar, rational)
     validate_structure(K);
