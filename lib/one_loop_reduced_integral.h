@@ -124,7 +124,7 @@ class one_loop_element
   public:
 
     //! convert self to Mathematica format expression
-    std::string to_Mathematica() const;
+    std::string to_Mathematica(bool do_dx) const;
 
     //! construct UV limit
     GiNaC::ex get_UV_limit(unsigned int order=2) const;
@@ -309,7 +309,7 @@ class one_loop_reduced_integral
     void write(std::ostream& out) const;
 
     //! format self as Mathematica expressions
-    std::string to_Mathematica() const;
+    std::string to_Mathematica(bool do_dx) const;
 
     //! get UV limit
     GiNaC::ex get_UV_limit(unsigned int order=2) const;

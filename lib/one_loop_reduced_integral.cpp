@@ -316,13 +316,13 @@ static std::string format_print(const GiNaC::ex& expr)
   }
 
 
-std::string one_loop_element::to_Mathematica() const
+std::string one_loop_element::to_Mathematica(bool do_dx) const
   {
     std::ostringstream result;
 
     result << "(" << format_print(this->tm) << ")*";
 
-    bool xint = this->variables.find(this->angular_dx) != this->variables.end();
+    bool xint = (this->variables.find(this->angular_dx) != this->variables.end()) && do_dx;
 
     if(xint) result << "Integrate[";
     else     result << "(";
@@ -964,7 +964,7 @@ void one_loop_reduced_integral::emplace(std::unique_ptr<one_loop_element> elt)
   }
 
 
-std::string one_loop_reduced_integral::to_Mathematica() const
+std::string one_loop_reduced_integral::to_Mathematica(bool do_dx) const
   {
     std::ostringstream result;
 
@@ -974,7 +974,7 @@ std::string one_loop_reduced_integral::to_Mathematica() const
         const std::unique_ptr<one_loop_element>& elt = record.second;
 
         if(count > 0) result << " + ";
-        result << elt->to_Mathematica();
+        result << elt->to_Mathematica(do_dx);
         ++count;
       }
 

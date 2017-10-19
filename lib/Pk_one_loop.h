@@ -126,7 +126,7 @@ namespace Pk_one_loop_impl
         void write(std::ostream& out) const;
 
         //! write Mathematica-format expression
-        void write_Mathematica(std::ostream& out, std::string symbol) const;
+        void write_Mathematica(std::ostream& out, std::string symbol, bool do_dx) const;
 
         //! compute UV limit
         GiNaC::ex get_UV_limit(unsigned int order=2) const;

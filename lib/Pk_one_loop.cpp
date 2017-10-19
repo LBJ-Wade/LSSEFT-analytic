@@ -135,7 +135,7 @@ namespace Pk_one_loop_impl
       }
 
 
-    void Pk_db::write_Mathematica(std::ostream& out, std::string symbol) const
+    void Pk_db::write_Mathematica(std::ostream& out, std::string symbol, bool do_dx) const
       {
         out << symbol << " = ";
 
@@ -151,7 +151,7 @@ namespace Pk_one_loop_impl
               {
                 if(count > 0) out << " + ";
 
-                auto output = ri->to_Mathematica();
+                auto output = ri->to_Mathematica(do_dx);
                 out << output;
 
                 ++count;
@@ -197,9 +197,9 @@ void Pk_one_loop::write(std::ostream& out) const
 
 void Pk_one_loop::write_Mathematica(std::ostream& out) const
   {
-    this->Ptree.write_Mathematica(out, this->tag + "Tree");
-    this->P13.write_Mathematica(out, this->tag + "P13");
-    this->P22.write_Mathematica(out, this->tag + "P22");
+    this->Ptree.write_Mathematica(out, this->tag + "Tree", false);
+    this->P13.write_Mathematica(out, this->tag + "P13", true);
+    this->P22.write_Mathematica(out, this->tag + "P22", false);
   }
 
 
