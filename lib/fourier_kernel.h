@@ -494,8 +494,11 @@ class fourier_kernel
     size_t size() const { return this->kernels.size(); }
 
     //! convert to EdS approximation in which all time-dependent functions are multiples of D_lin
-    void to_EdS();
-    
+    fourier_kernel<N> to_EdS();
+
+    //! exchange with a second Fourier kernel object
+    void swap(fourier_kernel<N>& obj) { this->kernels.swap(obj.kernels); }
+
     
     // SERVICES
     
@@ -1036,10 +1039,7 @@ fourier_kernel<N> dotgrad(const vector& a, const fourier_kernel<N>& b)
   {
     using fourier_kernel_impl::kernel;
     using fourier_kernel_impl::transform_kernel;
-    
-    // manufacture a blank fourier kernel of max order N
-    auto r = b.loc.template make_fourier_kernel<N>();
-    
+
     // insert step should dot each product kernel with i a.kb
     return transform_kernel(b, [&](kernel c) -> kernel
       {
@@ -1242,13 +1242,18 @@ fourier_kernel<N> Galileon3(const fourier_kernel<N>& a)
 
 
 template <unsigned int N>
-void fourier_kernel<N>::to_EdS()
+fourier_kernel<N> fourier_kernel<N>::to_EdS()
   {
-    // convert all kernels in the database
-    for(const auto& kernel : this->kernels)
+    using fourier_kernel_impl::kernel;
+    using fourier_kernel_impl::transform_kernel;
+
+    // convert all kernels in the database and insert them into the new kernel
+    return transform_kernel(*this, [&](kernel c) -> kernel
       {
-        kernel.second->to_EdS();
-      }
+        // convert time factor to EdS approximation
+        c.to_EdS();
+        return c;
+      });
   }
 
 
