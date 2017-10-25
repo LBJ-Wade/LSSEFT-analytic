@@ -482,14 +482,14 @@ int main(int argc, char* argv[])
         {"b1_3", std::ref(Pk_b1_3)},
 
         {"b2_2", std::ref(Pk_b2_2)},
-//        {"b2_3", std::ref(Pk_b2_3)},
+//        {"b2_3", std::ref(Pk_b2_3)},                  // degenerate with 1-loop renormalization of b1_1
 
         {"bG2_2", std::ref(Pk_bG2_2)},
         {"bG2_3", std::ref(Pk_bG2_3)},
 
-//        {"b3", std::ref(Pk_b3)},
-//        {"bdG2", std::ref(Pk_bdG2)},
-//        {"bGamma3", std::ref(Pk_bGamma3)},
+//        {"b3", std::ref(Pk_b3)},                      // degenerate with 1-loop renormalization of b1_1
+//        {"bdG2", std::ref(Pk_bdG2)},                  // degenerate with 1-loop renormalization of b1_1
+//        {"bGamma3", std::ref(Pk_bGamma3)},            // degenerate with bG2_3 and an associated 1-loop renormalization of b1_1
 
         {"b1_1_b1_1", std::ref(Pk_b1_1_b1_1)},
         {"b1_2_b1_2", std::ref(Pk_b1_2_b1_2)},
@@ -497,10 +497,10 @@ int main(int argc, char* argv[])
         {"b1_1_b1_3", std::ref(Pk_b1_1_b1_3)},
 
         {"b1_1_b2_2", std::ref(Pk_b1_1_b2_2)},
-//        {"b1_1_b2_3", std::ref(Pk_b1_1_b2_3)},
+//        {"b1_1_b2_3", std::ref(Pk_b1_1_b2_3)},        // b2_2 degenerate as explained above
         {"b1_2_b2_2", std::ref(Pk_b1_2_b2_2)},
 
-//        {"b1_1_b3", std::ref(Pk_b1_1_b3)},
+//        {"b1_1_b3", std::ref(Pk_b1_1_b3)},            // b3 degenerate as explained above
 
         {"b2_2_b2_2", std::ref(Pk_b2_2_b2_2)},
 
@@ -512,9 +512,9 @@ int main(int argc, char* argv[])
 
         {"b2_2_bG2_2", std::ref(Pk_b2_2_bG2_2)},
 
-//        {"b1_1_bdG2", std::ref(Pk_b1_1_bdG2)},
+//        {"b1_1_bdG2", std::ref(Pk_b1_1_bdG2)},        // bdG2 degenerate as explained above
 
-//        {"b1_1_bGamma3", std::ref(Pk_b1_1_bGamma3)},
+//        {"b1_1_bGamma3", std::ref(Pk_b1_1_bGamma3)},  // bGamma3 degenerate as explained above
       };
 
     if(args.get_counterterms())
