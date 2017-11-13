@@ -318,7 +318,7 @@ int main(int argc, char* argv[])
     auto G2_3 = G2.order(3);
 
     auto G3 = Galileon3(Phi_delta);
-    auto Gamma3 = Galileon2(Phi_delta) - Galileon2(Phi_v);
+    auto Gamma3 = (Galileon2(Phi_delta) - Galileon2(Phi_v)).order(3);
 
     Galileon_timer.reset(nullptr);
 
