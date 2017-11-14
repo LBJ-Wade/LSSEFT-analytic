@@ -35,6 +35,7 @@
 #include "lib/Pk_rsd.h"
 
 #include "boost/filesystem/operations.hpp"
+#include "boost/date_time/posix_time/ptime.hpp"
 
 
 using Pk_rsd_set = std::map< std::string, std::reference_wrapper<Pk_rsd> >;
@@ -216,6 +217,9 @@ class LSSEFT
 
   public:
 
+    //! write pipeline id
+    void write_pipeline_id() const;
+
     //! write create block
     void write_create() const;
 
@@ -336,6 +340,14 @@ class LSSEFT
 
     //! kernel database
     kernel_db_type kernel_db;
+
+
+    // TIMESTAMP
+
+    boost::posix_time::ptime now;
+
+    //! string version
+    std::string now_string;
 
   };
 
