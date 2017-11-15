@@ -29,7 +29,7 @@
 
 
 #include <string>
-#include <exception>
+#include <stdexcept>
 
 
 enum class exception_code
@@ -59,7 +59,7 @@ class exception: public std::runtime_error
     exception(std::string msg, exception_code c);
     
     //! destructor
-    ~exception() = default;
+    ~exception() override = default;
     
     
     // INTERFACE
