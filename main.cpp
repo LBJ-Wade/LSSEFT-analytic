@@ -488,7 +488,7 @@ int main(int argc, char* argv[])
         {"bG2_3", std::ref(Pk_bG2_3)},
 
         {"b3", std::ref(Pk_b3)},                        // set to zero in 'full' fit; degenerate with 1-loop renormalization of b1_1
-//        {"bdG2", std::ref(Pk_bdG2)},                  // degenerate with 1-loop renormalization of b1_1
+        {"bdG2", std::ref(Pk_bdG2)},                    // set to zero in 'full' fit; degenerate with 1-loop renormalization of b1_1
         {"bGamma3", std::ref(Pk_bGamma3)},              // set to zero in 'full' fit: degenerate with bG2_3 and an associated 1-loop renormalization of b1_1
 
         {"b1_1_b1_1", std::ref(Pk_b1_1_b1_1)},
@@ -512,7 +512,7 @@ int main(int argc, char* argv[])
 
         {"b2_2_bG2_2", std::ref(Pk_b2_2_bG2_2)},
 
-//        {"b1_1_bdG2", std::ref(Pk_b1_1_bdG2)},        // bdG2 degenerate as explained above
+        {"b1_1_bdG2", std::ref(Pk_b1_1_bdG2)},          // set to zero in 'full' fit; bdG2 degenerate as explained above
 
         {"b1_1_bGamma3", std::ref(Pk_b1_1_bGamma3)}     // set to zero in 'full' fit; bGamma3 degenerate as explained above
       };
