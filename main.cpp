@@ -311,7 +311,7 @@ int main(int argc, char* argv[])
     // build halo overdensity \delta
     // first, need velocity potentials for the Galileon terms
     auto Phi_delta = InverseLaplacian(delta);
-    auto Phi_v = -phi/H;
+    auto Phi_v = -phi/(f*H);
 
     auto G2 = Galileon2(Phi_delta);
     auto G2_2 = G2.order(2);
