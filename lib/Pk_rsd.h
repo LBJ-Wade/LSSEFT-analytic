@@ -100,9 +100,18 @@ class Pk_rsd_group
     //! write self to stream
     void write(std::ostream& out) const;
 
+    //! write Mathematica script for each power of mu
+    void write_Mathematica(std::ostream& out, std::string symbol, bool do_dx) const;
+
     //! apply visitor to the one-loop records for any given pattern of mus
     template <typename VisitorFunction>
     void visit(visit_list pattern, VisitorFunction f) const;
+
+  private:
+
+    //! write Mathematica script for a specific mu database
+    void write_Mathematica_block(std::ostream& out, const one_loop_element_db& db, std::string symbol,
+                                 std::string label, bool do_dx) const;
 
 
     // INTERNAL DATA
@@ -216,6 +225,9 @@ class Pk_rsd
     //! write self to stream
     void write(std::ostream& out) const;
 
+    //! write Mathematica script for 13 and 22 integrals at each power of mu
+    void write_Mathematica(std::ostream& out) const;
+
 
     // INTERNAL DATA
 
@@ -223,6 +235,9 @@ class Pk_rsd
 
     //! cache mu parameter
     const GiNaC::symbol mu;
+
+    //! cache tag used to represent this power spectrum group
+    std::string tag;
 
 
     // FILTER/PATTERN

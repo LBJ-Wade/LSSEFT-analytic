@@ -230,6 +230,9 @@ class Pk_one_loop
     //! write Mathematica script for loop integrals
     void write_Mathematica(std::ostream& out) const;
 
+    //! get tag
+    const std::string& get_tag() const { return this->tag; }
+
 
     // INTERNAL DATA
     

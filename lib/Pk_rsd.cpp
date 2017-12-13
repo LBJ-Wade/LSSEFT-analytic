@@ -24,6 +24,8 @@
 // --@@
 //
 
+#include <algorithm>
+
 #include "Pk_rsd.h"
 
 
@@ -194,6 +196,43 @@ void Pk_rsd_group::emplace(std::unique_ptr<one_loop_element> elt, one_loop_eleme
   }
 
 
+void Pk_rsd_group::write_Mathematica(std::ostream& out, std::string symbol, bool do_dx) const
+  {
+    this->write_Mathematica_block(out, this->mu0, symbol, "mu0", do_dx);
+    this->write_Mathematica_block(out, this->mu2, symbol, "mu2", do_dx);
+    this->write_Mathematica_block(out, this->mu4, symbol, "mu4", do_dx);
+    this->write_Mathematica_block(out, this->mu6, symbol, "mu6", do_dx);
+    this->write_Mathematica_block(out, this->mu8, symbol, "mu8", do_dx);
+  }
+
+
+void Pk_rsd_group::write_Mathematica_block(std::ostream& out, const one_loop_element_db& db, std::string symbol,
+                                           std::string label, bool do_dx) const
+  {
+    out << symbol << "z" << label << " = ";
+
+    unsigned int count = 0;
+    size_t chars_written = 0;
+
+    for(auto& record : db)
+      {
+        const std::unique_ptr<one_loop_element>& elt = record.second;
+
+        if(count > 0) out << " + ";
+
+        auto output = elt->to_Mathematica(do_dx);
+        out << output;
+
+        ++count;
+        chars_written += output.length();
+      }
+
+    if(chars_written == 0) out << "0";
+
+    out << ";" << '\n';
+  }
+
+
 Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_, const filter_list pt_, const GiNaC_symbol_set sy_)
   : mu(mu_),
     pattern(pt_),
@@ -201,6 +240,25 @@ Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_, const filter_lis
     P13(mu_, pt_, sy_),
     P22(mu_, pt_, sy_)
   {
+    // build tag from filter list
+    std::ostringstream tag_str;
+    tag_str << Pk.get_tag();
+
+    for(const auto& sym : pt_)
+      {
+        // remove occurrences of '_' in symbol name, since these aren't legal in Mathematica symbols
+        // and we use the tag for that purpose
+        std::string name = sym.first.get_name();
+        std::replace(name.begin(), name.end(), '_', 'z');
+
+        for(unsigned int i = 0; i < sym.second; ++i)
+          {
+            tag_str << "z" << name;
+          }
+      }
+
+    tag = tag_str.str();
+
     // extract Pk_db elements from Pk
     this->filter(Ptree, Pk.get_tree());
     this->filter(P13, Pk.get_13());
@@ -256,6 +314,14 @@ void Pk_rsd::write(std::ostream& out) const
     out << this->P13 << '\n';
     out << "Loop-level 22 terms:" << '\n';
     out << this->P22 << '\n';
+  }
+
+
+void Pk_rsd::write_Mathematica(std::ostream& out) const
+  {
+    this->Ptree.write_Mathematica(out, this->tag + "Tree", false);
+    this->P13.write_Mathematica(out, this->tag + "P13", true);
+    this->P22.write_Mathematica(out, this->tag + "P22", false);
   }
 
 
