@@ -149,7 +149,8 @@ namespace LSSEFT_impl
         {"log", "std::log"},
         {"pow", "std::pow"},
         {"tgamma", "std::tgamma"},
-        {"lgamma", "std::lgamma"}
+        {"lgamma", "std::lgamma"},
+        {"FabJ", "FabJ"}
       };
 
 
