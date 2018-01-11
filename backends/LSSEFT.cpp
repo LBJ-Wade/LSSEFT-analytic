@@ -672,7 +672,7 @@ void LSSEFT::write_kernel_integrands() const
     this->write_header(outf);
 
     auto& sf = this->loc.get_symbol_factory();
-    auto& ac = this->loc.get_argunent_cache();
+    auto& ac = this->loc.get_argument_cache();
 
     auto q0 = sf.make_canonical_loop_momentum(0);
     auto x = sf.make_symbol("x");

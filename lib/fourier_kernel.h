@@ -624,7 +624,7 @@ fourier_kernel<N>::add(time_function t, initial_value_set s, GiNaC::ex K, subs_l
     // validate that momentum variables used in K match those listed in the stochastic terms
     validate_momenta(s, vs, K, this->loc.get_symbol_factory().get_parameters(), silent);
 
-    if(this->loc.get_argunent_cache().get_auto_symmetrize())
+    if(this->loc.get_argument_cache().get_auto_symmetrize())
       {
         this->insert_symmetric(std::move(t), std::move(s), std::move(K), std::move(vs));
         return *this;

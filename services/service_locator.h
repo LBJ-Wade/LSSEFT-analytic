@@ -69,7 +69,7 @@ class service_locator
   public:
 
     //! get argument cache
-    argument_cache& get_argunent_cache() { return this->args; }
+    argument_cache& get_argument_cache() { return this->args; }
 
     //! get symbol factory
     symbol_factory& get_symbol_factory() { return this->sf; }
