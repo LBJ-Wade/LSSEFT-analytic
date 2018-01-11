@@ -307,25 +307,7 @@ namespace fourier_kernel_impl
 
         c.tm = GiNaC::collect_common_factors(c.tm.expand() * time_factor);
         c.K *= integrand_factor;
-
-//        if(GiNaC::is_a<GiNaC::add>(c.tm))
-//          {
-//            GiNaC::ex temp{0};
-//            const size_t nops = c.tm.nops();
-//
-//            for(size_t i = 0; i < nops; ++i)
-//              {
-//                temp += c.tm.op(i).expand() * a;
-//              }
-//
-//            c.tm = GiNaC::collect_common_factors(temp);
-//          }
-//        else
-//          {
-//            auto temp = GiNaC::collect_common_factors(c.tm.expand() * a);
-//            c.tm = temp;
-//          }
-
+        
         // adjust normalization of time function if needed
         auto norm = get_normalization_factor(c.tm, c.loc);
         c.tm /= norm;

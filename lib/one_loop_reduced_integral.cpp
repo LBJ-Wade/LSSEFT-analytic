@@ -207,7 +207,8 @@ static const std::map< std::string, std::string > func_convert
     {"atanh", "ArcTanh"},
     {"exp", "Exp"},
     {"log", "Log"},
-    {"power", "Power"}
+    {"power", "Power"},
+    {"FabJ", "FabJ"}
   };
 
 

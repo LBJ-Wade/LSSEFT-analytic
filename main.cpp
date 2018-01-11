@@ -255,7 +255,7 @@ int main(int argc, char* argv[])
     vector t = deltat;
 
 
-    auto delta_timer = std::make_unique<timing_instrument>("Construct \\delta Fourier representation");
+    auto timer = std::make_unique<timing_instrument>("Construct \\delta Fourier representation");
 
     // set up kernels for the dark matter overdensity \delta
     auto delta = loc.make_fourier_kernel<3>();
@@ -289,10 +289,8 @@ int main(int argc, char* argv[])
     auto deltasq_2 = deltasq.order(2);
     auto deltasq_3 = deltasq.order(3);
 
-    delta_timer.reset(nullptr);
 
-
-    auto phi_timer = std::make_unique<timing_instrument>("Construct velocity potential \\phi");
+    timer = std::make_unique<timing_instrument>("Construct velocity potential \\phi");
 
     // compute kernels for the dark matter velocity potential \phi, v = grad phi -> v(k) = i k phi
     auto phi1 = InverseLaplacian(-diff_t(delta_1));
@@ -303,27 +301,23 @@ int main(int argc, char* argv[])
 
     auto phi = phi1 + phi2 + phi3;
 
-    phi_timer.reset(nullptr);
 
-
-    auto Galileon_timer = std::make_unique<timing_instrument>("Construct Galileon operators");
+    timer = std::make_unique<timing_instrument>("Construct Galileon operators");
 
     // build halo overdensity \delta
     // first, need velocity potentials for the Galileon terms
     auto Phi_delta = InverseLaplacian(delta);
-    auto Phi_v = -phi/H;
+    auto Phi_v = -phi/(f*H);
 
     auto G2 = Galileon2(Phi_delta);
     auto G2_2 = G2.order(2);
     auto G2_3 = G2.order(3);
 
     auto G3 = Galileon3(Phi_delta);
-    auto Gamma3 = Galileon2(Phi_delta) - Galileon2(Phi_v);
-
-    Galileon_timer.reset(nullptr);
+    auto Gamma3 = (Galileon2(Phi_delta) - Galileon2(Phi_v)).order(3);
 
 
-    auto halo_timer = std::make_unique<timing_instrument>("Construct halo overdensity field");
+    timer = std::make_unique<timing_instrument>("Construct halo overdensity field");
 
     auto vp1 = phi1 / (H*f);
     auto vp2 = phi2 / (H*f);
@@ -346,8 +340,6 @@ int main(int argc, char* argv[])
     auto deltah_cubic = (b3/6)*delta*delta*delta + bdG2*G2*delta + bG3*G3 + bGamma3*Gamma3;
 
     auto deltah = deltah_b1 + deltah_b1_adv + deltah_b2 + deltah_b2_adv + deltah_G2 + deltah_G2_adv + deltah_cubic;
-
-    halo_timer.reset(nullptr);
 
 
     // set up momentum label k, corresponding to external momentum in 2pf
@@ -377,19 +369,17 @@ int main(int argc, char* argv[])
     auto k1mu = k*mu;
     auto k2mu = -k*mu;
 
-    auto deltarsd_timer = std::make_unique<timing_instrument>("RSD transform for dark matter overdensity");
+    timer = std::make_unique<timing_instrument>("RSD transform for dark matter overdensity");
     auto delta_rsd_k1 = make_delta_rsd(k1mu, delta);
     auto delta_rsd_k2 = make_delta_rsd(k2mu, delta);
-    deltarsd_timer.reset(nullptr);
 
     // halos in redshift-space
-    auto deltahrsd_timer = std::make_unique<timing_instrument>("RSD transform for halo overdensity");
+    timer = std::make_unique<timing_instrument>("RSD transform for halo overdensity");
     auto deltah_rsd_k1 = make_delta_rsd(k1mu, deltah);
     auto deltah_rsd_k2 = make_delta_rsd(k2mu, deltah);
-    deltahrsd_timer.reset(nullptr);
 
     // construct 1-loop \delta power spectrum
-    auto Pk_timer = std::make_unique<timing_instrument>("Construct 1-loop power spectrum");
+    timer = std::make_unique<timing_instrument>("Construct 1-loop power spectrum");
     Pk_one_loop Pk_delta{"1-loop halo RSD P(k)", "halo", deltah_rsd_k1, deltah_rsd_k2, k, loc};
 
     // simplify mu-dependence
@@ -405,8 +395,6 @@ int main(int argc, char* argv[])
         Pk_delta.write_Mathematica(mma_out);
         mma_out.close();
       }
-
-    Pk_timer.reset(nullptr);
 
 //    auto& tree = Pk_delta.get_tree();
 //    std::cout << "Tree-level P(k):" << '\n';
@@ -424,7 +412,7 @@ int main(int argc, char* argv[])
     // break result into powers of mu, grouped by the bias coefficients involved
     GiNaC_symbol_set filter_syms{b1_1, b1_2, b1_3, b2_2, b2_3, b3, bG2_2, bG2_3, bdG2, bG3, bGamma3};
 
-    auto Pk_rsd_timer = std::make_unique<timing_instrument>("Extract RSD mu coefficients");
+    timer = std::make_unique<timing_instrument>("Extract RSD mu coefficients");
 
     Pk_rsd Pk_nobias{Pk_delta, mu, filter_list{}, filter_syms};
 
@@ -470,7 +458,7 @@ int main(int argc, char* argv[])
 
     Pk_rsd Pk_b1_1_bGamma3{Pk_delta, mu, filter_list{ {b1_1,1}, {bGamma3,1} }, filter_syms};
 
-    Pk_rsd_timer.reset(nullptr);
+    timer.reset(nullptr);
 
 
     Pk_rsd_set Pks =
@@ -482,14 +470,14 @@ int main(int argc, char* argv[])
         {"b1_3", std::ref(Pk_b1_3)},
 
         {"b2_2", std::ref(Pk_b2_2)},
-//        {"b2_3", std::ref(Pk_b2_3)},                  // degenerate with 1-loop renormalization of b1_1
+        {"b2_3", std::ref(Pk_b2_3)},                    // set to zero in 'full' fit; degenerate with 1-loop renormalization of b1_1
 
         {"bG2_2", std::ref(Pk_bG2_2)},
         {"bG2_3", std::ref(Pk_bG2_3)},
 
-//        {"b3", std::ref(Pk_b3)},                      // degenerate with 1-loop renormalization of b1_1
-//        {"bdG2", std::ref(Pk_bdG2)},                  // degenerate with 1-loop renormalization of b1_1
-//        {"bGamma3", std::ref(Pk_bGamma3)},            // degenerate with bG2_3 and an associated 1-loop renormalization of b1_1
+        {"b3", std::ref(Pk_b3)},                        // set to zero in 'full' fit; degenerate with 1-loop renormalization of b1_1
+        {"bdG2", std::ref(Pk_bdG2)},                    // set to zero in 'full' fit; degenerate with 1-loop renormalization of b1_1
+        {"bGamma3", std::ref(Pk_bGamma3)},              // set to zero in 'full' fit: degenerate with bG2_3 and an associated 1-loop renormalization of b1_1
 
         {"b1_1_b1_1", std::ref(Pk_b1_1_b1_1)},
         {"b1_2_b1_2", std::ref(Pk_b1_2_b1_2)},
@@ -497,10 +485,10 @@ int main(int argc, char* argv[])
         {"b1_1_b1_3", std::ref(Pk_b1_1_b1_3)},
 
         {"b1_1_b2_2", std::ref(Pk_b1_1_b2_2)},
-//        {"b1_1_b2_3", std::ref(Pk_b1_1_b2_3)},        // b2_2 degenerate as explained above
+        {"b1_1_b2_3", std::ref(Pk_b1_1_b2_3)},          // set to zero in 'full' fit; b2_3 degenerate as explained above
         {"b1_2_b2_2", std::ref(Pk_b1_2_b2_2)},
 
-//        {"b1_1_b3", std::ref(Pk_b1_1_b3)},            // b3 degenerate as explained above
+        {"b1_1_b3", std::ref(Pk_b1_1_b3)},              // set to zero in 'full' fit; b3 degenerate as explained above
 
         {"b2_2_b2_2", std::ref(Pk_b2_2_b2_2)},
 
@@ -512,9 +500,9 @@ int main(int argc, char* argv[])
 
         {"b2_2_bG2_2", std::ref(Pk_b2_2_bG2_2)},
 
-//        {"b1_1_bdG2", std::ref(Pk_b1_1_bdG2)},        // bdG2 degenerate as explained above
+        {"b1_1_bdG2", std::ref(Pk_b1_1_bdG2)},          // set to zero in 'full' fit; bdG2 degenerate as explained above
 
-//        {"b1_1_bGamma3", std::ref(Pk_b1_1_bGamma3)},  // bGamma3 degenerate as explained above
+        {"b1_1_bGamma3", std::ref(Pk_b1_1_bGamma3)}     // set to zero in 'full' fit; bGamma3 degenerate as explained above
       };
 
     if(args.get_counterterms())
