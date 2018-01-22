@@ -75,6 +75,9 @@ namespace Pk_one_loop_impl
         //! constructor is default
         Pk_db() = default;
 
+        //! copy constructor
+        Pk_db(const Pk_db& obj);
+
         //! destructor is default
         ~Pk_db() = default;
 
@@ -99,6 +102,22 @@ namespace Pk_one_loop_impl
 
         //! emplace an element
         void emplace(std::unique_ptr<loop_integral> elt);
+
+
+        // FLUSH REDUCED INTEGRALS
+
+      public:
+
+        //! clear all reduced integrals
+        void clear_reduced_integrals();
+
+
+        // ARITHMETIC
+
+      public:
+
+        //! increment
+        Pk_db& operator+=(const Pk_db& obj);
 
 
         // TRANSFORMATIONS
@@ -168,6 +187,9 @@ class Pk_one_loop
     template <unsigned int N1, unsigned int N2>
     Pk_one_loop(std::string n_, std::string t_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
                 GiNaC::symbol k_, service_locator& lc_);
+
+    //! copy constructor
+    Pk_one_loop(const Pk_one_loop& obj);
     
     //! destructor is default
     ~Pk_one_loop() = default;
@@ -193,6 +215,20 @@ class Pk_one_loop
     //! build 22 power spectrum
     template <typename Kernel1, typename Kernel2>
     void build_22(const Kernel1& ker1, const Kernel2& ker2);
+
+    //! perform reduction of angular integrals
+    void perform_angular_reduction();
+
+    //! clear all reduced angular integrals
+    void clear_angular_reductions();
+
+
+    // ADD OR SUBTRACT CORRELATION FUNCTIONS
+
+  public:
+
+    //! increment using 2nd correlation function
+    Pk_one_loop& operator+=(const Pk_one_loop& obj);
 
 
     // EXTRACT EXPRESSIONS
@@ -276,6 +312,15 @@ class Pk_one_loop
 //! perform stream insertion
 std::ostream& operator<<(std::ostream& str, const Pk_one_loop& obj);
 
+//! add two power spectrum
+inline Pk_one_loop operator+(const Pk_one_loop& a, const Pk_one_loop& b)
+  {
+    Pk_one_loop c{a};
+    c += b;
+
+    return a;
+  }
+
 
 template <unsigned int N1, unsigned int N2>
 Pk_one_loop::Pk_one_loop(std::string n_, std::string t_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
@@ -293,15 +338,7 @@ Pk_one_loop::Pk_one_loop(std::string n_, std::string t_, const fourier_kernel<N1
     this->build_13(ker1, ker2);
     this->build_22(ker1, ker2);
 
-    // perform angular reduction on integrands using Rayleigh algorithm
-    this->Ptree.reduce_angular_integrals(loc, false);  // false = don't symmetrize q/s (meaningless at tree level)
-    this->P13.reduce_angular_integrals(loc, false);    // false = don't symmetrize q/s
-    this->P22.reduce_angular_integrals(loc, true);     // true = symmetrize q/s
-
-    // prune empty records
-    this->Ptree.prune();
-    this->P13.prune();
-    this->P22.prune();
+    this->perform_angular_reduction();
   }
 
 

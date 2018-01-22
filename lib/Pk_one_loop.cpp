@@ -30,6 +30,14 @@
 namespace Pk_one_loop_impl
   {
 
+
+    Pk_db::Pk_db(const Pk_db& obj)
+      {
+        // add elements from obj
+        this->operator+=(obj);
+      }
+
+
     void Pk_db::write(std::ostream& out) const
       {
         size_t count = 0;
@@ -123,15 +131,55 @@ namespace Pk_one_loop_impl
         auto it = this->db.find(key);
 
         // if a matching element already exists then we should just sum up the kernels
+        // (at this stage we assume that no angular reduction has been done; complain if it has)
         if(it != this->db.end())
           {
-            *it->second.first += *elt;
+            loop_pair& record = it->second;
+
+            std::unique_ptr<loop_integral>& kernel = record.first;
+            std::unique_ptr<one_loop_reduced_integral>& reduced = record.second;
+
+            if(reduced) throw exception(ERROR_LOOP_INTEGRAL_INSERT_AFTER_REDUCTION, exception_code::Pk_error);
+
+            *kernel += *elt;
             return;
           }
 
         // otherwise, we need to insert a new element
         auto res = this->db.emplace(std::move(key), std::make_pair(std::move(elt), std::unique_ptr<one_loop_reduced_integral>{nullptr}));
         if(!res.second) throw exception(ERROR_LOOP_INTEGRAL_INSERT_FAILED, exception_code::Pk_error);
+      }
+
+
+    void Pk_db::clear_reduced_integrals()
+      {
+        for(auto& record : this->db)
+          {
+            loop_pair& pair = record.second;
+            std::unique_ptr<one_loop_reduced_integral>& ri = pair.second;
+
+            if(ri) ri.reset(nullptr);
+          }
+      }
+
+
+    Pk_db& Pk_db::operator+=(const Pk_db& obj)
+      {
+        // walk through database from 'obj', and insert kernels as we go
+
+        for(auto& item : obj.db)
+          {
+            const loop_pair& record = item.second;
+            const std::unique_ptr<loop_integral>& kernel = record.first;
+
+            if(kernel)
+              {
+                // copy kernel and emplace it in our own database
+                this->emplace(std::make_unique<loop_integral>(*kernel));
+              }
+          }
+
+        return *this;
       }
 
 
@@ -167,6 +215,19 @@ namespace Pk_one_loop_impl
   }   // namespace Pk_one_loop_impl
 
 
+Pk_one_loop::Pk_one_loop(const Pk_one_loop& obj)
+  : loc(obj.loc),
+    k(obj.k),
+    name(obj.name),
+    tag(obj.tag),
+    Ptree(obj.Ptree),
+    P13(obj.P13),
+    P22(obj.P22)
+  {
+    this->perform_angular_reduction();
+  }
+
+
 void Pk_one_loop::simplify(const GiNaC::exmap& map)
   {
     this->Ptree.simplify(map);
@@ -200,6 +261,48 @@ void Pk_one_loop::write_Mathematica(std::ostream& out) const
     this->Ptree.write_Mathematica(out, this->tag + "Tree", false);
     this->P13.write_Mathematica(out, this->tag + "P13", true);
     this->P22.write_Mathematica(out, this->tag + "P22", false);
+  }
+
+
+void Pk_one_loop::clear_angular_reductions()
+  {
+    this->Ptree.clear_reduced_integrals();
+    this->P13.clear_reduced_integrals();
+    this->P22.clear_reduced_integrals();
+  }
+
+
+void Pk_one_loop::perform_angular_reduction()
+  {
+    // perform angular reduction on integrands using Rayleigh algorithm
+    this->Ptree.reduce_angular_integrals(loc, false);  // false = don't symmetrize q/s (meaningless at tree level)
+    this->P13.reduce_angular_integrals(loc, false);    // false = don't symmetrize q/s
+    this->P22.reduce_angular_integrals(loc, true);     // true = symmetrize q/s
+
+    // prune empty records
+    this->Ptree.prune();
+    this->P13.prune();
+    this->P22.prune();
+  }
+
+
+Pk_one_loop& Pk_one_loop::operator+=(const Pk_one_loop& obj)
+  {
+    // check that power spectra use a compatible momentum variable
+    if(this->k != obj.k) throw exception(ERROR_CANT_ADD_PK_INCOMPATIBLE_MOMENTA, exception_code::Pk_error);
+
+    // clear angular decompositions before adding in new kernels
+    this->clear_angular_reductions();
+
+    // merge tree, P13 and P22 databases
+    this->Ptree += obj.Ptree;
+    this->P13 += obj.P13;
+    this->P22 += obj.P22;
+
+    // re-perform angular reductions
+    this->perform_angular_reduction();
+
+    return *this;
   }
 
 
