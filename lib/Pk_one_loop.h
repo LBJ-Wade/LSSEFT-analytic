@@ -270,6 +270,11 @@ class Pk_one_loop
     const std::string& get_tag() const { return this->tag; }
 
 
+    // FRIEND DECLARATIONS
+
+    friend Pk_one_loop operator+(const Pk_one_loop& a, const Pk_one_loop& b);
+
+
     // INTERNAL DATA
     
   private:
@@ -289,10 +294,10 @@ class Pk_one_loop
     // METADATA
 
     //! cache name
-    const std::string name;
+    std::string name;
 
     //! cache tag
-    const std::string tag;
+    std::string tag;
 
 
     // POWER SPECTRUM EXPRESSIONS
@@ -318,7 +323,10 @@ inline Pk_one_loop operator+(const Pk_one_loop& a, const Pk_one_loop& b)
     Pk_one_loop c{a};
     c += b;
 
-    return a;
+    c.name = a.name + std::string{"+"} + b.name;
+    c.tag = a.tag + b.tag;
+
+    return c;
   }
 
 
