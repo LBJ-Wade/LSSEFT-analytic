@@ -51,7 +51,7 @@ class Pk_rsd_group
   public:
 
     //! constructor
-    Pk_rsd_group(GiNaC::symbol mu_, filter_list pt_, GiNaC_symbol_set sy_);
+    Pk_rsd_group(GiNaC::symbol mu_, filter_list pt_, GiNaC_symbol_set sy_, std::string nm_, bool v);
 
     //! destructor
     ~Pk_rsd_group() = default;
@@ -67,7 +67,7 @@ class Pk_rsd_group
   protected:
 
     //! perform emplace on a specific database (ie. the database for mu0, mu2, ...)
-    void emplace(std::unique_ptr<one_loop_element> elt, one_loop_element_db& db);
+    void emplace(std::unique_ptr<one_loop_element> elt, one_loop_element_db& db, unsigned int mu_power);
 
 
     // TOOLS
@@ -90,7 +90,7 @@ class Pk_rsd_group
   protected:
 
     //! prune the database for a specific power of mu
-    void prune(one_loop_element_db& db);
+    void prune(one_loop_element_db& db, unsigned int mu_power);
 
 
     // SERVICES
@@ -118,17 +118,26 @@ class Pk_rsd_group
 
   private:
 
+    //! group name (tree, 13, 22)
+    const std::string name;
+
     //! cache reference to angular variable mu
     const GiNaC::symbol mu;
 
     //! cache filtering pattern
     const filter_list pattern;
 
+    //! GiNaC expression representing filter pattern
+    GiNaC::ex symbolic_filter;
+
     //! set of filtering symbols (used to kill any leftover terms)
     const GiNaC_symbol_set filter_symbols;
 
     //! exmap build from these symbols
     GiNaC::exmap filter_map;
+
+    //! verbose flag
+    bool verbose;
 
 
     // TERM-BY-TERM DATABASES
@@ -190,7 +199,8 @@ class Pk_rsd
 
     //! constructor accepts a Pk_one_loop and decomposes it into powers of mu.
     //! filters terms according to the provided pattern
-    Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_, const filter_list pt_, const GiNaC_symbol_set sy_);
+    Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_, const filter_list pt_, const GiNaC_symbol_set sy_,
+           bool v=false);
 
     //! destructor is default
     ~Pk_rsd() = default;
@@ -244,6 +254,9 @@ class Pk_rsd
 
     //! cache pattern used to filter input expression
     const filter_list pattern;
+
+    //! cache GiNaC expression giving symbolic filter list
+    GiNaC::ex symbolic_filter;
 
 
     // DATABASES

@@ -29,10 +29,13 @@
 #include "Pk_rsd.h"
 
 
-Pk_rsd_group::Pk_rsd_group(GiNaC::symbol mu_, filter_list pt_, GiNaC_symbol_set sy_)
-  : mu(std::move(mu_)),
+Pk_rsd_group::Pk_rsd_group(GiNaC::symbol mu_, filter_list pt_, GiNaC_symbol_set sy_, std::string nm_, bool v)
+  : name(std::move(nm_)),
+    mu(std::move(mu_)),
     pattern(std::move(pt_)),
-    filter_symbols(std::move(sy_))
+    filter_symbols(std::move(sy_)),
+    symbolic_filter(1),
+    verbose(v)
   {
     // set up an exmap that will set all filter_symbols to zero; we use this after pattern matching
     // to kill any remaining terms; eg. asking for the term linear in b1 from b1(1+b2) will give 1+b2, and we
@@ -40,6 +43,12 @@ Pk_rsd_group::Pk_rsd_group(GiNaC::symbol mu_, filter_list pt_, GiNaC_symbol_set 
     for(const auto& sym : filter_symbols)
       {
         filter_map[sym] = 0;
+      }
+
+    // build up GiNaC expression representing filter symbol string
+    for(const auto& item : pattern)
+      {
+        symbolic_filter *= GiNaC::pow(item.first, item.second);
       }
   }
 
@@ -50,7 +59,8 @@ void Pk_rsd_group::emplace(const one_loop_element& elt)
       {
         // copy input element; one_loop_element doesn't capture any of its data by reference,
         // so what we get is a standalone copy.
-        // That means we can later modify the Pk_one_loop object if we require
+        // That means we can later modify the Pk_one_loop object if we require, without
+        // changing what is stored here
         auto f = std::make_unique<one_loop_element>(e);
 
         // filter for pattern; note that this assumes the pattern symbols are all in the integrand,
@@ -70,11 +80,11 @@ void Pk_rsd_group::emplace(const one_loop_element& elt)
         return f;
       };
 
-    this->emplace(filter(elt, 0), this->mu0);
-    this->emplace(filter(elt, 2), this->mu2);
-    this->emplace(filter(elt, 4), this->mu4);
-    this->emplace(filter(elt, 6), this->mu6);
-    this->emplace(filter(elt, 8), this->mu8);
+    this->emplace(filter(elt, 0), this->mu0, 0);
+    this->emplace(filter(elt, 2), this->mu2, 2);
+    this->emplace(filter(elt, 4), this->mu4, 4);
+    this->emplace(filter(elt, 6), this->mu6, 6);
+    this->emplace(filter(elt, 8), this->mu8, 8);
   }
 
 
@@ -146,15 +156,15 @@ std::vector< std::vector<time_function> > Pk_rsd_group::get_time_functions() con
 
 void Pk_rsd_group::prune()
   {
-    this->prune(this->mu0);
-    this->prune(this->mu2);
-    this->prune(this->mu4);
-    this->prune(this->mu6);
-    this->prune(this->mu8);
+    this->prune(this->mu0, 0);
+    this->prune(this->mu2, 2);
+    this->prune(this->mu4, 4);
+    this->prune(this->mu6, 6);
+    this->prune(this->mu8, 8);
   }
 
 
-void Pk_rsd_group::prune(one_loop_element_db& db)
+void Pk_rsd_group::prune(one_loop_element_db& db, unsigned int mu_power)
   {
     auto t = db.begin();
 
@@ -163,6 +173,12 @@ void Pk_rsd_group::prune(one_loop_element_db& db)
         const one_loop_element& elt = *t->second;
         if(elt.null())
           {
+            if(this->verbose)
+              {
+                std::cout << "Pruning '" << this->name << "' Pk_rsd_group contribution for filter pattern '"
+                          << this->symbolic_filter << "' at mu^" << mu_power << '\n';
+                std::cout << elt << '\n';
+              }
             t = db.erase(t);
           }
         else
@@ -173,10 +189,17 @@ void Pk_rsd_group::prune(one_loop_element_db& db)
   }
 
 
-void Pk_rsd_group::emplace(std::unique_ptr<one_loop_element> elt, one_loop_element_db& db)
+void Pk_rsd_group::emplace(std::unique_ptr<one_loop_element> elt, one_loop_element_db& db, unsigned int mu_power)
   {
     // nothing to do if element is empty
     if(elt->null()) return;
+
+    if(this->verbose)
+      {
+        std::cout << "Storing '" << this->name << "' Pk_rsd_group contribution for filter pattern '"
+                  << this->symbolic_filter << "' at mu^" << mu_power << '\n';
+        std::cout << *elt << '\n';
+      }
 
     one_loop_element_key key{*elt};
 
@@ -233,12 +256,14 @@ void Pk_rsd_group::write_Mathematica_block(std::ostream& out, const one_loop_ele
   }
 
 
-Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_, const filter_list pt_, const GiNaC_symbol_set sy_)
+Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_,
+               const filter_list pt_, const GiNaC_symbol_set sy_, bool v)
   : mu(mu_),
     pattern(pt_),
-    Ptree(mu_, pt_, sy_),
-    P13(mu_, pt_, sy_),
-    P22(mu_, pt_, sy_)
+    Ptree(mu_, pt_, sy_, std::string{"tree"}, v),
+    P13(mu_, pt_, sy_, std::string{"13"}, v),
+    P22(mu_, pt_, sy_, std::string{"22"}, v),
+    symbolic_filter(1)
   {
     // build tag from filter list
     std::ostringstream tag_str;
@@ -259,7 +284,14 @@ Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_, const filter_lis
 
     tag = tag_str.str();
 
-    // extract Pk_db elements from Pk
+    // build up symbolic representation of filter pattern
+    for(const auto& item : pattern)
+      {
+        symbolic_filter *= GiNaC::pow(item.first, item.second);
+      }
+
+    // filter elements (term by term) from parent Pk_one_loop according to whether they match
+    // the specific symbol set
     this->filter(Ptree, Pk.get_tree());
     this->filter(P13, Pk.get_13());
     this->filter(P22, Pk.get_22());
@@ -272,15 +304,8 @@ Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_, const filter_lis
     error_handler err;
     if(this->Ptree.empty() && this->P13.empty() && this->P22.empty())
       {
-        GiNaC::ex factor{1};
-
-        for(const auto& item : pattern)
-          {
-            factor *= GiNaC::pow(item.first, item.second);
-          }
-
         std::ostringstream msg;
-        msg << WARNING_PK_RSD_EMPTY << " '" << factor << "'";
+        msg << WARNING_PK_RSD_EMPTY << " '" << this->symbolic_filter << "'";
         err.warn(msg.str());
       }
   }
@@ -288,6 +313,11 @@ Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_, const filter_lis
 
 void Pk_rsd::filter(Pk_rsd_group& dest, const Pk_one_loop_impl::Pk_db& source)
   {
+    // walk through the source Pk_db, filtering contributions to the reduced integral (if present)
+    // that match our configured symbol set
+    // Matching contributions get pushed into the destination database 'dest',
+    // which will be either tree, 13 or 22
+
     for(const auto& item : source)
       {
         const loop_integral& lp = *item.second.first;
@@ -295,8 +325,10 @@ void Pk_rsd::filter(Pk_rsd_group& dest, const Pk_one_loop_impl::Pk_db& source)
 
         if(!ri) continue;    // skip if pointer is empty
 
+        // get database of one-loop-reduced-integral elements
         const auto& db  = ri->get_db();
 
+        // walk through this list
         for(const auto& record : db)
           {
             const std::unique_ptr<one_loop_element>& elt = record.second;
