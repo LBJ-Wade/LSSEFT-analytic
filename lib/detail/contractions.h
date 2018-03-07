@@ -186,7 +186,7 @@ namespace detail
       }
     
     
-    //! the set of all possible contractions is a list of contraction_data objects
+    //! the set of all possible contractions is a list of Wick_data objects
     using Wick_set = std::vector< std::unique_ptr<Wick_data> >;
 
     
