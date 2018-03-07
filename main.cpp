@@ -233,73 +233,39 @@ int main(int argc, char* argv[])
     sf.declare_parameter(bdG2);
     sf.declare_parameter(bGamma3);
 
-    // manufacture placeholder stochastic initial values delta*_q, delta*_s, delta*_t
+    // manufacture placeholder stochastic initial value delta*_q
     // (recall we skip delta*_r because r is also the line-of-sight variable)
     auto deltaq = sf.make_initial_value("delta");
-    auto deltas = sf.make_initial_value("delta");
-    auto deltat = sf.make_initial_value("delta");
 
     // linear set is delta*_q
     initial_value_set iv_q{deltaq};
 
-    // quadratic set is delta*_q delta*_s or delta*_s delta*_t
-    initial_value_set iv_qs{deltaq, deltas};
-    initial_value_set iv_st{deltas, deltat};
-
-    // cubic set is delta*_q delta*_s delta*_t
-    initial_value_set iv_qst{deltaq, deltas, deltat};
-
     // extract momentum vectors from these initial value placeholders
     vector q = deltaq;
-    vector s = deltas;
-    vector t = deltat;
 
 
     auto timer = std::make_unique<timing_instrument>("Construct \\delta Fourier representation");
 
     // set up kernels for the dark matter overdensity \delta
+    // for the Kaiser formula, we only want to keep bias loops so we drop all SPT terms above linear
     auto delta = loc.make_fourier_kernel<3>();
 
     // linear order
     delta.add(SPT::D(z), iv_q, 1);
 
-    // second order
-    // we don't symmetrize explicitly; kernels are symmetrized automatically
-    // if this feature is not disabled
-    kernel qs_base{iv_qs, loc};
-    delta.add(SPT::DA(z) * alpha(q, s, qs_base, loc));
-    delta.add(SPT::DB(z) * gamma(q, s, qs_base, loc));
-
-    // third order
-    kernel qst_base{iv_qst, loc};
-    delta.add((SPT::DD(z) - SPT::DJ(z)) * 2*gamma_bar(s+t, q, alpha_bar(s, t, qst_base, loc), loc));
-    delta.add(SPT::DE(z)                * 2*gamma_bar(s+t, q, gamma_bar(s, t, qst_base, loc), loc));
-    delta.add((SPT::DF(z) + SPT::DJ(z)) * 2*alpha_bar(s+t, q, alpha_bar(s, t, qst_base, loc), loc));
-    delta.add(SPT::DG(z)                * 2*alpha_bar(s+t, q, gamma_bar(s, t, qst_base, loc), loc));
-    delta.add(SPT::DJ(z)                * (alpha(s+t, q, gamma_bar(s, t, qst_base, loc), loc)
-                                           - 2*alpha(s+t, q, alpha_bar(s, t, qst_base, loc), loc)));
-
     // extract different orders of \delta
     auto delta_1 = delta.order(1);
-    auto delta_2 = delta.order(2);
-    auto delta_3 = delta.order(3);
 
     // extract different orders of \delta^2
     auto deltasq = delta*delta;
     auto deltasq_2 = deltasq.order(2);
-    auto deltasq_3 = deltasq.order(3);
 
 
     timer = std::make_unique<timing_instrument>("Construct velocity potential \\phi");
 
     // compute kernels for the dark matter velocity potential \phi, v = grad phi -> v(k) = i k phi
-    auto phi1 = InverseLaplacian(-diff_t(delta_1));
-    auto phi2 = InverseLaplacian(-diff_t(delta_2) - delta_1*Laplacian(phi1) - gradgrad(phi1, delta_1));
-    auto phi3 = InverseLaplacian(-diff_t(delta_3)
-                                 - delta_1*Laplacian(phi2) - delta_2*Laplacian(phi1)
-                                 - gradgrad(phi1, delta_2) - gradgrad(phi2, delta_1));
-
-    auto phi = phi1 + phi2 + phi3;
+    // as above, for the Kaiser formula we only want to keep bias loops, so we drop all SPT terms above linear
+    auto phi = InverseLaplacian(-diff_t(delta_1));
 
 
     timer = std::make_unique<timing_instrument>("Construct Galileon operators");
@@ -311,7 +277,6 @@ int main(int argc, char* argv[])
 
     auto G2 = Galileon2(Phi_delta);
     auto G2_2 = G2.order(2);
-    auto G2_3 = G2.order(3);
 
     auto G3 = Galileon3(Phi_delta);
     auto Gamma3 = (Galileon2(Phi_delta) - Galileon2(Phi_v)).order(3);
@@ -319,21 +284,18 @@ int main(int argc, char* argv[])
 
     timer = std::make_unique<timing_instrument>("Construct halo overdensity field");
 
-    auto vp1 = phi1 / (H*f);
-    auto vp2 = phi2 / (H*f);
+    auto vp1 = phi / (H*f);
 
-    auto deltah_b1 = b1_1*delta_1 + b1_2*delta_2 + b1_3*delta_3;
+    auto deltah_b1 = b1_1*delta_1;
 
     auto deltah_b1_adv = - (b1_1 - b1_2) * gradgrad(vp1, delta_1)
-                         - (b1_2 - b1_3) * gradgrad(vp1, delta_2)
-                         - (b1_1 - b1_3) * gradgrad(vp2, delta_1) / 2
                          + ((b1_1 + b1_3) / 2 - b1_2) * convective_bias_term(vp1, delta_1);
 
-    auto deltah_b2 = (b2_2/2)*deltasq_2 + (b2_3/2)*deltasq_3;
+    auto deltah_b2 = (b2_2/2)*deltasq_2;
 
     auto deltah_b2_adv = - (b2_2/2-b2_3/2) * gradgrad(vp1, deltasq_2);
 
-    auto deltah_G2 = bG2_2*G2_2 + bG2_3*G2_3;
+    auto deltah_G2 = bG2_2*G2_2;
 
     auto deltah_G2_adv = - (bG2_2 - bG2_3) * gradgrad(vp1, G2_2);
 
@@ -350,19 +312,15 @@ int main(int argc, char* argv[])
     // build expression for the redshift-space overdensities,
     // for both dark matter and halos
 
-    // utility function to perform the redshift-space transformation
-    // note that we don't have to adjust r_dot_v for the halo power spectrum, so it can just be
+    // utility function to perform the redshift-space transformation;
+    // here, that is just the Kaiser formula. This includes no information about nonlinear effects in the velocity.
+    // Note that we don't have to adjust r_dot_v for the halo power spectrum, so it can just be
     // captured from the exterior scope.
     // Of course, delta has to be adjusted.
     auto r_dot_v = dotgrad(r, phi);
     auto make_delta_rsd = [&](const auto& kmu, const auto& d) -> auto
       {
-        return d
-               - (GiNaC::I / H) * kmu * r_dot_v
-               - (GiNaC::I / H) * kmu * (r_dot_v * d)
-               - (GiNaC::numeric{1} / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v)
-               - (GiNaC::numeric{1} / (2*H*H)) * kmu*kmu * (r_dot_v * r_dot_v * d)
-               + (GiNaC::I / (3*2*H*H*H)) * kmu*kmu*kmu * (r_dot_v * r_dot_v * r_dot_v);
+        return d - (GiNaC::I / H) * kmu * r_dot_v;
       };
 
     // dark matter in redshift-space
