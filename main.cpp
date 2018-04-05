@@ -208,6 +208,12 @@ int main(int argc, char* argv[])
     // mu is RSD parameter = r.\hat{k} = r.k / |k|
     auto mu = sf.make_symbol("mu");
     sf.declare_parameter(mu);
+    
+    // for the bispectrum we need extra mu parameters, one for each projection of r onto k1, k2, k3
+    auto mu1 = sf.make_symbol("mu1");
+    auto mu2 = sf.make_symbol("mu2");
+    auto mu3 = sf.make_symbol("mu3");
+    sf.declare_parameter(mu1).declare_parameter(mu2).declare_parameter(mu3);
 
     // define halo bias parameters
     auto b1_1 = sf.make_symbol("b1_1");
@@ -346,6 +352,12 @@ int main(int argc, char* argv[])
     auto k = sf.make_symbol("k");
     sf.declare_parameter(k);
 
+    // set up momentum labels k1, k2, k3, corresponding to external momenta in 3pf
+    auto k1 = sf.make_symbol("k1");
+    auto k2 = sf.make_symbol("k2");
+    auto k3 = sf.make_symbol("k3");
+    sf.declare_parameter(k1).declare_parameter(k2).declare_parameter(k3);
+
 
     // build expression for the redshift-space overdensities,
     // for both dark matter and halos
@@ -470,14 +482,14 @@ int main(int argc, char* argv[])
         {"b1_3", std::ref(Pk_b1_3)},
 
         {"b2_2", std::ref(Pk_b2_2)},
-        {"b2_3", std::ref(Pk_b2_3)},                    // set to zero in 'full' fit; degenerate with 1-loop renormalization of b1_1
+        {"b2_3", std::ref(Pk_b2_3)},                    // set to zero in 'full' fit for Pk; degenerate with 1-loop renormalization of b1_1
 
         {"bG2_2", std::ref(Pk_bG2_2)},
         {"bG2_3", std::ref(Pk_bG2_3)},
 
-        {"b3", std::ref(Pk_b3)},                        // set to zero in 'full' fit; degenerate with 1-loop renormalization of b1_1
-        {"bdG2", std::ref(Pk_bdG2)},                    // set to zero in 'full' fit; degenerate with 1-loop renormalization of b1_1
-        {"bGamma3", std::ref(Pk_bGamma3)},              // set to zero in 'full' fit: degenerate with bG2_3 and an associated 1-loop renormalization of b1_1
+        {"b3", std::ref(Pk_b3)},                        // set to zero in 'full' fit for Pk; degenerate with 1-loop renormalization of b1_1
+        {"bdG2", std::ref(Pk_bdG2)},                    // set to zero in 'full' fit for Pk; degenerate with 1-loop renormalization of b1_1
+        {"bGamma3", std::ref(Pk_bGamma3)},              // set to zero in 'full' fit for Pk: degenerate with bG2_3 and an associated 1-loop renormalization of b1_1
 
         {"b1_1_b1_1", std::ref(Pk_b1_1_b1_1)},
         {"b1_2_b1_2", std::ref(Pk_b1_2_b1_2)},
@@ -485,10 +497,10 @@ int main(int argc, char* argv[])
         {"b1_1_b1_3", std::ref(Pk_b1_1_b1_3)},
 
         {"b1_1_b2_2", std::ref(Pk_b1_1_b2_2)},
-        {"b1_1_b2_3", std::ref(Pk_b1_1_b2_3)},          // set to zero in 'full' fit; b2_3 degenerate as explained above
+        {"b1_1_b2_3", std::ref(Pk_b1_1_b2_3)},          // set to zero in 'full' fit for Pk; b2_3 degenerate as explained above
         {"b1_2_b2_2", std::ref(Pk_b1_2_b2_2)},
 
-        {"b1_1_b3", std::ref(Pk_b1_1_b3)},              // set to zero in 'full' fit; b3 degenerate as explained above
+        {"b1_1_b3", std::ref(Pk_b1_1_b3)},              // set to zero in 'full' fit for Pk; b3 degenerate as explained above
 
         {"b2_2_b2_2", std::ref(Pk_b2_2_b2_2)},
 
@@ -500,9 +512,9 @@ int main(int argc, char* argv[])
 
         {"b2_2_bG2_2", std::ref(Pk_b2_2_bG2_2)},
 
-        {"b1_1_bdG2", std::ref(Pk_b1_1_bdG2)},          // set to zero in 'full' fit; bdG2 degenerate as explained above
+        {"b1_1_bdG2", std::ref(Pk_b1_1_bdG2)},          // set to zero in 'full' fit for Pk; bdG2 degenerate as explained above
 
-        {"b1_1_bGamma3", std::ref(Pk_b1_1_bGamma3)}     // set to zero in 'full' fit; bGamma3 degenerate as explained above
+        {"b1_1_bGamma3", std::ref(Pk_b1_1_bGamma3)}     // set to zero in 'full' fit for Pk; bGamma3 degenerate as explained above
       };
 
     if(args.get_counterterms())
