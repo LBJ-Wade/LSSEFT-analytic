@@ -48,6 +48,15 @@ class oneloop_db
     //! a oneloop_pair is a doublet that groups a raw integral with its reduced form
     using oneloop_pair = std::pair< std::unique_ptr<oneloop_expression>, std::unique_ptr<oneloop_reduced_integral> >;
 
+    //! expr_type
+    using expr_type = oneloop_expression;
+
+    //! reduced_type
+    using reduced_type = oneloop_reduced_integral;
+
+    //! pointer to reduced type
+    using reduced_ptr_type = std::unique_ptr<reduced_type>;
+
   protected:
 
     //! database is a set of loop_pairs, keyed by oneloop_expression_key

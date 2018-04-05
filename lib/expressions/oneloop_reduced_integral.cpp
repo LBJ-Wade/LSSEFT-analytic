@@ -865,7 +865,7 @@ std::ostream& operator<<(std::ostream& out, const oneloop_reduced_integral& obj)
   }
 
 
-std::ostream& operator<<(std::ostream& out, const one_loop_element_db& obj)
+std::ostream& operator<<(std::ostream& out, const oneloop_element_db& obj)
   {
     unsigned int count = 0;
 

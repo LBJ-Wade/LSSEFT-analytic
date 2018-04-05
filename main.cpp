@@ -34,7 +34,7 @@
 #include "lib/initial_value.h"
 #include "lib/fourier_kernel.h"
 #include "lib/correlators/Pk_oneloop.h"
-#include "lib/correlators/Pk_rsd.h"
+#include "lib/correlators/RSDPk_oneloop.h"
 #include "lib/correlators/Bk_tree.h"
 #include "lib/detail/special_functions.h"
 
@@ -46,11 +46,12 @@
 #include "instruments/timing_instrument.h"
 
 
-std::vector<std::string> generate_UV_limit(const Pk_rsd_group& group, const GiNaC::symbol& k, unsigned int max_mu, unsigned int max_k)
+std::vector<std::string> generate_UV_limit(const RSDPk_oneloop::RSDPk_oneloop_set& group, const GiNaC::symbol& k,
+                                           unsigned int max_mu, unsigned int max_k)
   {
     std::vector<std::string> output;
 
-    const auto UV_limit = group.get_UV_limit(2*max_k);
+    const auto UV_limit = group.get_UV_limit<>(2*max_k);
 
     for(unsigned int i = 0; i <= max_k; ++i)
       {
@@ -75,11 +76,12 @@ std::vector<std::string> generate_UV_limit(const Pk_rsd_group& group, const GiNa
   }
 
 
-std::vector<std::string> generate_map(const Pk_rsd_group& group, const GiNaC::symbol& k, unsigned int max_mu, unsigned int max_k)
+std::vector<std::string> generate_map(const RSDPk_oneloop::RSDPk_oneloop_set& group, const GiNaC::symbol& k,
+                                      unsigned int max_mu, unsigned int max_k)
   {
     std::vector<std::string> output;
 
-    const auto UV_limit = group.get_UV_limit(2*max_k);
+    const auto UV_limit = group.get_UV_limit<>(2*max_k);
     const auto time_funcs = group.get_time_functions();
 
     for(unsigned int i = 0; i <= max_mu; ++i)
@@ -127,28 +129,28 @@ std::vector<std::string> generate_map(const Pk_rsd_group& group, const GiNaC::sy
   }
 
 
-std::vector<std::string> mixing_map(const Pk_rsd& rsd, const GiNaC::symbol& k)
+std::vector<std::string> mixing_map(const RSDPk_oneloop& rsd, const GiNaC::symbol& k)
   {
     const auto& rsd_13 = rsd.get_13();
     return generate_map(rsd_13, k, 4, 1);
   }
 
 
-std::vector<std::string> stochastic_map(const Pk_rsd& rsd, const GiNaC::symbol& k)
+std::vector<std::string> stochastic_map(const RSDPk_oneloop& rsd, const GiNaC::symbol& k)
   {
     const auto& rsd_22 = rsd.get_22();
     return generate_map(rsd_22, k, 4, 1);
   }
 
 
-std::vector<std::string> mixing_divergences(const Pk_rsd& rsd, const GiNaC::symbol& k)
+std::vector<std::string> mixing_divergences(const RSDPk_oneloop& rsd, const GiNaC::symbol& k)
   {
     const auto& rsd_13 = rsd.get_13();
     return generate_UV_limit(rsd_13, k, 4, 1);
   }
 
 
-std::vector<std::string> stochastic_divergences(const Pk_rsd& rsd, const GiNaC::symbol& k)
+std::vector<std::string> stochastic_divergences(const RSDPk_oneloop& rsd, const GiNaC::symbol& k)
   {
     const auto& rsd_22 = rsd.get_22();
     return generate_UV_limit(rsd_22, k, 4, 1);
@@ -158,7 +160,7 @@ std::vector<std::string> stochastic_divergences(const Pk_rsd& rsd, const GiNaC::
 template <typename MapGenerator>
 void write_map(const Pk_rsd_set& Pks, const GiNaC::symbol& k, MapGenerator make_map)
   {
-    auto write = [&](std::string name, const Pk_rsd& rsd) -> void
+    auto write = [&](std::string name, const RSDPk_oneloop& rsd) -> void
       {
         const auto output = make_map(rsd, k);
         if(!output.empty())
@@ -175,7 +177,7 @@ void write_map(const Pk_rsd_set& Pks, const GiNaC::symbol& k, MapGenerator make_
     for(const auto& item : Pks)
       {
         const std::string& name = item.first;
-        const Pk_rsd& Pk = item.second.get();
+        const RSDPk_oneloop& Pk = item.second.get();
 
         write(name, Pk);
       }
@@ -440,49 +442,49 @@ int main(int argc, char* argv[])
 
     timer = std::make_unique<timing_instrument>("Extract RSD mu coefficients");
 
-    Pk_rsd Pk_nobias{Pk_delta_s, mu, filter_list{}, filter_syms};
+    RSDPk_oneloop Pk_nobias{Pk_delta_s, mu, filter_list{}, filter_syms};
 
-    Pk_rsd Pk_b1_1{Pk_delta_s, mu, filter_list{ {b1_1,1} }, filter_syms};
-    Pk_rsd Pk_b1_2{Pk_delta_s, mu, filter_list{ {b1_2,1} }, filter_syms};
-    Pk_rsd Pk_b1_3{Pk_delta_s, mu, filter_list{ {b1_3,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_1{Pk_delta_s, mu, filter_list{ {b1_1,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_2{Pk_delta_s, mu, filter_list{ {b1_2,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_3{Pk_delta_s, mu, filter_list{ {b1_3,1} }, filter_syms};
 
-    Pk_rsd Pk_b2_2{Pk_delta_s, mu, filter_list{ {b2_2,1} }, filter_syms};
-    Pk_rsd Pk_b2_3{Pk_delta_s, mu, filter_list{ {b2_3,1} }, filter_syms};
+    RSDPk_oneloop Pk_b2_2{Pk_delta_s, mu, filter_list{ {b2_2,1} }, filter_syms};
+    RSDPk_oneloop Pk_b2_3{Pk_delta_s, mu, filter_list{ {b2_3,1} }, filter_syms};
 
-    Pk_rsd Pk_bG2_2{Pk_delta_s, mu, filter_list{ {bG2_2,1} }, filter_syms};
-    Pk_rsd Pk_bG2_3{Pk_delta_s, mu, filter_list{ {bG2_3,1} }, filter_syms};
+    RSDPk_oneloop Pk_bG2_2{Pk_delta_s, mu, filter_list{ {bG2_2,1} }, filter_syms};
+    RSDPk_oneloop Pk_bG2_3{Pk_delta_s, mu, filter_list{ {bG2_3,1} }, filter_syms};
 
-    Pk_rsd Pk_b3{Pk_delta_s, mu, filter_list{ {b3,1} }, filter_syms};
-    Pk_rsd Pk_bG3{Pk_delta_s, mu, filter_list{ {bG3,1} }, filter_syms};                           // zero
-    Pk_rsd Pk_bdG2{Pk_delta_s, mu, filter_list{ {bdG2,1} }, filter_syms};
-    Pk_rsd Pk_bGamma3{Pk_delta_s, mu, filter_list{ {bGamma3,1} }, filter_syms};
+    RSDPk_oneloop Pk_b3{Pk_delta_s, mu, filter_list{ {b3,1} }, filter_syms};
+    RSDPk_oneloop Pk_bG3{Pk_delta_s, mu, filter_list{ {bG3,1} }, filter_syms};                           // zero
+    RSDPk_oneloop Pk_bdG2{Pk_delta_s, mu, filter_list{ {bdG2,1} }, filter_syms};
+    RSDPk_oneloop Pk_bGamma3{Pk_delta_s, mu, filter_list{ {bGamma3,1} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_b1_1{Pk_delta_s, mu, filter_list{ {b1_1,2} }, filter_syms};
-    Pk_rsd Pk_b1_2_b1_2{Pk_delta_s, mu, filter_list{ {b1_2,2} }, filter_syms};
-    Pk_rsd Pk_b1_1_b1_2{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b1_2,1} }, filter_syms};
-    Pk_rsd Pk_b1_1_b1_3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b1_3,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_1_b1_1{Pk_delta_s, mu, filter_list{ {b1_1,2} }, filter_syms};
+    RSDPk_oneloop Pk_b1_2_b1_2{Pk_delta_s, mu, filter_list{ {b1_2,2} }, filter_syms};
+    RSDPk_oneloop Pk_b1_1_b1_2{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b1_2,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_1_b1_3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b1_3,1} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_b2_2{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b2_2,1} }, filter_syms};
-    Pk_rsd Pk_b1_1_b2_3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b2_3,1} }, filter_syms};
-    Pk_rsd Pk_b1_2_b2_2{Pk_delta_s, mu, filter_list{ {b1_2,1}, {b2_2,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_1_b2_2{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b2_2,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_1_b2_3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b2_3,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_2_b2_2{Pk_delta_s, mu, filter_list{ {b1_2,1}, {b2_2,1} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_b3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b3,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_1_b3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b3,1} }, filter_syms};
 
-    Pk_rsd Pk_b2_2_b2_2{Pk_delta_s, mu, filter_list{ {b2_2,2} }, filter_syms};
+    RSDPk_oneloop Pk_b2_2_b2_2{Pk_delta_s, mu, filter_list{ {b2_2,2} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_bG2_2{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bG2_2,1} }, filter_syms};
-    Pk_rsd Pk_b1_1_bG2_3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bG2_3,1} }, filter_syms};
-    Pk_rsd Pk_b1_2_bG2_2{Pk_delta_s, mu, filter_list{ {b1_2,1}, {bG2_2,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_1_bG2_2{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bG2_2,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_1_bG2_3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bG2_3,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_2_bG2_2{Pk_delta_s, mu, filter_list{ {b1_2,1}, {bG2_2,1} }, filter_syms};
 
-    Pk_rsd Pk_bG2_2_bG2_2{Pk_delta_s, mu, filter_list{ {bG2_2,2} }, filter_syms};
+    RSDPk_oneloop Pk_bG2_2_bG2_2{Pk_delta_s, mu, filter_list{ {bG2_2,2} }, filter_syms};
 
-    Pk_rsd Pk_b2_2_bG2_2{Pk_delta_s, mu, filter_list{ {b2_2,1}, {bG2_2,1} }, filter_syms};
+    RSDPk_oneloop Pk_b2_2_bG2_2{Pk_delta_s, mu, filter_list{ {b2_2,1}, {bG2_2,1} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_bG3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bG3,1} }, filter_syms};            // zero
+    RSDPk_oneloop Pk_b1_1_bG3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bG3,1} }, filter_syms};            // zero
 
-    Pk_rsd Pk_b1_1_bdG2{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bdG2,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_1_bdG2{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bdG2,1} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_bGamma3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bGamma3,1} }, filter_syms};
+    RSDPk_oneloop Pk_b1_1_bGamma3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bGamma3,1} }, filter_syms};
 
     timer.reset(nullptr);
 

@@ -448,9 +448,9 @@ LSSEFT::LSSEFT(boost::filesystem::path rt_, service_locator& lc_)
   }
 
 
-LSSEFT& LSSEFT::add(const Pk_rsd& P, std::string name)
+LSSEFT& LSSEFT::add(const RSDPk_oneloop& P, std::string name)
   {
-    // check whether a power spectrum with this name has already been registerd
+    // check whether a power spectrum with this name has already been registered
     auto it = this->Pk_db.find(name);
 
     if(it != this->Pk_db.end())  // trouble -- one already exists
@@ -481,7 +481,7 @@ LSSEFT& LSSEFT::add(const Pk_rsd_set& Ps)
     for(const auto& item : Ps)
       {
         const std::string& name = item.first;
-        const Pk_rsd& Pk = item.second.get();
+        const RSDPk_oneloop& Pk = item.second.get();
         this->add(Pk, name);
       }
 
@@ -492,30 +492,6 @@ LSSEFT& LSSEFT::add(const Pk_rsd_set& Ps)
 std::string LSSEFT::make_unique_kernel_name()
   {
     return this->kernel_root + std::to_string(this->kernel_count++);
-  }
-
-
-void LSSEFT::process_kernels(const Pk_rsd_group& group, LSSEFT_impl::mass_dimension dim)
-  {
-    auto visitor = [&](const oneloop_element& elt) -> void
-      {
-        using LSSEFT_impl::LSSEFT_kernel;
-
-        LSSEFT_kernel ker{elt.get_integrand(), elt.get_measure(), elt.get_Wick_product(),
-                          elt.get_integration_variables(), elt.get_external_momenta(), dim};
-
-        auto it = this->kernel_db.find(ker);
-
-        if(it != this->kernel_db.end()) return;
-
-        // generate a new kernel name
-        auto res = this->kernel_db.insert(std::make_pair(std::move(ker), this->make_unique_kernel_name()));
-        if(!res.second) throw exception(ERROR_BACKEND_KERNEL_INSERT_FAILED, exception_code::backend_error);
-      };
-
-    // visit the kernel elements associated with each power of mu
-    // and insert them into our kernel database
-    group.visit({0,2,4,6,8}, visitor);
   }
 
 
@@ -1147,7 +1123,7 @@ void LSSEFT::write_Pk_find() const
   }
 
 
-void LSSEFT::write_Pk_mu_component(std::ofstream& outf, const std::string& name, const Pk_rsd& Pk, unsigned int mu) const
+void LSSEFT::write_Pk_mu_component(std::ofstream& outf, const std::string& name, const RSDPk_oneloop& Pk, unsigned int mu) const
   {
     std::string tag = std::string{"mu"} + std::to_string(mu);
 
@@ -1244,7 +1220,7 @@ void LSSEFT::write_Pk_expressions() const
     for(const auto& record : this->Pk_db)
       {
         const std::string& name = record.first;
-        const Pk_rsd& Pk = record.second;
+        const RSDPk_oneloop& Pk = record.second;
 
         this->write_Pk_mu_component(outf, name, Pk, 0);
         this->write_Pk_mu_component(outf, name, Pk, 2);
@@ -1311,7 +1287,7 @@ void LSSEFT::write_Pk_dropidx_stmts() const
     for(const auto& record : this->Pk_db)
       {
         const std::string& name = record.first;
-        const Pk_rsd& Pk = record.second;
+        const RSDPk_oneloop& Pk = record.second;
 
         outf << "sqlite3_operations::drop_index(this->handle, \"" << name
              << "_mu0\", { \"mid\", \"growth_params\", \"loop_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_id\", \"UV_id\", });"
@@ -1479,7 +1455,7 @@ void LSSEFT::write_multipole_dropidx_stmts() const
     for(const auto& record : this->Pk_db)
       {
         const std::string& name = record.first;
-        const Pk_rsd& Pk = record.second;
+        const RSDPk_oneloop& Pk = record.second;
 
         outf << "sqlite3_operations::drop_index(this->handle, \"" << name
              << "_P0\", { \"mid\", \"growth_params\", \"loop_params\", \"XY_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_cutoff_id\", \"UV_cutoff_id\", \"IR_resum_id\" });"
@@ -1510,7 +1486,7 @@ void LSSEFT::write_multipole_makeidx_stmts() const
     for(const auto& record : this->Pk_db)
       {
         const std::string& name = record.first;
-        const Pk_rsd& Pk = record.second;
+        const RSDPk_oneloop& Pk = record.second;
 
         outf << "sqlite3_operations::create_index(this->handle, \"" << name
              << "_P0\", { \"mid\", \"growth_params\", \"loop_params\", \"XY_params\", \"kid\", \"zid\", \"init_Pk_id\", \"final_Pk_id\", \"IR_cutoff_id\", \"UV_cutoff_id\", \"IR_resum_id\" });"

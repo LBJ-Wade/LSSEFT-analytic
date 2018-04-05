@@ -32,13 +32,13 @@
 
 #include "shared/defaults.h"
 
-#include "lib/correlators/Pk_rsd.h"
+#include "lib/correlators/RSDPk_oneloop.h"
 
 #include "boost/filesystem/operations.hpp"
 #include "boost/date_time/posix_time/ptime.hpp"
 
 
-using Pk_rsd_set = std::map< std::string, std::reference_wrapper<Pk_rsd> >;
+using Pk_rsd_set = std::map< std::string, std::reference_wrapper<RSDPk_oneloop> >;
 
 
 namespace LSSEFT_impl
@@ -166,7 +166,7 @@ class LSSEFT
   protected:
 
     //! power spectrum database
-    using Pk_db_type = std::map< std::string, std::reference_wrapper<const Pk_rsd> >;
+    using Pk_db_type = std::map< std::string, std::reference_wrapper<const RSDPk_oneloop> >;
 
     //! kernel database
     using kernel_db_type = std::unordered_map< LSSEFT_impl::LSSEFT_kernel, std::string >;
@@ -188,7 +188,7 @@ class LSSEFT
   public:
 
     //! add a new power spectrum
-    LSSEFT& add(const Pk_rsd& P, std::string name);
+    LSSEFT& add(const RSDPk_oneloop& P, std::string name);
 
     //! add a group of new power spectra
     LSSEFT& add(const Pk_rsd_set& Ps);
@@ -199,7 +199,8 @@ class LSSEFT
   protected:
 
     //! process the kernels associated with an added power spectrum
-    void process_kernels(const Pk_rsd_group& group, LSSEFT_impl::mass_dimension dim);
+    template <typename SetType>
+    void process_kernels(const SetType& group, LSSEFT_impl::mass_dimension dim);
 
     //! generate a unique kernel name
     std::string make_unique_kernel_name();
@@ -280,7 +281,7 @@ class LSSEFT
 
 
     //! write expression for a single mu component of a given Ok
-    void write_Pk_mu_component(std::ofstream& outf, const std::string& name, const Pk_rsd& Pk, unsigned int mu) const;
+    void write_Pk_mu_component(std::ofstream& outf, const std::string& name, const RSDPk_oneloop& Pk, unsigned int mu) const;
 
 
     // MULTIPOLE POWER SPECTRA
@@ -350,6 +351,31 @@ class LSSEFT
     std::string now_string;
 
   };
+
+
+template <typename SetType>
+void LSSEFT::process_kernels(const SetType& group, LSSEFT_impl::mass_dimension dim)
+  {
+    auto visitor = [&](const typename SetType::element_type& elt) -> void
+      {
+        using LSSEFT_impl::LSSEFT_kernel;
+
+        LSSEFT_kernel ker{elt.get_integrand(), elt.get_measure(), elt.get_Wick_product(),
+                          elt.get_integration_variables(), elt.get_external_momenta(), dim};
+
+        auto it = this->kernel_db.find(ker);
+
+        if(it != this->kernel_db.end()) return;
+
+        // generate a new kernel name
+        auto res = this->kernel_db.insert(std::make_pair(std::move(ker), this->make_unique_kernel_name()));
+        if(!res.second) throw exception(ERROR_BACKEND_KERNEL_INSERT_FAILED, exception_code::backend_error);
+      };
+
+    // visit the kernel elements associated with each power of mu
+    // and insert them into our kernel database
+    group.visit({0,2,4,6,8}, visitor);
+  }
 
 
 #endif //LSSEFT_ANALYTIC_LSSEFT_H

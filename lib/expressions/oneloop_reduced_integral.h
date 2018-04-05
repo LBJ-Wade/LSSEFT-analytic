@@ -54,7 +54,7 @@ class oneloop_element
 
     //! constructor captures integrand, measure, integration variables, Wick product, time factor, external momenta
     oneloop_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
-                     GiNaC_symbol_set vs_, GiNaC::symbol ang_, GiNaC_symbol_set em_);
+                    GiNaC_symbol_set vs_, GiNaC::symbol ang_, GiNaC_symbol_set em_);
 
     //! destructor is default
     ~oneloop_element() = default;
@@ -208,10 +208,10 @@ class oneloop_element_key
 
 //! an integrand database is a map from integration with given dummy variables, time function and Wick product
 //! to the cumulative integrand
-using one_loop_element_db = std::unordered_map< oneloop_element_key, std::unique_ptr<oneloop_element> >;
+using oneloop_element_db = std::unordered_map< oneloop_element_key, std::unique_ptr<oneloop_element> >;
 
 //! stream insertion
-std::ostream& operator<<(std::ostream& out, const one_loop_element_db& obj);
+std::ostream& operator<<(std::ostream& out, const oneloop_element_db& obj);
 
 
 // specialize std::hash<> and std::is_equal<> to key
@@ -258,7 +258,7 @@ class oneloop_reduced_integral
   public:
 
     //! get database
-    const one_loop_element_db& get_db() const { return this->integrand; }
+    const oneloop_element_db& get_db() const { return this->integrand; }
 
     //! query empty status
     bool empty() const { return this->integrand.empty(); }
@@ -361,7 +361,7 @@ class oneloop_reduced_integral
     // REDUCED EXPRESSIONS
 
     //! set up an integrand database
-    one_loop_element_db integrand;
+    oneloop_element_db integrand;
 
   };
 

@@ -46,7 +46,7 @@ ADD_EXECUTABLE(LSSEFT_analytic
   lib/expression_databases/tree_db.cpp
   lib/expression_databases/oneloop_db.cpp
   lib/correlators/Pk_oneloop.cpp
-  lib/correlators/Pk_rsd.cpp
+  lib/correlators/RSDPk_oneloop.cpp
   lib/correlators/Bk_tree.cpp
   lib/detail/contractions.cpp
   lib/detail/legendre_utils.cpp
@@ -100,8 +100,9 @@ SET(LIBRARY_FILES
 SET(LIBRARY_CORRELATORS_FILES
   lib/correlators/Pk_oneloop.cpp
   lib/correlators/Pk_oneloop.h
-  lib/correlators/Pk_rsd.cpp
-  lib/correlators/Pk_rsd.h
+  lib/correlators/RSDPk_oneloop.cpp
+  lib/correlators/RSDPk_oneloop.h
+  lib/correlators/RSDPk_set.h
   lib/correlators/Bk_tree.cpp
   lib/correlators/Bk_tree.h
   )
