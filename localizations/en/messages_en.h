@@ -34,21 +34,25 @@ constexpr auto FORMAT_SECOND_LABEL = "s";
 
 constexpr auto WARNING_LABEL = "warning:";
 
-constexpr auto LABEL_PK = "One-loop power spectrum";
-constexpr auto LABEL_PK_TREE = "Tree level";
-constexpr auto LABEL_PK_13 = "Loop level 13";
-constexpr auto LABEL_PK_22 = "Loop level 22";
+constexpr auto LABEL_PK_ONELOOP = "1-loop power spectrum";
+constexpr auto LABEL_PK_11 = "Tree level 11";
+constexpr auto LABEL_PK_13 = "1-loop level 13";
+constexpr auto LABEL_PK_22 = "1-loop level 22";
+
+constexpr auto LABEL_BK_TREE = "Tree-level power spectrum";
+constexpr auto LABEL_BK_111 = "Tree level 111";
 
 constexpr auto ERROR_SYMBOL_INSERTION_FAILED = "Internal error: symbol insertion failed";
 constexpr auto ERROR_INITIAL_VALUE_INSERT_FAILED = "Internal error: initial value insertion failed";
 constexpr auto ERROR_KERNEL_INSERT_FAILED = "Internal error: kernel insertion failed";
 constexpr auto ERROR_KERNEL_COPY_INSERT_FAILED = "Internal error: kernel insertion failed on copy";
 constexpr auto ERROR_KERNEL_TRANSFORM_INSERT_FAILED = "Internal error: kernel insertion failed during transformation step";
-constexpr auto ERROR_CANT_ADD_PK_INCOMPATIBLE_MOMENTA = "Internal error: can't add power spectra using incompatible momentum variables";
-constexpr auto ERROR_LOOP_INTEGRAL_INSERT_FAILED = "Internal error: loop integral insertion failed";
-constexpr auto ERROR_LOOP_INTEGRAL_INSERT_AFTER_REDUCTION = "Internal error: attempt to insert loop integral after angular reduction has been performed";
-constexpr auto ERROR_ONE_LOOP_ELEMENT_INSERT_FAILED = "Internal error: 1-loop integral element insertion failed";
-constexpr auto ERROR_ONE_LOOP_ELEMENT_INSERT_FAILED_RSD = "Internal error: 1-loop integral element insertion failed during RSD filtering";
+constexpr auto ERROR_CANT_ADD_PK_INCOMPATIBLE_MOMENTA = "Internal error: can't add power spectra using incompatible external momenta";
+constexpr auto ERROR_CANT_ADD_BK_INCOMPATIBLE_MOMENTA = "Internal error: can't add bispectra using incompatible external momenta";
+constexpr auto ERROR_ONELOOP_INTEGRAL_INSERT_FAILED = "Internal error: 1-loop integral insertion failed";
+constexpr auto ERROR_ONELOOP_INTEGRAL_INSERT_AFTER_REDUCTION = "Internal error: attempt to insert 1-loop integral after angular reduction has been performed";
+constexpr auto ERROR_ONELOOP_ELEMENT_INSERT_FAILED = "Internal error: 1-loop integral element insertion failed";
+constexpr auto ERROR_ONELOOP_ELEMENT_INSERT_FAILED_RSD = "Internal error: 1-loop integral element insertion failed during RSD filtering";
 constexpr auto ERROR_BACKEND_PK_INSERT_FAILED = "Internal error: Pk insertion into backend failed";
 constexpr auto ERROR_BACKEND_KERNEL_INSERT_FAILED = "Internal error: kernel insertion into backend failed";
 
@@ -99,8 +103,8 @@ constexpr auto ERROR_UNKNOWN_WICK_PRODUCT_LABEL = "Wick product contains unknown
 constexpr auto ERROR_CANT_MATCH_WICK_TO_RAYLEIGH = "Can't match momentum argument from Wick product to a Rayleigh momentum";
 constexpr auto ERROR_BADLY_FORMED_TOP_LEVEL_MOMENTUM_KERNEL = "Badly formed top-level momentum kernel: expected a sum of rational terms";
 constexpr auto ERROR_MULTIPLE_RAYLEIGH_MOMENTA_NOT_IMPLEMENTED = "Reduction of multiple Rayleigh momenta is not yet implemented";
-constexpr auto ERROR_ONE_LOOP_REDUCE_WITH_TREE = "Internal error: one-loop reduction formula applied to a tree-level term";
-constexpr auto ERROR_ONE_LOOP_REDUCE_WITH_MULTIPLE_LOOPS = "Internal error: one-loop reduction formula applied to a multiple-loop term";
+constexpr auto ERROR_ONELOOP_REDUCE_WITH_TREE = "Internal error: one-loop reduction formula applied to a tree-level term";
+constexpr auto ERROR_ONELOOP_REDUCE_WITH_MULTIPLE_LOOPS = "Internal error: one-loop reduction formula applied to a multiple-loop term";
 constexpr auto ERROR_BADLY_FORMED_TOP_LEVEL_LEGENDRE_SUM = "Badly formed Legendre representations";
 constexpr auto ERROR_BADLY_FORMED_LEGENDRE_SUM_TERM = "Badly formed term in Legendre representation";
 constexpr auto ERROR_CANT_INTEGRATE_MORE_THAN_TWO_LEGP = "Cannot integrate products of more than two Legendre polynomials";
@@ -122,8 +126,9 @@ constexpr auto ERROR_FABJ_SECOND_ARGS_NEGATIVE = "Second and third arguments of 
 
 constexpr auto ERROR_INCONSISTENT_KERNEL_FACTOR = "Cannot classify kernel multiplicand";
 
-constexpr auto ERROR_COMPOSE_LOOP_INTEGRAL_MISMATCHING_TYPE = "Internal error: attempt to compose loop integrals of mismatching types";
-constexpr auto ERROR_COMPOSE_ONE_LOOP_ELEMENT_MISMATCHING_TYPE = "Internal error: attempt to compose one-loop integral elements of mismatching types";
+constexpr auto ERROR_COMPOSE_ONELOOP_EXPRESSION_MISMATCHING_TYPE = "Internal error: attempt to compose 1-loop expressions of mismatching types";
+constexpr auto ERROR_COMPOSE_TREE_EXPRESSION_MISMATCHING_TYPE = "Internal error: attempt to compose tree expressions of mismatching types";
+constexpr auto ERROR_COMPOSE_ONELOOP_ELEMENT_MISMATCHING_TYPE = "Internal error: attempt to compose 1-loop elements of mismatching types";
 
 constexpr auto ERROR_BACKEND_PK_RSD_ALREADY_REGISTERED_A = "A power spectrum with the name";
 constexpr auto ERROR_BACKEND_PK_RSD_ALREADY_REGISTERED_B = "is already registered for output";

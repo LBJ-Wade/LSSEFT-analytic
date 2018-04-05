@@ -53,15 +53,15 @@ Pk_rsd_group::Pk_rsd_group(GiNaC::symbol mu_, filter_list pt_, GiNaC_symbol_set 
   }
 
 
-void Pk_rsd_group::emplace(const one_loop_element& elt)
+void Pk_rsd_group::emplace(const oneloop_element& elt)
   {
     auto filter = [&](const auto& e, unsigned int order) -> auto
       {
-        // copy input element; one_loop_element doesn't capture any of its data by reference,
+        // copy input element; oneloop_element doesn't capture any of its data by reference,
         // so what we get is a standalone copy.
-        // That means we can later modify the Pk_one_loop object if we require, without
+        // That means we can later modify the Pk_oneloop object if we require, without
         // changing what is stored here
-        auto f = std::make_unique<one_loop_element>(e);
+        auto f = std::make_unique<oneloop_element>(e);
 
         // filter for pattern; note that this assumes the pattern symbols are all in the integrand,
         // and none in the time function (which is certainly the intention, but things could go wrong
@@ -170,7 +170,7 @@ void Pk_rsd_group::prune(one_loop_element_db& db, unsigned int mu_power)
 
     while(t != db.end())
       {
-        const one_loop_element& elt = *t->second;
+        const oneloop_element& elt = *t->second;
         if(elt.null())
           {
             if(this->verbose)
@@ -189,7 +189,7 @@ void Pk_rsd_group::prune(one_loop_element_db& db, unsigned int mu_power)
   }
 
 
-void Pk_rsd_group::emplace(std::unique_ptr<one_loop_element> elt, one_loop_element_db& db, unsigned int mu_power)
+void Pk_rsd_group::emplace(std::unique_ptr<oneloop_element> elt, one_loop_element_db& db, unsigned int mu_power)
   {
     // nothing to do if element is empty
     if(elt->null()) return;
@@ -201,7 +201,7 @@ void Pk_rsd_group::emplace(std::unique_ptr<one_loop_element> elt, one_loop_eleme
         std::cout << *elt << '\n';
       }
 
-    one_loop_element_key key{*elt};
+    oneloop_element_key key{*elt};
 
     // check whether a compatible entry is already present in the database
     auto it = db.find(key);
@@ -215,7 +215,7 @@ void Pk_rsd_group::emplace(std::unique_ptr<one_loop_element> elt, one_loop_eleme
 
     // otherwise, we need to insert a new element
     auto res = db.emplace(std::move(key), std::move(elt));
-    if(!res.second) throw exception(ERROR_ONE_LOOP_ELEMENT_INSERT_FAILED_RSD, exception_code::loop_integral_error);
+    if(!res.second) throw exception(ERROR_ONELOOP_ELEMENT_INSERT_FAILED_RSD, exception_code::expression_error);
   }
 
 
@@ -239,7 +239,7 @@ void Pk_rsd_group::write_Mathematica_block(std::ostream& out, const one_loop_ele
 
     for(auto& record : db)
       {
-        const std::unique_ptr<one_loop_element>& elt = record.second;
+        const std::unique_ptr<oneloop_element>& elt = record.second;
 
         if(count > 0) out << " + ";
 
@@ -256,7 +256,7 @@ void Pk_rsd_group::write_Mathematica_block(std::ostream& out, const one_loop_ele
   }
 
 
-Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_,
+Pk_rsd::Pk_rsd(const Pk_oneloop& Pk, const GiNaC::symbol& mu_,
                const filter_list pt_, const GiNaC_symbol_set sy_, bool v)
   : mu(mu_),
     pattern(pt_),
@@ -290,7 +290,7 @@ Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_,
         symbolic_filter *= GiNaC::pow(item.first, item.second);
       }
 
-    // filter elements (term by term) from parent Pk_one_loop according to whether they match
+    // filter elements (term by term) from parent Pk_oneloop according to whether they match
     // the specific symbol set
     this->filter(Ptree, Pk.get_tree());
     this->filter(P13, Pk.get_13());
@@ -311,17 +311,17 @@ Pk_rsd::Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_,
   }
 
 
-void Pk_rsd::filter(Pk_rsd_group& dest, const Pk_one_loop_impl::Pk_db& source)
+void Pk_rsd::filter(Pk_rsd_group& dest, const Pk_oneloop::Pk_db& source)
   {
-    // walk through the source Pk_db, filtering contributions to the reduced integral (if present)
+    // walk through the source oneloop_db, filtering contributions to the reduced integral (if present)
     // that match our configured symbol set
     // Matching contributions get pushed into the destination database 'dest',
     // which will be either tree, 13 or 22
 
     for(const auto& item : source)
       {
-        const loop_integral& lp = *item.second.first;
-        const std::unique_ptr<one_loop_reduced_integral>& ri = item.second.second;
+        const oneloop_expression& lp = *item.second.first;
+        const std::unique_ptr<oneloop_reduced_integral>& ri = item.second.second;
 
         if(!ri) continue;    // skip if pointer is empty
 
@@ -331,7 +331,7 @@ void Pk_rsd::filter(Pk_rsd_group& dest, const Pk_one_loop_impl::Pk_db& source)
         // walk through this list
         for(const auto& record : db)
           {
-            const std::unique_ptr<one_loop_element>& elt = record.second;
+            const std::unique_ptr<oneloop_element>& elt = record.second;
             if(elt) dest.emplace(*elt);
           }
       }

@@ -29,9 +29,9 @@
 #include <vector>
 #include <algorithm>
 
-#include "loop_integral.h"
+#include "oneloop_expression.h"
 
-#include "detail/contractions.h"
+#include "lib/detail/contractions.h"
 
 #include "utilities/hash_combine.h"
 
@@ -39,27 +39,38 @@
 #include "localizations/messages.h"
 
 
-namespace loop_integral_impl
+namespace oneloop_expression_impl
   {
 
-    //! order a set of symbols
-    std::vector<GiNaC::symbol> order_symbol_set(const GiNaC_symbol_set& syms);
-
     //! order a set of Rayleigh momenta
-    std::vector<subs_list::const_iterator> order_Rayleigh_set(const subs_list& syms);
+    std::vector<subs_list::const_iterator> order_Rayleigh_set(const subs_list& syms)
+      {
+        std::vector<subs_list::const_iterator> ordered_set;
 
-  }   // namespace loop_integral_impl
+        for(auto t = syms.begin(); t != syms.end(); ++t)
+          {
+            ordered_set.push_back(t);
+          }
+
+        std::sort(ordered_set.begin(), ordered_set.end(),
+                  [&](const decltype(ordered_set)::value_type& lhs, const decltype(ordered_set)::value_type& rhs) -> bool
+                    { return std::less<GiNaC::symbol>{}(GiNaC::ex_to<GiNaC::symbol>(lhs->first), GiNaC::ex_to<GiNaC::symbol>(rhs->first)); });
+
+        return ordered_set;
+      }
+
+  }   // namespace oneloop_expression_impl
 
 
-std::ostream& operator<<(std::ostream& str, const loop_integral& obj)
+std::ostream& operator<<(std::ostream& str, const oneloop_expression& obj)
   {
     obj.write(str);
     return str;
   }
 
 
-loop_integral::loop_integral(time_function tm_, GiNaC::ex K_, GiNaC::ex ws_, GiNaC_symbol_set lm_,
-                             GiNaC_symbol_set em_, subs_list rm_, service_locator& lc_)
+oneloop_expression::oneloop_expression(time_function tm_, GiNaC::ex K_, GiNaC::ex ws_, GiNaC_symbol_set lm_,
+                                       GiNaC_symbol_set em_, subs_list rm_, service_locator& lc_)
   : tm(std::move(tm_)),
     K(std::move(K_)),
     WickProduct(std::move(ws_)),
@@ -83,7 +94,7 @@ loop_integral::loop_integral(time_function tm_, GiNaC::ex K_, GiNaC::ex ws_, GiN
   }
 
 
-void loop_integral::write(std::ostream& out) const
+void oneloop_expression::write(std::ostream& out) const
   {
     std::cout << "  time function = " << this->tm << '\n';
     std::cout << "  momentum kernel = " << this->K << '\n';
@@ -111,7 +122,7 @@ void loop_integral::write(std::ostream& out) const
   }
 
 
-void loop_integral::canonicalize_loop_labels()
+void oneloop_expression::canonicalize_loop_labels()
   {
     GiNaC_symbol_set new_momenta;
     GiNaC::exmap relabel;
@@ -141,7 +152,7 @@ void loop_integral::canonicalize_loop_labels()
   }
 
 
-void loop_integral::canonicalize_Rayleigh_labels()
+void oneloop_expression::canonicalize_Rayleigh_labels()
   {
     GiNaC::exmap new_Rayleigh;
     GiNaC::exmap relabel;
@@ -165,7 +176,7 @@ void loop_integral::canonicalize_Rayleigh_labels()
   }
 
 
-void loop_integral::match_Wick_to_Rayleigh()
+void oneloop_expression::match_Wick_to_Rayleigh()
   {
     GiNaC::ex new_Wick{1};
 
@@ -237,10 +248,9 @@ void loop_integral::match_Wick_to_Rayleigh()
   }
 
 
-bool loop_integral::is_matching_type(const loop_integral& obj) const
+bool oneloop_expression::is_matching_type(const oneloop_expression& obj) const
   {
-    using loop_integral_impl::order_symbol_set;
-    using loop_integral_impl::order_Rayleigh_set;
+    using oneloop_expression_impl::order_Rayleigh_set;
 
     // test for equality of time function, Wick product, loop momenta, external momenta and Rayleigh momenta
     const auto& at = this->tm;
@@ -282,10 +292,10 @@ bool loop_integral::is_matching_type(const loop_integral& obj) const
   }
 
 
-loop_integral& loop_integral::operator+=(const loop_integral& rhs)
+oneloop_expression& oneloop_expression::operator+=(const oneloop_expression& rhs)
   {
     if(!this->is_matching_type(rhs))
-      throw exception(ERROR_COMPOSE_LOOP_INTEGRAL_MISMATCHING_TYPE, exception_code::loop_integral_error);
+      throw exception(ERROR_COMPOSE_ONELOOP_EXPRESSION_MISMATCHING_TYPE, exception_code::expression_error);
 
     // we know all variables and Wick product strings agree, so can just add the kernels
     this->K += rhs.K;
@@ -294,16 +304,15 @@ loop_integral& loop_integral::operator+=(const loop_integral& rhs)
   }
 
 
-loop_integral_key::loop_integral_key(const loop_integral& l)
+oneloop_expression_key::oneloop_expression_key(const oneloop_expression& l)
   : loop(l)
   {
   }
 
 
-size_t loop_integral_key::hash() const
+size_t oneloop_expression_key::hash() const
   {
-    using loop_integral_impl::order_symbol_set;
-    using loop_integral_impl::order_Rayleigh_set;
+    using oneloop_expression_impl::order_Rayleigh_set;
 
     // we need to hash on: time function, Wick product, loop momenta, external momenta and Rayleigh momenta
 
@@ -355,44 +364,7 @@ size_t loop_integral_key::hash() const
   }
 
 
-bool loop_integral_key::is_equal(const loop_integral_key& obj) const
+bool oneloop_expression_key::is_equal(const oneloop_expression_key& obj) const
   {
     return this->loop.is_matching_type(obj.loop);
   }
-
-
-namespace loop_integral_impl
-  {
-
-    std::vector<GiNaC::symbol> order_symbol_set(const GiNaC_symbol_set& syms)
-      {
-        std::vector<GiNaC::symbol> ordered_set;
-
-        for(const auto& sym : syms)
-          {
-            ordered_set.push_back(sym);
-          }
-
-        std::sort(ordered_set.begin(), ordered_set.end(), std::less<GiNaC::symbol>{});
-
-        return ordered_set;
-      }
-
-
-    std::vector<subs_list::const_iterator> order_Rayleigh_set(const subs_list& syms)
-      {
-        std::vector<subs_list::const_iterator> ordered_set;
-
-        for(auto t = syms.begin(); t != syms.end(); ++t)
-          {
-            ordered_set.push_back(t);
-          }
-
-        std::sort(ordered_set.begin(), ordered_set.end(),
-                  [&](const decltype(ordered_set)::value_type& lhs, const decltype(ordered_set)::value_type& rhs) -> bool
-                    { return std::less<GiNaC::symbol>{}(GiNaC::ex_to<GiNaC::symbol>(lhs->first), GiNaC::ex_to<GiNaC::symbol>(rhs->first)); });
-
-        return ordered_set;
-      }
-
-  }   // namespace loop_integral_impl

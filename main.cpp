@@ -33,12 +33,13 @@
 #include "lib/vector.h"
 #include "lib/initial_value.h"
 #include "lib/fourier_kernel.h"
-#include "lib/Pk_one_loop.h"
-#include "lib/Pk_rsd.h"
+#include "lib/correlators/Pk_oneloop.h"
+#include "lib/correlators/Pk_rsd.h"
+#include "lib/correlators/Bk_tree.h"
 #include "lib/detail/special_functions.h"
 
 #include "SPT/time_functions.h"
-#include "SPT/one_loop_kernels.h"
+#include "SPT/oneloop_kernels.h"
 
 #include "backends/LSSEFT.h"
 
@@ -390,33 +391,46 @@ int main(int argc, char* argv[])
     auto deltah_rsd_k1 = make_delta_rsd(k1mu, deltah);
     auto deltah_rsd_k2 = make_delta_rsd(k2mu, deltah);
 
-    // construct 1-loop \delta power spectrum
-    timer = std::make_unique<timing_instrument>("Construct 1-loop power spectrum");
-    Pk_one_loop Pk_delta{"1-loop halo RSD P(k)", "halo", deltah_rsd_k1, deltah_rsd_k2, k, loc};
+
+    // POWER SPECTRUM
+
+    // construct 1-loop \delta_s power spectrum
+    timer = std::make_unique<timing_instrument>("Construct 1-loop redshift-space power spectrum");
+    Pk_oneloop Pk_delta_s{"1-loop halo RSD P(k)", "halo", deltah_rsd_k1, deltah_rsd_k2, k, loc};
 
     // simplify mu-dependence
-    Pk_delta.canonicalize_external_momenta();
-    Pk_delta.simplify(GiNaC::exmap{ {Angular::Cos(k,r_sym), mu} });
+    Pk_delta_s.canonicalize_external_momenta();
+    Pk_delta_s.simplify(GiNaC::exmap{ {Angular::Cos(k,r_sym), mu} });
 
     // remove unwanted r factors, which are equal to unity (r is a unit vector)
-    Pk_delta.simplify(GiNaC::exmap{ {r_sym, GiNaC::ex{1}} });
+    Pk_delta_s.simplify(GiNaC::exmap{ {r_sym, GiNaC::ex{1}} });
+
+
+    // BISPECTRUM
+
+    // construct tree-level \delta power spectrum
+    timer = std::make_unique<timing_instrument>("Construct tree-level bispectrum");
+    Bk_tree Bk_delta{"Tree dark matter B(k1,k2,k3)", "tree", delta, k1, delta, k2, delta, k3, loc};
+
+
+    // OUTPUT
 
     if(!args.get_Mathematica_output().empty())
       {
         std::ofstream mma_out{args.get_Mathematica_output().string(), std::ios_base::out | std::ios_base::trunc};
-        Pk_delta.write_Mathematica(mma_out);
+        Pk_delta_s.write_Mathematica(mma_out);
         mma_out.close();
       }
 
-//    auto& tree = Pk_delta.get_tree();
+//    auto& tree = Pk_delta_s.get_tree();
 //    std::cout << "Tree-level P(k):" << '\n';
 //    std::cout << tree << '\n';
 
-//    auto& P13 = Pk_delta.get_13();
+//    auto& P13 = Pk_delta_s.get_13();
 //    std::cout << "Loop-level 13 P(k):" << '\n';
 //    std::cout << P13 << '\n';
 
-//    auto& P22 = Pk_delta.get_22();
+//    auto& P22 = Pk_delta_s.get_22();
 //    std::cout << "Loop-level 22 P(k):" << '\n';
 //    std::cout << P22 << '\n';
 
@@ -426,49 +440,49 @@ int main(int argc, char* argv[])
 
     timer = std::make_unique<timing_instrument>("Extract RSD mu coefficients");
 
-    Pk_rsd Pk_nobias{Pk_delta, mu, filter_list{}, filter_syms};
+    Pk_rsd Pk_nobias{Pk_delta_s, mu, filter_list{}, filter_syms};
 
-    Pk_rsd Pk_b1_1{Pk_delta, mu, filter_list{ {b1_1,1} }, filter_syms};
-    Pk_rsd Pk_b1_2{Pk_delta, mu, filter_list{ {b1_2,1} }, filter_syms};
-    Pk_rsd Pk_b1_3{Pk_delta, mu, filter_list{ {b1_3,1} }, filter_syms};
+    Pk_rsd Pk_b1_1{Pk_delta_s, mu, filter_list{ {b1_1,1} }, filter_syms};
+    Pk_rsd Pk_b1_2{Pk_delta_s, mu, filter_list{ {b1_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_3{Pk_delta_s, mu, filter_list{ {b1_3,1} }, filter_syms};
 
-    Pk_rsd Pk_b2_2{Pk_delta, mu, filter_list{ {b2_2,1} }, filter_syms};
-    Pk_rsd Pk_b2_3{Pk_delta, mu, filter_list{ {b2_3,1} }, filter_syms};
+    Pk_rsd Pk_b2_2{Pk_delta_s, mu, filter_list{ {b2_2,1} }, filter_syms};
+    Pk_rsd Pk_b2_3{Pk_delta_s, mu, filter_list{ {b2_3,1} }, filter_syms};
 
-    Pk_rsd Pk_bG2_2{Pk_delta, mu, filter_list{ {bG2_2,1} }, filter_syms};
-    Pk_rsd Pk_bG2_3{Pk_delta, mu, filter_list{ {bG2_3,1} }, filter_syms};
+    Pk_rsd Pk_bG2_2{Pk_delta_s, mu, filter_list{ {bG2_2,1} }, filter_syms};
+    Pk_rsd Pk_bG2_3{Pk_delta_s, mu, filter_list{ {bG2_3,1} }, filter_syms};
 
-    Pk_rsd Pk_b3{Pk_delta, mu, filter_list{ {b3,1} }, filter_syms};
-    Pk_rsd Pk_bG3{Pk_delta, mu, filter_list{ {bG3,1} }, filter_syms};                           // zero
-    Pk_rsd Pk_bdG2{Pk_delta, mu, filter_list{ {bdG2,1} }, filter_syms};
-    Pk_rsd Pk_bGamma3{Pk_delta, mu, filter_list{ {bGamma3,1} }, filter_syms};
+    Pk_rsd Pk_b3{Pk_delta_s, mu, filter_list{ {b3,1} }, filter_syms};
+    Pk_rsd Pk_bG3{Pk_delta_s, mu, filter_list{ {bG3,1} }, filter_syms};                           // zero
+    Pk_rsd Pk_bdG2{Pk_delta_s, mu, filter_list{ {bdG2,1} }, filter_syms};
+    Pk_rsd Pk_bGamma3{Pk_delta_s, mu, filter_list{ {bGamma3,1} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_b1_1{Pk_delta, mu, filter_list{ {b1_1,2} }, filter_syms};
-    Pk_rsd Pk_b1_2_b1_2{Pk_delta, mu, filter_list{ {b1_2,2} }, filter_syms};
-    Pk_rsd Pk_b1_1_b1_2{Pk_delta, mu, filter_list{ {b1_1,1}, {b1_2,1} }, filter_syms};
-    Pk_rsd Pk_b1_1_b1_3{Pk_delta, mu, filter_list{ {b1_1,1}, {b1_3,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_b1_1{Pk_delta_s, mu, filter_list{ {b1_1,2} }, filter_syms};
+    Pk_rsd Pk_b1_2_b1_2{Pk_delta_s, mu, filter_list{ {b1_2,2} }, filter_syms};
+    Pk_rsd Pk_b1_1_b1_2{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b1_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_b1_3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b1_3,1} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_b2_2{Pk_delta, mu, filter_list{ {b1_1,1}, {b2_2,1} }, filter_syms};
-    Pk_rsd Pk_b1_1_b2_3{Pk_delta, mu, filter_list{ {b1_1,1}, {b2_3,1} }, filter_syms};
-    Pk_rsd Pk_b1_2_b2_2{Pk_delta, mu, filter_list{ {b1_2,1}, {b2_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_b2_2{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b2_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_b2_3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b2_3,1} }, filter_syms};
+    Pk_rsd Pk_b1_2_b2_2{Pk_delta_s, mu, filter_list{ {b1_2,1}, {b2_2,1} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_b3{Pk_delta, mu, filter_list{ {b1_1,1}, {b3,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_b3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {b3,1} }, filter_syms};
 
-    Pk_rsd Pk_b2_2_b2_2{Pk_delta, mu, filter_list{ {b2_2,2} }, filter_syms};
+    Pk_rsd Pk_b2_2_b2_2{Pk_delta_s, mu, filter_list{ {b2_2,2} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_bG2_2{Pk_delta, mu, filter_list{ {b1_1,1}, {bG2_2,1} }, filter_syms};
-    Pk_rsd Pk_b1_1_bG2_3{Pk_delta, mu, filter_list{ {b1_1,1}, {bG2_3,1} }, filter_syms};
-    Pk_rsd Pk_b1_2_bG2_2{Pk_delta, mu, filter_list{ {b1_2,1}, {bG2_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_bG2_2{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bG2_2,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_bG2_3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bG2_3,1} }, filter_syms};
+    Pk_rsd Pk_b1_2_bG2_2{Pk_delta_s, mu, filter_list{ {b1_2,1}, {bG2_2,1} }, filter_syms};
 
-    Pk_rsd Pk_bG2_2_bG2_2{Pk_delta, mu, filter_list{ {bG2_2,2} }, filter_syms};
+    Pk_rsd Pk_bG2_2_bG2_2{Pk_delta_s, mu, filter_list{ {bG2_2,2} }, filter_syms};
 
-    Pk_rsd Pk_b2_2_bG2_2{Pk_delta, mu, filter_list{ {b2_2,1}, {bG2_2,1} }, filter_syms};
+    Pk_rsd Pk_b2_2_bG2_2{Pk_delta_s, mu, filter_list{ {b2_2,1}, {bG2_2,1} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_bG3{Pk_delta, mu, filter_list{ {b1_1,1}, {bG3,1} }, filter_syms};            // zero
+    Pk_rsd Pk_b1_1_bG3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bG3,1} }, filter_syms};            // zero
 
-    Pk_rsd Pk_b1_1_bdG2{Pk_delta, mu, filter_list{ {b1_1,1}, {bdG2,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_bdG2{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bdG2,1} }, filter_syms};
 
-    Pk_rsd Pk_b1_1_bGamma3{Pk_delta, mu, filter_list{ {b1_1,1}, {bGamma3,1} }, filter_syms};
+    Pk_rsd Pk_b1_1_bGamma3{Pk_delta_s, mu, filter_list{ {b1_1,1}, {bGamma3,1} }, filter_syms};
 
     timer.reset(nullptr);
 

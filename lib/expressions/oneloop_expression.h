@@ -35,15 +35,8 @@
 #include "utilities/GiNaC_utils.h"
 
 
-//! forward-declare loop_integral
-class loop_integral;
-
-//! perform stream insertion
-std::ostream& operator<<(std::ostream& str, const loop_integral& obj);
-
-
-//! loop_integral captures the components needed to construct a component of a 2-point correlation function
-class loop_integral
+//! oneloop_expression captures the components needed to evaluate a 1-loop level contribution to a correlation function
+class oneloop_expression
   {
 
     // CONSTRUCTOR, DESTRUCTOR
@@ -51,13 +44,13 @@ class loop_integral
   public:
 
     //! constructor accepts a time function, momentum kernel, Wick product string, set of loop momenta,
-    //! set of external momenta, set of Rayleigh momenta (and mappings), and a symbol factory.
+    //! set of external momenta, set of Rayleigh momenta (and mappings), and a service locator.
     //! After construction, the variable names are canonicalized
-    loop_integral(time_function tm_, GiNaC::ex K_, GiNaC::ex ws_, GiNaC_symbol_set lm_, GiNaC_symbol_set em_,
-                  subs_list rm_, service_locator& lc_);
+    oneloop_expression(time_function tm_, GiNaC::ex K_, GiNaC::ex ws_, GiNaC_symbol_set lm_, GiNaC_symbol_set em_,
+                       subs_list rm_, service_locator& lc_);
 
     //! destructor is default
-    ~loop_integral() = default;
+    ~oneloop_expression() = default;
 
 
     // OPERATIONS
@@ -65,7 +58,7 @@ class loop_integral
   public:
 
     //! increment in-place
-    loop_integral& operator+=(const loop_integral& rhs);
+    oneloop_expression& operator+=(const oneloop_expression& rhs);
 
 
     // METADATA
@@ -122,7 +115,7 @@ class loop_integral
 
     //! test whether another loop_integral object is of matching type
     //! (ie. shares time functiom, Wick product, loop momenta, external momenta, Rayleigh momenta)
-    bool is_matching_type(const loop_integral& obj) const;;
+    bool is_matching_type(const oneloop_expression& obj) const;;
 
 
     // INTERNAL DATA
@@ -159,9 +152,13 @@ class loop_integral
   };
 
 
-//! loop_integral_key is a flyweight class that can turn a loop_integral
+//! perform stream insertion
+std::ostream& operator<<(std::ostream& str, const oneloop_expression& obj);
+
+
+//! oneloop_expression_key is a flyweight class that can turn a oneloop_expression
 //! into a key for an (unordered) map
-class loop_integral_key
+class oneloop_expression_key
   {
 
     // CONSTRUCTOR, DESTRUCTOR
@@ -169,10 +166,10 @@ class loop_integral_key
   public:
 
     //! constructure captures a loop_integral instance
-    loop_integral_key(const loop_integral& l);
+    oneloop_expression_key(const oneloop_expression& l);
 
     //! destructor is default
-    ~loop_integral_key() = default;
+    ~oneloop_expression_key() = default;
 
 
     // INTERFACE
@@ -183,7 +180,7 @@ class loop_integral_key
     size_t hash() const;
 
     //! test for equality
-    bool is_equal(const loop_integral_key& obj) const;
+    bool is_equal(const oneloop_expression_key& obj) const;
 
 
     // INTERNAL DATA
@@ -191,19 +188,19 @@ class loop_integral_key
   private:
 
     //! reference to loop_integral objects
-    const loop_integral& loop;
+    const oneloop_expression& loop;
 
   };
 
 
-// specialize std::hash and std::equal_to work for loop_integral_key
+// specialize std::hash and std::equal_to work for oneloop_expression_key
 namespace std
   {
 
     template <>
-    struct hash<loop_integral_key>
+    struct hash<oneloop_expression_key>
       {
-        size_t operator()(const loop_integral_key& key) const
+        size_t operator()(const oneloop_expression_key& key) const
           {
             return key.hash();
           }
@@ -211,9 +208,9 @@ namespace std
 
 
     template <>
-    struct equal_to<loop_integral_key>
+    struct equal_to<oneloop_expression_key>
       {
-        bool operator()(const loop_integral_key& a, const loop_integral_key& b) const
+        bool operator()(const oneloop_expression_key& a, const oneloop_expression_key& b) const
           {
             return a.is_equal(b);
           }

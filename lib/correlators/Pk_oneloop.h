@@ -29,154 +29,26 @@
 
 
 #include <iostream>
-#include <unordered_map>
-#include <memory>
 
-#include "fourier_kernel.h"
-#include "loop_integral.h"
-#include "one_loop_reduced_integral.h"
-#include "detail/contractions.h"
-#include "detail/relabel_product.h"
-#include "detail/Rayleigh_momenta.h"
+#include "lib/fourier_kernel.h"
+#include "lib/expression_databases/oneloop_db.h"
+#include "lib/detail/contractions.h"
+#include "lib/detail/relabel_product.h"
+#include "lib/detail/Rayleigh_momenta.h"
 
 #include "services/symbol_factory.h"
 
 
-namespace Pk_one_loop_impl
-  {
-
-    //! a Pk_db is a container to the loop integrals generated as part of a power spectrum computation
-    class Pk_db
-      {
-
-        // TYPES
-
-      public:
-
-        //! a loop_pair is a doublet that groups a raw integral with its reduced form
-        using loop_pair = std::pair< std::unique_ptr<loop_integral>, std::unique_ptr<one_loop_reduced_integral> >;
-
-      protected:
-
-        //! database is a set of loop_pairs, keyed by loop_integral_key
-        using db_type = std::unordered_map< loop_integral_key, loop_pair >;
-
-      public:
-
-        //! iterator
-        using iterator = db_type::iterator;
-        using const_iterator = db_type::const_iterator;
-
-
-        // CONSTRUCTOR, DESTRUCTOR
-
-      public:
-
-        //! constructor is default
-        Pk_db() = default;
-
-        //! copy constructor
-        Pk_db(const Pk_db& obj);
-
-        //! destructor is default
-        ~Pk_db() = default;
-
-
-        // ITERATORS
-
-      public:
-
-        //! iterators
-        iterator       begin()        { return this->db.begin(); }
-        iterator       end()          { return this->db.end(); }
-        const_iterator begin()  const { return this->db.cbegin(); }
-        const_iterator end()    const { return this->db.cend(); }
-
-        const_iterator cbegin() const { return this->db.cbegin(); }
-        const_iterator cend()   const { return this->db.cend(); }
-
-
-        // EMPLACE AN ELEMENT
-
-      public:
-
-        //! emplace an element
-        void emplace(std::unique_ptr<loop_integral> elt);
-
-
-        // FLUSH REDUCED INTEGRALS
-
-      public:
-
-        //! clear all reduced integrals
-        void clear_reduced_integrals();
-
-
-        // ARITHMETIC
-
-      public:
-
-        //! increment
-        Pk_db& operator+=(const Pk_db& obj);
-
-
-        // TRANSFORMATIONS
-
-      public:
-
-        //! reduce angular integrals
-        void reduce_angular_integrals(service_locator& loc, bool symmetrize);
-
-        //! apply simplification map
-        void simplify(const GiNaC::exmap& map);
-
-        //! canonicalize external momenta
-        void canonicalize_external_momenta();
-
-        //! prune empty records
-        void prune();
-
-
-        // SERVICES
-
-      public:
-
-        //! write self to steam
-        void write(std::ostream& out) const;
-
-        //! write Mathematica-format expression
-        void write_Mathematica(std::ostream& out, std::string symbol, bool do_dx) const;
-
-        //! compute UV limit
-        GiNaC::ex get_UV_limit(unsigned int order=2) const;
-
-
-        // INTERNAL DATA
-
-      protected:
-
-        //! database of loop integrals
-        db_type db;
-
-      };
-
-  }   // namespace Pk_one_loop_impl
-
-
-//! perform stream insertion
-std::ostream& operator<<(std::ostream& str, const Pk_one_loop_impl::Pk_db& obj);
-
-
 //! Pk_one_loop understands how to construct the one-loop power spectrum from a set of Fourier kernels
-class Pk_one_loop
+class Pk_oneloop
   {
 
     // TYPES
     
   public:
 
-    // pull in Pk_db
-    using Pk_db = Pk_one_loop_impl::Pk_db;
+    // pull in oneloop_db as our database type
+    using Pk_db = oneloop_db;
 
 
     // CONSTRUCTOR, DESTRUCTOR
@@ -185,14 +57,14 @@ class Pk_one_loop
     
     //! constructor accepts two Fourier kernels and the corresponding momentum labels
     template <unsigned int N1, unsigned int N2>
-    Pk_one_loop(std::string n_, std::string t_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
+    Pk_oneloop(std::string n_, std::string t_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
                 GiNaC::symbol k_, service_locator& lc_);
 
     //! copy constructor
-    Pk_one_loop(const Pk_one_loop& obj);
+    Pk_oneloop(const Pk_oneloop& obj);
     
     //! destructor is default
-    ~Pk_one_loop() = default;
+    ~Pk_oneloop() = default;
     
     
     // BUILD POWER SPECTRA EXPRESSIONS
@@ -228,7 +100,7 @@ class Pk_one_loop
   public:
 
     //! increment using 2nd correlation function
-    Pk_one_loop& operator+=(const Pk_one_loop& obj);
+    Pk_oneloop& operator+=(const Pk_oneloop& obj);
 
 
     // EXTRACT EXPRESSIONS
@@ -272,7 +144,7 @@ class Pk_one_loop
 
     // FRIEND DECLARATIONS
 
-    friend Pk_one_loop operator+(const Pk_one_loop& a, const Pk_one_loop& b);
+    friend Pk_oneloop operator+(const Pk_oneloop& a, const Pk_oneloop& b);
 
 
     // INTERNAL DATA
@@ -281,7 +153,7 @@ class Pk_one_loop
     
     // SERVICES
     
-    //! cache reference to symbol factory
+    //! cache reference to service locator
     service_locator& loc;
     
     
@@ -315,31 +187,23 @@ class Pk_one_loop
 
 
 //! perform stream insertion
-std::ostream& operator<<(std::ostream& str, const Pk_one_loop& obj);
+std::ostream& operator<<(std::ostream& str, const Pk_oneloop& obj);
 
-//! add two power spectrum
-inline Pk_one_loop operator+(const Pk_one_loop& a, const Pk_one_loop& b)
-  {
-    Pk_one_loop c{a};
-    c += b;
 
-    c.name = a.name + std::string{"+"} + b.name;
-    c.tag = a.tag + b.tag;
-
-    return c;
-  }
+//! add two power spectra
+Pk_oneloop operator+(const Pk_oneloop& a, const Pk_oneloop& b);
 
 
 template <unsigned int N1, unsigned int N2>
-Pk_one_loop::Pk_one_loop(std::string n_, std::string t_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
+Pk_oneloop::Pk_oneloop(std::string n_, std::string t_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
                          GiNaC::symbol k_, service_locator& lc_)
   : name(std::move(n_)),
     tag(std::move(t_)),
     k(std::move(k_)),
     loc(lc_)
   {
-    static_assert(N1 >= 3, "To construct a one-loop power spectrum requires a Fourier kernel of third-order or above");
-    static_assert(N2 >= 3, "To construct a one-loop power spectrum requires a Fourier kernel of third-order or above");
+    static_assert(N1 >= 3, "To construct a 1-loop power spectrum requires ker1 to be a Fourier kernel of third-order or above");
+    static_assert(N2 >= 3, "To construct a 1-loop power spectrum requires ker2 to be a Fourier kernel of third-order or above");
 
     // build power spectrum components from products of ker1 and ker2
     this->build_tree(ker1, ker2);
@@ -351,7 +215,7 @@ Pk_one_loop::Pk_one_loop(std::string n_, std::string t_, const fourier_kernel<N1
 
 
 template <typename Kernel1, typename Kernel2>
-void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db& db)
+void Pk_oneloop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db& db)
   {
     // multiply out all terms in ker1 and ker2, using the insertion operator 'ins'
     // to store the results in a suitable Pk database
@@ -426,7 +290,7 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db&
                 if(static_cast<bool>(K != 0))
                   {
                     auto elt =
-                      std::make_unique<loop_integral>(tm1*tm2, K, data.get_Wick_string(), loops,
+                      std::make_unique<oneloop_expression>(tm1*tm2, K, data.get_Wick_string(), loops,
                                                       GiNaC_symbol_set{this->k}, Rayleigh_list, this->loc);
                     db.emplace(std::move(elt));
                   }
@@ -437,7 +301,7 @@ void Pk_one_loop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db&
 
 
 template <typename Kernel1, typename Kernel2>
-void Pk_one_loop::build_tree(const Kernel1& ker1, const Kernel2& ker2)
+void Pk_oneloop::build_tree(const Kernel1& ker1, const Kernel2& ker2)
   {
     const auto ker1_db = ker1.order(1);
     const auto ker2_db = ker2.order(1);
@@ -447,7 +311,7 @@ void Pk_one_loop::build_tree(const Kernel1& ker1, const Kernel2& ker2)
 
 
 template <typename Kernel1, typename Kernel2>
-void Pk_one_loop::build_13(const Kernel1& ker1, const Kernel2& ker2)
+void Pk_oneloop::build_13(const Kernel1& ker1, const Kernel2& ker2)
   {
     const auto ker1_db1 = ker1.order(1);
     const auto ker1_db3 = ker1.order(3);
@@ -461,7 +325,7 @@ void Pk_one_loop::build_13(const Kernel1& ker1, const Kernel2& ker2)
 
 
 template <typename Kernel1, typename Kernel2>
-void Pk_one_loop::build_22(const Kernel1& ker1, const Kernel2& ker2)
+void Pk_oneloop::build_22(const Kernel1& ker1, const Kernel2& ker2)
   {
     const auto ker1_db2 = ker1.order(2);
     const auto ker2_db2 = ker2.order(2);

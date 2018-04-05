@@ -32,7 +32,7 @@
 
 #include "shared/defaults.h"
 
-#include "lib/Pk_rsd.h"
+#include "lib/correlators/Pk_rsd.h"
 
 #include "boost/filesystem/operations.hpp"
 #include "boost/date_time/posix_time/ptime.hpp"

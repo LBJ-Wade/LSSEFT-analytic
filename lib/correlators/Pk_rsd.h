@@ -31,7 +31,7 @@
 #include <iostream>
 #include <set>
 
-#include "Pk_one_loop.h"
+#include "Pk_oneloop.h"
 
 
 using filter_list = std::vector< std::pair< GiNaC::symbol, unsigned int > >;
@@ -62,12 +62,12 @@ class Pk_rsd_group
   public:
 
     //! accepts a one_loop_element and breaks it into individual powers of mu
-    void emplace(const one_loop_element& elt);
+    void emplace(const oneloop_element& elt);
 
   protected:
 
     //! perform emplace on a specific database (ie. the database for mu0, mu2, ...)
-    void emplace(std::unique_ptr<one_loop_element> elt, one_loop_element_db& db, unsigned int mu_power);
+    void emplace(std::unique_ptr<oneloop_element> elt, one_loop_element_db& db, unsigned int mu_power);
 
 
     // TOOLS
@@ -177,7 +177,7 @@ void Pk_rsd_group::visit(visit_list pattern, VisitorFunction f) const
       {
         for(const auto& item : db)
           {
-            const one_loop_element& elt = *item.second;
+            const oneloop_element& elt = *item.second;
             f(elt);
           }
       };
@@ -199,7 +199,7 @@ class Pk_rsd
 
     //! constructor accepts a Pk_one_loop and decomposes it into powers of mu.
     //! filters terms according to the provided pattern
-    Pk_rsd(const Pk_one_loop& Pk, const GiNaC::symbol& mu_, const filter_list pt_, const GiNaC_symbol_set sy_,
+    Pk_rsd(const Pk_oneloop& Pk, const GiNaC::symbol& mu_, const filter_list pt_, const GiNaC_symbol_set sy_,
            bool v=false);
 
     //! destructor is default
@@ -211,7 +211,7 @@ class Pk_rsd
   protected:
 
     //! filter a Pk_db into a destination Pk_rsd_group
-    void filter(Pk_rsd_group& dest, const Pk_one_loop_impl::Pk_db& source);
+    void filter(Pk_rsd_group& dest, const Pk_oneloop::Pk_db& source);
 
 
     // ACCESSORS

@@ -24,7 +24,7 @@
 // --@@
 //
 
-#include "one_loop_kernels.h"
+#include "oneloop_kernels.h"
 
 
 kernel alpha(const vector& q, const vector& s, kernel ker, service_locator& loc)

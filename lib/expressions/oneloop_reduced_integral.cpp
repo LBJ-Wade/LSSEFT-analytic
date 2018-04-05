@@ -26,16 +26,18 @@
 
 #include <sstream>
 
-#include "one_loop_reduced_integral.h"
+#include "oneloop_reduced_integral.h"
 
-#include "detail/special_functions.h"
-#include "detail/legendre_utils.h"
+#include "lib/detail/special_functions.h"
+#include "lib/detail/legendre_utils.h"
+
+#include "utilities/GiNaC_print.h"
 
 #include "shared/exceptions.h"
 #include "localizations/messages.h"
 
 
-one_loop_element::one_loop_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
+oneloop_element::oneloop_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
                                    GiNaC_symbol_set vs_, GiNaC::symbol ang_, GiNaC_symbol_set em_)
   : integrand(std::move(ig_)),
     measure(std::move(ms_)),
@@ -48,7 +50,7 @@ one_loop_element::one_loop_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, 
   }
 
 
-void one_loop_element::write(std::ostream& str) const
+void oneloop_element::write(std::ostream& str) const
   {
     str << "integral";
     for(const auto& sym : this->variables)
@@ -64,7 +66,7 @@ void one_loop_element::write(std::ostream& str) const
   }
 
 
-void one_loop_element::simplify(const GiNaC::exmap& map)
+void oneloop_element::simplify(const GiNaC::exmap& map)
   {
     this->integrand = this->integrand.subs(map);
     this->measure = this->measure.subs(map);
@@ -73,7 +75,7 @@ void one_loop_element::simplify(const GiNaC::exmap& map)
   }
 
 
-void one_loop_element::canonicalize_external_momenta()
+void oneloop_element::canonicalize_external_momenta()
   {
     for(const auto& sym : this->external_momenta)
       {
@@ -82,7 +84,7 @@ void one_loop_element::canonicalize_external_momenta()
   }
 
 
-GiNaC::ex one_loop_element::get_UV_limit(unsigned int order) const
+GiNaC::ex oneloop_element::get_UV_limit(unsigned int order) const
   {
     // the total contribution from this element is the product of the integrand, the measure, the
     // Wick product.
@@ -121,7 +123,7 @@ GiNaC::ex one_loop_element::get_UV_limit(unsigned int order) const
   }
 
 
-void one_loop_element::filter(const GiNaC::symbol& pattern, unsigned int order)
+void oneloop_element::filter(const GiNaC::symbol& pattern, unsigned int order)
   {
     // rewrite integrand as the coefficient of the specified pattern
     auto temp = this->integrand.expand().coeff(pattern, order);
@@ -129,7 +131,7 @@ void one_loop_element::filter(const GiNaC::symbol& pattern, unsigned int order)
   }
 
 
-bool one_loop_element::is_matching_type(const one_loop_element& obj) const
+bool oneloop_element::is_matching_type(const oneloop_element& obj) const
   {
     // test for equality of time function, measure, Wick product, integration variables, external momenta
     const auto& at = this->tm;
@@ -172,10 +174,10 @@ bool one_loop_element::is_matching_type(const one_loop_element& obj) const
   }
 
 
-one_loop_element& one_loop_element::operator+=(const one_loop_element& rhs)
+oneloop_element& oneloop_element::operator+=(const oneloop_element& rhs)
   {
     if(!this->is_matching_type(rhs))
-      throw exception(ERROR_COMPOSE_ONE_LOOP_ELEMENT_MISMATCHING_TYPE, exception_code::loop_integral_error);
+      throw exception(ERROR_COMPOSE_ONELOOP_ELEMENT_MISMATCHING_TYPE, exception_code::expression_error);
 
     // we know all metadata agree, so can just add up the integrands
     this->integrand += rhs.integrand;
@@ -184,150 +186,21 @@ one_loop_element& one_loop_element::operator+=(const one_loop_element& rhs)
   }
 
 
-// forward-declare print functions
-static std::string format_print(const GiNaC::ex& expr);
-static std::string print_operands(const GiNaC::ex& expr, const std::string& op);
 
-
-static const std::map< std::string, std::string > func_convert
-  {
-    {"abs", "Abs"},
-    {"sqrt", "Sqrt"},
-    {"sin", "Sin"},
-    {"cos", "Cos"},
-    {"tan", "Tan"},
-    {"asin", "ArcSin"},
-    {"acos", "ArcCos"},
-    {"atan", "ArcTan"},
-    {"sinh", "Sinh"},
-    {"cosh", "Cosh"},
-    {"tanh", "Tanh"},
-    {"asinh", "ArcSinh"},
-    {"acosh", "ArcCosh"},
-    {"atanh", "ArcTanh"},
-    {"exp", "Exp"},
-    {"log", "Log"},
-    {"power", "Power"},
-    {"FabJ", "FabJ"}
-  };
-
-
-static std::string print_func(const GiNaC::ex& expr, const std::string& name)
-  {
-    auto t = func_convert.find(name);
-    if(t == func_convert.end())
-      {
-        std::ostringstream msg;
-        msg << ERROR_UNKNOWN_GINAC_FUNCTION << " '" << name << "'";
-        throw exception(msg.str(), exception_code::backend_error);
-      }
-
-    std::string rval{t->second};
-    rval.append("[");
-    rval.append(print_operands(expr, ","));
-    rval.append("]");
-
-    return rval;
-  }
-
-
-static std::string print_ginac(const GiNaC::ex& expr)
-  {
-    std::ostringstream out;
-    out << expr;
-    return out.str();
-  }
-
-
-static std::string print_operands(const GiNaC::ex& expr, const std::string& op)
-  {
-    std::string rval;
-
-    unsigned int c = 0;
-    for(const auto& arg : expr)
-      {
-        if(c > 0) rval.append(op);
-
-        // determine whether we should bracket this operand
-        // this should happen any time the operand has lower precedence than the current operand, but at the moment
-        // we only deal with + and * so we can simply check for +
-        // we can kill the brackets if the operands are a comma-separated list of arguments, though
-        bool bracket = op != "," && GiNaC::is_a<GiNaC::add>(arg);
-
-        if(bracket) rval.append("(");
-        rval.append(format_print(arg));
-        if(bracket) rval.append(")");
-
-        ++c;
-      }
-
-    return rval;
-  }
-
-
-static std::string print_constant(const GiNaC::ex& expr)
-  {
-    const auto& c = GiNaC::ex_to<GiNaC::constant>(expr);
-
-    std::ostringstream buf;
-    buf << c;
-
-    if(buf.str() == "Pi") return std::string{"Pi"};
-    return buf.str();
-  }
-
-
-static std::string format_print(const GiNaC::ex& expr)
-  {
-    std::string name;
-
-    if(GiNaC::is_a<GiNaC::function>(expr)) name = GiNaC::ex_to<GiNaC::function>(expr).get_name();
-    else name = GiNaC::ex_to<GiNaC::basic>(expr).class_name();
-
-    if     (name == "numeric")   return print_ginac(expr);
-    else if(name == "symbol")    return print_ginac(expr);
-    else if(name == "add")       return print_operands(expr, "+");
-    else if(name == "mul")       return print_operands(expr, "*");
-    else if(name == "constant")  return print_constant(expr);
-    else if(name == "tensdelta") return print_ginac(expr);
-    else if(name == "idx")       return print_ginac(expr);
-    else if(name == "varidx")    return print_ginac(expr);
-    else if(name == "indexed")   return print_ginac(expr);
-    else if(name == "D")         return std::string{"Dz"};
-    else if(name == "DA")        return std::string{"DAz"};
-    else if(name == "DB")        return std::string{"DBz"};
-    else if(name == "DD")        return std::string{"DDz"};
-    else if(name == "DE")        return std::string{"DEz"};
-    else if(name == "DF")        return std::string{"DFz"};
-    else if(name == "DG")        return std::string{"DGz"};
-    else if(name == "DJ")        return std::string{"DJx"};
-    else if(name == "f")         return std::string("fz");
-    else if(name == "fA")        return std::string("fAz");
-    else if(name == "fB")        return std::string("fBz");
-    else if(name == "fD")        return std::string("fDz");
-    else if(name == "fE")        return std::string("fEz");
-    else if(name == "fF")        return std::string("fFz");
-    else if(name == "fG")        return std::string("fGz");
-    else if(name == "fJ")        return std::string("fJz");
-
-    // not a standard operation, so assume it must be a special function
-    // look up its C++ form in func_map, and then format its arguments,
-    // taking care to keep track of use counts
-    return print_func(expr, name);
-  }
-
-
-std::string one_loop_element::to_Mathematica(bool do_dx) const
+std::string oneloop_element::to_Mathematica(bool do_dx) const
   {
     std::ostringstream result;
 
+    // write out time function
     result << "(" << format_print(this->tm) << ")*";
 
+    // determine whether we should perform an angular dx integral
     bool xint = (this->variables.find(this->angular_dx) != this->variables.end()) && do_dx;
 
     if(xint) result << "Integrate[";
     else     result << "(";
 
+    // write out measure and integrand
     result << format_print(this->measure*this->integrand);
 
     if(xint)
@@ -363,13 +236,13 @@ std::string one_loop_element::to_Mathematica(bool do_dx) const
   }
 
 
-one_loop_element_key::one_loop_element_key(const one_loop_element& elt_)
+oneloop_element_key::oneloop_element_key(const oneloop_element& elt_)
   : elt(elt_)
   {
   }
 
 
-size_t one_loop_element_key::hash() const
+size_t oneloop_element_key::hash() const
   {
     // print time function to string and hash it
     std::ostringstream time_string;
@@ -414,26 +287,26 @@ size_t one_loop_element_key::hash() const
   }
 
 
-bool one_loop_element_key::is_equal(const one_loop_element_key& obj) const
+bool oneloop_element_key::is_equal(const oneloop_element_key& obj) const
   {
     return this->elt.is_matching_type(obj.elt);
   }
 
 
-const time_function& one_loop_element_key::get_time_function() const
+const time_function& oneloop_element_key::get_time_function() const
   {
-    return elt.tm;
+    return this->elt.tm;
   }
 
 
-std::ostream& operator<<(std::ostream& str, const one_loop_element& obj)
+std::ostream& operator<<(std::ostream& str, const oneloop_element& obj)
   {
     obj.write(str);
     return str;
   }
 
 
-one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, service_locator& lc_, bool s_)
+oneloop_reduced_integral::oneloop_reduced_integral(const oneloop_expression& i_, service_locator& lc_, bool s_)
   : loop_int(i_),
     Rayleigh_momenta(i_.get_Rayleigh_momenta()),
     WickProduct(i_.get_Wick_product()),
@@ -445,7 +318,7 @@ one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, se
   {
     // throw if we were given a 2+ loop expression
     if(loop_int.get_loop_order() > 1)
-      throw exception(ERROR_ONE_LOOP_REDUCE_WITH_MULTIPLE_LOOPS, exception_code::loop_transformation_error);
+      throw exception(ERROR_ONELOOP_REDUCE_WITH_MULTIPLE_LOOPS, exception_code::loop_transformation_error);
 
     // extract momentum kernel from integral
     auto K = loop_int.get_kernel();
@@ -479,7 +352,7 @@ one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, se
     else
       {
         auto elt =
-          std::make_unique<one_loop_element>(K, 1, this->WickProduct, this->tm,
+          std::make_unique<oneloop_element>(K, 1, this->WickProduct, this->tm,
                                              GiNaC_symbol_set{}, this->x, this->external_momenta);
 
         // insert in database
@@ -488,7 +361,7 @@ one_loop_reduced_integral::one_loop_reduced_integral(const loop_integral& i_, se
   }
 
 
-void one_loop_reduced_integral::reduce(const GiNaC::ex& term)
+void oneloop_reduced_integral::reduce(const GiNaC::ex& term)
   {
     // find which Rayleigh momenta this term depends on, if any
     // need to remember that Rayleigh momenta can occur in the momentum kernel but also in the Wick product
@@ -519,7 +392,7 @@ void one_loop_reduced_integral::reduce(const GiNaC::ex& term)
   }
 
 
-void one_loop_reduced_integral::one_loop_reduce_zero_Rayleigh(const GiNaC::ex& term)
+void oneloop_reduced_integral::one_loop_reduce_zero_Rayleigh(const GiNaC::ex& term)
   {
     // first, convert all angular terms involving the loop momentum to Legendre representation
     auto temp = Legendre_to_cosines(term, this->loop_q);
@@ -540,7 +413,7 @@ void one_loop_reduced_integral::one_loop_reduce_zero_Rayleigh(const GiNaC::ex& t
         auto measure = this->loop_q*this->loop_q / GiNaC::pow(2*GiNaC::Pi, 3);
 
         auto elt =
-          std::make_unique<one_loop_element>(temp, measure, this->WickProduct, this->tm,
+          std::make_unique<oneloop_element>(temp, measure, this->WickProduct, this->tm,
                                              GiNaC_symbol_set{this->loop_q}, this->x, this->external_momenta);
 
         // insert in database
@@ -549,7 +422,7 @@ void one_loop_reduced_integral::one_loop_reduce_zero_Rayleigh(const GiNaC::ex& t
   }
 
 
-void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& term, const GiNaC::symbol& R)
+void oneloop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& term, const GiNaC::symbol& R)
   {
     // we need to perform the integration in an order for which we get only products of two Legendre
     // polynomials involving the integration variable
@@ -657,7 +530,7 @@ void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& te
         temp = temp.subs(R_map);
 
         auto elt =
-          std::make_unique<one_loop_element>(temp, measure, this->WickProduct.subs(R_map), this->tm,
+          std::make_unique<oneloop_element>(temp, measure, this->WickProduct.subs(R_map), this->tm,
                                              GiNaC_symbol_set{this->loop_q, this->x}, this->x, this->external_momenta);
 
         // insert in database
@@ -666,7 +539,7 @@ void one_loop_reduced_integral::one_loop_reduce_one_Rayleigh(const GiNaC::ex& te
   }
 
 
-GiNaC::ex one_loop_reduced_integral::apply_Legendre_orthogonality(const GiNaC::ex& expr, const GiNaC::symbol& q)
+GiNaC::ex oneloop_reduced_integral::apply_Legendre_orthogonality(const GiNaC::ex& expr, const GiNaC::symbol& q)
   {
     GiNaC::ex temp{1};
 
@@ -819,7 +692,7 @@ GiNaC::ex NeumannAdamsSum(const GiNaC::symbol& L, const GiNaC::numeric& Lcoeff, 
   }
 
 GiNaC::ex
-one_loop_reduced_integral::apply_Legendre_orthogonality(const GiNaC::ex& expr, const GiNaC::symbol& L, const GiNaC::numeric& Lcoeff,
+oneloop_reduced_integral::apply_Legendre_orthogonality(const GiNaC::ex& expr, const GiNaC::symbol& L, const GiNaC::numeric& Lcoeff,
                                                         const GiNaC::symbol& k, const GiNaC::numeric& kcoeff, const GiNaC::symbol& R)
   {
     GiNaC::ex temp{1};
@@ -883,13 +756,13 @@ one_loop_reduced_integral::apply_Legendre_orthogonality(const GiNaC::ex& expr, c
   }
 
 
-void one_loop_reduced_integral::write(std::ostream& out) const
+void oneloop_reduced_integral::write(std::ostream& out) const
   {
     out << this->integrand;
   }
 
 
-void one_loop_reduced_integral::simplify(const GiNaC::exmap& map)
+void oneloop_reduced_integral::simplify(const GiNaC::exmap& map)
   {
     for(const auto& record : this->integrand)
       {
@@ -900,7 +773,7 @@ void one_loop_reduced_integral::simplify(const GiNaC::exmap& map)
   }
 
 
-void one_loop_reduced_integral::canonicalize_external_momenta()
+void oneloop_reduced_integral::canonicalize_external_momenta()
   {
     for(const auto& record : this->integrand)
       {
@@ -911,7 +784,7 @@ void one_loop_reduced_integral::canonicalize_external_momenta()
   }
 
 
-GiNaC::ex one_loop_reduced_integral::get_UV_limit(unsigned int order) const
+GiNaC::ex oneloop_reduced_integral::get_UV_limit(unsigned int order) const
   {
     GiNaC::ex expr{0};
 
@@ -926,13 +799,13 @@ GiNaC::ex one_loop_reduced_integral::get_UV_limit(unsigned int order) const
   }
 
 
-void one_loop_reduced_integral::prune()
+void oneloop_reduced_integral::prune()
   {
     auto t = this->integrand.begin();
 
     while(t != this->integrand.end())
       {
-        const one_loop_element& elt = *t->second;
+        const oneloop_element& elt = *t->second;
         if(elt.null())
           {
             t = this->integrand.erase(t);
@@ -945,9 +818,9 @@ void one_loop_reduced_integral::prune()
   }
 
 
-void one_loop_reduced_integral::emplace(std::unique_ptr<one_loop_element> elt)
+void oneloop_reduced_integral::emplace(std::unique_ptr<oneloop_element> elt)
   {
-    one_loop_element_key key{*elt};
+    oneloop_element_key key{*elt};
 
     // check whether a compatible entry is already present in the database
     auto it = this->integrand.find(key);
@@ -961,20 +834,20 @@ void one_loop_reduced_integral::emplace(std::unique_ptr<one_loop_element> elt)
 
     // otherwise, we need to insert a new element
     auto res = this->integrand.emplace(std::move(key), std::move(elt));
-    if(!res.second) throw exception(ERROR_ONE_LOOP_ELEMENT_INSERT_FAILED, exception_code::loop_integral_error);
+    if(!res.second) throw exception(ERROR_ONELOOP_ELEMENT_INSERT_FAILED, exception_code::expression_error);
   }
 
 
-std::string one_loop_reduced_integral::to_Mathematica(bool do_dx) const
+std::string oneloop_reduced_integral::to_Mathematica(bool do_dx) const
   {
     std::ostringstream result;
 
-    if(this->integrand.empty()) std::cout << "Warning: one_loop_reduced_integral database is empty" << '\n';
+    if(this->integrand.empty()) std::cout << "Warning: oneloop_reduced_integral database is empty" << '\n';
 
     unsigned int count = 0;
     for(const auto& record : this->integrand)
       {
-        const std::unique_ptr<one_loop_element>& elt = record.second;
+        const std::unique_ptr<oneloop_element>& elt = record.second;
 
         if(count > 0) result << " + ";
         result << elt->to_Mathematica(do_dx);
@@ -985,7 +858,7 @@ std::string one_loop_reduced_integral::to_Mathematica(bool do_dx) const
   }
 
 
-std::ostream& operator<<(std::ostream& out, const one_loop_reduced_integral& obj)
+std::ostream& operator<<(std::ostream& out, const oneloop_reduced_integral& obj)
   {
     obj.write(out);
     return out;

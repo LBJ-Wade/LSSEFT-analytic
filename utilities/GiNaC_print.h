@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 21/08/2017.
+// Created by David Seery on 05/04/2018.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,61 +24,14 @@
 // --@@
 //
 
-#ifndef LSSEFT_ANALYTIC_EXCEPTIONS_H
-#define LSSEFT_ANALYTIC_EXCEPTIONS_H
+#ifndef LSSEFT_ANALYTIC_GINAC_PRINT_H
+#define LSSEFT_ANALYTIC_GINAC_PRINT_H
 
 
-#include <string>
-#include <stdexcept>
+#include "ginac/ginac.h"
 
 
-enum class exception_code
-  {
-    symbol_error,
-    kernel_error,
-    initial_value_error,
-    contraction_error,
-    index_error,
-    Rayleigh_error,
-    Pk_error,
-    Bk_error,
-    expression_error,
-    loop_transformation_error,
-    Fabrikant_error,
-    backend_error
-  };
+std::string format_print(const GiNaC::ex& expr);
 
 
-class exception: public std::runtime_error
-  {
-    
-    // CONSTRUCTOR, DESTRUCTOR
-    
-  public:
-    
-    //! constructor
-    exception(std::string msg, exception_code c);
-    
-    //! destructor
-    ~exception() override = default;
-    
-    
-    // INTERFACE
-    
-  public:
-    
-    //! read exception code
-    exception_code get_code() const { return this->code; }
-    
-    
-    // INTERNAL DATA
-    
-  private:
-    
-    //! cache exception code
-    exception_code code;
-  
-  };
-
-
-#endif //LSSEFT_ANALYTIC_EXCEPTIONS_H
+#endif //LSSEFT_ANALYTIC_GINAC_PRINT_H

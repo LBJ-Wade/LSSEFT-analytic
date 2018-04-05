@@ -497,7 +497,7 @@ std::string LSSEFT::make_unique_kernel_name()
 
 void LSSEFT::process_kernels(const Pk_rsd_group& group, LSSEFT_impl::mass_dimension dim)
   {
-    auto visitor = [&](const one_loop_element& elt) -> void
+    auto visitor = [&](const oneloop_element& elt) -> void
       {
         using LSSEFT_impl::LSSEFT_kernel;
 
@@ -1164,7 +1164,7 @@ void LSSEFT::write_Pk_mu_component(std::ofstream& outf, const std::string& name,
     outf << "   Pk_value tree";
     std::ostringstream tree_buffer;
     unsigned int count = 0;
-    auto tree_writer = [&](const one_loop_element& elt) -> void
+    auto tree_writer = [&](const oneloop_element& elt) -> void
       {
         using LSSEFT_impl::format_print;
 
@@ -1181,7 +1181,7 @@ void LSSEFT::write_Pk_mu_component(std::ofstream& outf, const std::string& name,
     outf << "   Pk_value P13";
     std::ostringstream P13_buffer;
     count = 0;
-    auto P13_writer = [&](const one_loop_element& elt) -> void
+    auto P13_writer = [&](const oneloop_element& elt) -> void
       {
         using LSSEFT_impl::LSSEFT_kernel;
         using LSSEFT_impl::mass_dimension;
@@ -1205,7 +1205,7 @@ void LSSEFT::write_Pk_mu_component(std::ofstream& outf, const std::string& name,
     outf << "   Pk_value P22";
     std::ostringstream P22_buffer;
     count = 0;
-    auto P22_writer = [&](const one_loop_element& elt) -> void
+    auto P22_writer = [&](const oneloop_element& elt) -> void
       {
         using LSSEFT_impl::LSSEFT_kernel;
         using LSSEFT_impl::mass_dimension;

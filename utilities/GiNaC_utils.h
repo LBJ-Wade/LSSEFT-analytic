@@ -85,4 +85,5 @@ GiNaC::exvector to_exvector(const GiNaC::ex& expr);
 //! order a set of symbols
 std::vector<GiNaC::symbol> order_symbol_set(const GiNaC_symbol_set& syms);
 
+
 #endif //LSSEFT_ANALYTIC_GINAC_UTILS_H

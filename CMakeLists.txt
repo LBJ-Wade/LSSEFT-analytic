@@ -39,11 +39,15 @@ ADD_EXECUTABLE(LSSEFT_analytic
   instruments/timing_instrument.cpp
   lib/fourier_kernel.cpp
   lib/initial_value.cpp
-  lib/loop_integral.cpp
   lib/vector.cpp
-  lib/Pk_one_loop.cpp
-  lib/Pk_rsd.cpp
-  lib/one_loop_reduced_integral.cpp
+  lib/expressions/tree_expression.cpp
+  lib/expressions/oneloop_expression.cpp
+  lib/expressions/oneloop_reduced_integral.cpp
+  lib/expression_databases/tree_db.cpp
+  lib/expression_databases/oneloop_db.cpp
+  lib/correlators/Pk_oneloop.cpp
+  lib/correlators/Pk_rsd.cpp
+  lib/correlators/Bk_tree.cpp
   lib/detail/contractions.cpp
   lib/detail/legendre_utils.cpp
   lib/detail/Rayleigh_momenta.cpp
@@ -54,10 +58,11 @@ ADD_EXECUTABLE(LSSEFT_analytic
   services/symbol_factory.cpp
   shared/error.cpp
   shared/exceptions.cpp
-  SPT/one_loop_kernels.cpp
+  SPT/oneloop_kernels.cpp
   SPT/time_functions.cpp
   utilities/formatter.cpp
   utilities/GiNaC_utils.cpp
+  utilities/GiNaC_print.cpp
   )
 
 ADD_DEPENDENCIES(LSSEFT_analytic DEPS)
@@ -90,14 +95,31 @@ SET(LIBRARY_FILES
   lib/vector.h
   lib/initial_value.cpp
   lib/initial_value.h
-  lib/Pk_one_loop.cpp
-  lib/Pk_one_loop.h
-  lib/Pk_rsd.cpp
-  lib/Pk_rsd.h
-  lib/loop_integral.cpp
-  lib/loop_integral.h
-  lib/one_loop_reduced_integral.cpp
-  lib/one_loop_reduced_integral.h
+  )
+
+SET(LIBRARY_CORRELATORS_FILES
+  lib/correlators/Pk_oneloop.cpp
+  lib/correlators/Pk_oneloop.h
+  lib/correlators/Pk_rsd.cpp
+  lib/correlators/Pk_rsd.h
+  lib/correlators/Bk_tree.cpp
+  lib/correlators/Bk_tree.h
+  )
+
+SET(LIBRARY_EXPRESSION_DATABASES_FILES
+  lib/expression_databases/oneloop_db.cpp
+  lib/expression_databases/oneloop_db.h
+  lib/expression_databases/tree_db.cpp
+  lib/expression_databases/tree_db.h
+  )
+
+SET(LIBRARY_EXPRESSIONS_FILES
+  lib/expressions/oneloop_expression.cpp
+  lib/expressions/oneloop_expression.h
+  lib/expressions/oneloop_reduced_integral.cpp
+  lib/expressions/oneloop_reduced_integral.h
+  lib/expressions/tree_expression.cpp
+  lib/expressions/tree_expression.h
   )
 
 SET(LIBRARY_DETAIL_FILES
@@ -142,8 +164,8 @@ SET(SHARED_FILES
 SET(SPT_FILES
   SPT/time_functions.cpp
   SPT/time_functions.h
-  SPT/one_loop_kernels.cpp
-  SPT/one_loop_kernels.h
+  SPT/oneloop_kernels.cpp
+  SPT/oneloop_kernels.h
   )
 
 SET(UTILITIES_FILES
@@ -152,6 +174,8 @@ SET(UTILITIES_FILES
   utilities/GiNaC_utils.cpp
   utilities/GiNaC_utils.h
   utilities/hash_combine.h
+  utilities/GiNaC_print.cpp
+  utilities/GiNaC_print.h
   )
 
 SET(TOP_LEVEL_FILES
@@ -162,6 +186,9 @@ ADD_EXECUTABLE(clion_dummy_target
   ${BACKEND_FILES}
   ${INSTRUMENTS_FILES}
   ${LIBRARY_FILES}
+  ${LIBRARY_CORRELATORS_FILES}
+  ${LIBRARY_EXPRESSION_DATABASES_FILES}
+  ${LIBRARY_EXPRESSIONS_FILES}
   ${LIBRARY_DETAIL_FILES}
   ${LOCALIZATIONS_FILES}
   ${SERVICES_FILES}

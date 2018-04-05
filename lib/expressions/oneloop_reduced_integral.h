@@ -30,7 +30,7 @@
 
 #include <unordered_map>
 
-#include "loop_integral.h"
+#include "lib/expressions/oneloop_expression.h"
 
 #include "shared/common.h"
 #include "shared/exceptions.h"
@@ -40,12 +40,12 @@
 
 
 //! forward-declare class key
-class one_loop_element_key;
+class oneloop_element_key;
 
 
 
 //! integration element captures a single integration
-class one_loop_element
+class oneloop_element
   {
 
     // CONSTRUCTOR, DESTRUCTOR
@@ -53,11 +53,11 @@ class one_loop_element
   public:
 
     //! constructor captures integrand, measure, integration variables, Wick product, time factor, external momenta
-    one_loop_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
+    oneloop_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
                      GiNaC_symbol_set vs_, GiNaC::symbol ang_, GiNaC_symbol_set em_);
 
     //! destructor is default
-    ~one_loop_element() = default;
+    ~oneloop_element() = default;
 
 
     // OPERATIONS
@@ -65,7 +65,7 @@ class one_loop_element
   public:
 
     //! increment in-place
-    one_loop_element& operator+=(const one_loop_element& rhs);
+    oneloop_element& operator+=(const oneloop_element& rhs);
 
 
     // ACCESSORS
@@ -99,7 +99,7 @@ class one_loop_element
     void write(std::ostream& str) const;
 
     //! test for matching type (matches time function, measure, Wick product, integration variables, external momenta)
-    bool is_matching_type(const one_loop_element& obj) const;
+    bool is_matching_type(const oneloop_element& obj) const;
 
     //! test for nullity of integrand
     bool null() const { return static_cast<bool>(this->integrand == 0); }
@@ -157,18 +157,18 @@ class one_loop_element
     const GiNaC::symbol angular_dx;
 
 
-    friend class one_loop_element_key;
+    friend class oneloop_element_key;
 
   };
 
 
 //! perform stream insertion
-std::ostream& operator<<(std::ostream& str, const one_loop_element& obj);
+std::ostream& operator<<(std::ostream& str, const oneloop_element& obj);
 
 
 //! key is a flyweight class that indexes integration elements by their
 //! integration variables
-class one_loop_element_key
+class oneloop_element_key
   {
 
     // CONSTRUCTOR, DESTRUCTOR
@@ -176,10 +176,10 @@ class one_loop_element_key
   public:
 
     //! constructor accepts a reference to a integration_element
-    explicit one_loop_element_key(const one_loop_element& elt_);
+    explicit oneloop_element_key(const oneloop_element& elt_);
 
     //! destructor is default
-    ~one_loop_element_key() = default;
+    ~oneloop_element_key() = default;
 
 
     // SERVICES
@@ -193,7 +193,7 @@ class one_loop_element_key
     size_t hash() const;
 
     //! compare for equality
-    bool is_equal(const one_loop_element_key& obj) const;
+    bool is_equal(const oneloop_element_key& obj) const;
 
 
     // INTERNAL DATA
@@ -201,14 +201,14 @@ class one_loop_element_key
   private:
 
     //! cache reference to partner class
-    const one_loop_element& elt;
+    const oneloop_element& elt;
 
   };
 
 
 //! an integrand database is a map from integration with given dummy variables, time function and Wick product
 //! to the cumulative integrand
-using one_loop_element_db = std::unordered_map< one_loop_element_key, std::unique_ptr<one_loop_element> >;
+using one_loop_element_db = std::unordered_map< oneloop_element_key, std::unique_ptr<oneloop_element> >;
 
 //! stream insertion
 std::ostream& operator<<(std::ostream& out, const one_loop_element_db& obj);
@@ -219,18 +219,18 @@ namespace std
   {
 
     template <>
-    struct hash<one_loop_element_key>
+    struct hash<oneloop_element_key>
       {
-        size_t operator()(const one_loop_element_key& obj) const
+        size_t operator()(const oneloop_element_key& obj) const
           {
             return obj.hash();
           }
       };
 
     template <>
-    struct equal_to<one_loop_element_key>
+    struct equal_to<oneloop_element_key>
       {
-        bool operator()(const one_loop_element_key& a, const one_loop_element_key& b) const
+        bool operator()(const oneloop_element_key& a, const oneloop_element_key& b) const
           {
             return a.is_equal(b);
           }
@@ -239,7 +239,7 @@ namespace std
   }   // namespace std
 
 
-class one_loop_reduced_integral
+class oneloop_reduced_integral
   {
 
     // CONSTRUCTOR, DESTRUCTOR
@@ -247,10 +247,10 @@ class one_loop_reduced_integral
   public:
 
     //! constructor accepts a loop_integral container and performs dimensional reduction on it
-    one_loop_reduced_integral(const loop_integral& i_, service_locator& lc_, bool s_);
+    oneloop_reduced_integral(const oneloop_expression& i_, service_locator& lc_, bool s_);
 
     //! destructor is default
-    ~one_loop_reduced_integral() = default;
+    ~oneloop_reduced_integral() = default;
 
 
     // ACCESSORS
@@ -280,7 +280,7 @@ class one_loop_reduced_integral
   protected:
 
     //! emplace a one_loop_element in the database
-    void emplace(std::unique_ptr<one_loop_element> elt);
+    void emplace(std::unique_ptr<oneloop_element> elt);
 
     //! apply one-loop reduction formula to a single term
     void reduce(const GiNaC::ex& expr);
@@ -331,7 +331,7 @@ class one_loop_reduced_integral
     // DATA
 
     //! cache reference to original loop integral
-    const loop_integral& loop_int;
+    const oneloop_expression& loop_int;
 
     //! cache list of Rayleigh momenta
     const subs_list& Rayleigh_momenta;
@@ -367,7 +367,7 @@ class one_loop_reduced_integral
 
 
 template <typename VisitorFunction>
-GiNaC::ex one_loop_reduced_integral::integrate_Legendre(const GiNaC::ex& term, const GiNaC::symbol& q, VisitorFunction f)
+GiNaC::ex oneloop_reduced_integral::integrate_Legendre(const GiNaC::ex& term, const GiNaC::symbol& q, VisitorFunction f)
   {
     auto term_ex = term.expand();
 
@@ -394,7 +394,7 @@ GiNaC::ex one_loop_reduced_integral::integrate_Legendre(const GiNaC::ex& term, c
 
 
 //! perform stream insertion
-std::ostream& operator<<(std::ostream& out, const one_loop_reduced_integral& obj);
+std::ostream& operator<<(std::ostream& out, const oneloop_reduced_integral& obj);
 
 
 #endif //LSSEFT_ANALYTIC_ONE_LOOP_REDUCED_INTEGRAL_H
