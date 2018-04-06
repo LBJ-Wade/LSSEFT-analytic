@@ -39,7 +39,7 @@ class RSDPk_oneloop
   public:
 
     //! tree-level RSD Pk set
-    using RSDPk_tree_set = RSDPk_set<oneloop_element_db>;
+    using RSDPk_tree_set = RSDPk_set<tree_expression_db>;
 
     //! one-loop RSD Pk set
     using RSDPk_oneloop_set = RSDPk_set<oneloop_element_db>;
@@ -62,9 +62,11 @@ class RSDPk_oneloop
 
   protected:
 
-    //! filter a Pk_db into a destination Pk_rsd_group
-    template <typename SetType>
-    void filter(SetType& dest, const Pk_oneloop::Pk_db& source);
+    //! filter a tree level database into a tree level set
+    void filter(RSDPk_tree_set& dest, const Pk_oneloop::Pk_tree_db& source);
+
+    //! filter a loop level database into a loop level set
+    void filter(RSDPk_oneloop_set& dest, const Pk_oneloop::Pk_oneloop_db& source);
 
 
     // ACCESSORS
@@ -124,34 +126,6 @@ class RSDPk_oneloop
     RSDPk_oneloop_set P22;
 
   };
-
-
-template <typename SetType>
-void RSDPk_oneloop::filter(SetType& dest, const Pk_oneloop::Pk_db& source)
-  {
-    // walk through the source database, filtering contributions to the reduced integral (if present)
-    // that match our configured symbol set
-    // Matching contributions get pushed into the destination database 'dest',
-    // which will be either tree, 13 or 22
-
-    for(const auto& item : source)
-      {
-        const Pk_oneloop::Pk_db::expr_type& lp = *item.second.first;
-        const Pk_oneloop::Pk_db::reduced_ptr_type& ri = item.second.second;
-
-        if(!ri) continue;    // skip if pointer is empty
-
-        // get database of one-loop-reduced-integral elements
-        const auto& db  = ri->get_db();
-
-        // walk through this list
-        for(const auto& record : db)
-          {
-            const std::unique_ptr<oneloop_element>& elt = record.second;
-            if(elt) dest.emplace(*elt);
-          }
-      }
-  }
 
 
 //! stream insertion operator

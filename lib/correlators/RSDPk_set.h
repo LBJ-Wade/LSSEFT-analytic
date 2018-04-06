@@ -102,8 +102,7 @@ class RSDPk_set
 
   public:
 
-    //! construct UV limit; enabled only if underlying element type supports the API
-    template <typename U = decltype(std::declval<element_type>().get_UV_limit()) >
+    //! construct UV limit
     GiNaC::exvector get_UV_limit(unsigned int order = 2) const;
 
     //! query number of distinct time functions at each mu
@@ -293,7 +292,6 @@ RSDPk_set<DatabaseType>::emplace(std::unique_ptr<element_type> elt, DatabaseType
 
 
 template <typename DatabaseType>
-template <typename U>
 GiNaC::exvector
 RSDPk_set<DatabaseType>::get_UV_limit(unsigned int order) const
   {
@@ -386,6 +384,8 @@ RSDPk_set<DatabaseType>::prune(DatabaseType& db, unsigned int mu_power)
     while(t != db.end())
       {
         const element_type& elt = *t->second;
+
+        // remove this element if it is null
         if(elt.null())
           {
             if(this->verbose)

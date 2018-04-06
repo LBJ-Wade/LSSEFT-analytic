@@ -26,6 +26,9 @@
 
 #include "tree_db.h"
 
+#include "localizations/messages.h"
+#include "shared/exceptions.h"
+
 
 tree_db::tree_db(const tree_db& obj)
   {
@@ -36,7 +39,23 @@ tree_db::tree_db(const tree_db& obj)
 
 void tree_db::emplace(std::unique_ptr<tree_expression> elt)
   {
+    tree_expression_key key{*elt};
 
+    // determine whether an entry with this key already exists
+    auto it = this->db.find(key);
+
+    // if a matching element already exists then we should just sum up the kernels
+    if(it != this->db.end())
+      {
+        std::unique_ptr<tree_expression>& kernel = it->second;
+
+        *kernel += *elt;
+        return;
+      }
+
+    // otherwise, we need to insert a new element
+    auto res = this->db.emplace(std::move(key), std::move(elt));
+    if(!res.second) throw exception(ERROR_TREE_INSERT_FAILED, exception_code::Pk_error);
   }
 
 
@@ -45,8 +64,9 @@ tree_db& tree_db::operator+=(const tree_db& obj)
     // walk through database from 'obj', and copy+insert kernels as we go
     for(auto& item : obj.db)
       {
-        const tree_expression& record = item.second;
-        this->emplace(std::make_unique<tree_expression>(record));
+        const std::unique_ptr<tree_expression>& record = item.second;
+
+        if(record) this->emplace(std::make_unique<tree_expression>(*record));
       }
 
     return *this;
@@ -59,12 +79,14 @@ void tree_db::write(std::ostream& out) const
 
     for(const auto& item : this->db)
       {
-        const tree_expression& tr = item.second;
+        const std::unique_ptr<tree_expression>& tr = item.second;
 
-        std::cout << "Element " << count << "." << '\n';
-        std::cout << tr << '\n';
-
-        ++count;
+        if(tr)
+          {
+            std::cout << "Element " << count << "." << '\n';
+            std::cout << *tr << '\n';
+            ++count;
+          }
       }
 
     if(count == 0) out << "<no elements>" << '\n';
@@ -80,20 +102,44 @@ void tree_db::write_Mathematica(std::ostream& out, std::string symbol) const
 
     for(auto& record : this->db)
       {
-        const tree_expression& tr = record.second;
+        const std::unique_ptr<tree_expression>& tr = record.second;
 
-        if(count > 0) out << " + ";
+        if(tr)
+          {
+            if(count > 0) out << " + ";
 
-        auto output = tr.to_Mathematica();
-        out << output;
+            auto output = tr->to_Mathematica(false);
+            out << output;
 
-        ++count;
-        chars_written += output.length();
+            ++count;
+            chars_written += output.length();
+          }
       }
 
     if(chars_written == 0) out << "0";
 
     out << ";" << '\n';
+  }
+
+
+void tree_db::simplify(const GiNaC::exmap& map)
+  {
+    // walk through each expression, applying simplification map
+    for(auto& item : this->db)
+      {
+        std::unique_ptr<tree_expression>& expr = item.second;
+        expr->simplify(map);
+      }
+  }
+
+
+void tree_db::canonicalize_external_momenta()
+  {
+    for(auto& item : this->db)
+      {
+        std::unique_ptr<tree_expression>& expr = item.second;
+        expr->canonicalize_external_momenta();
+      }
   }
 
 

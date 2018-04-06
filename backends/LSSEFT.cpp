@@ -1140,12 +1140,12 @@ void LSSEFT::write_Pk_mu_component(std::ofstream& outf, const std::string& name,
     outf << "   Pk_value tree";
     std::ostringstream tree_buffer;
     unsigned int count = 0;
-    auto tree_writer = [&](const oneloop_element& elt) -> void
+    auto tree_writer = [&](const tree_expression& elt) -> void
       {
         using LSSEFT_impl::format_print;
 
         if(count > 0) tree_buffer << " + ";
-        tree_buffer << format_print(elt.get_integrand()*elt.get_time_function());    // have to include "integrand" at tree-level, which is really a normalization factor
+        tree_buffer << format_print(elt.get_kernel()*elt.get_time_function());    // have to include "kernel" at tree-level, which is really a normalization factor
         ++count;
       };
     tree.visit({mu}, tree_writer);

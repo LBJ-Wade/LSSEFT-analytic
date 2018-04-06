@@ -29,18 +29,13 @@
 
 #include "tree_expression.h"
 
+#include "lib/correlators/detail/legendre_utils.h"
+
 #include "utilities/hash_combine.h"
 #include "utilities/GiNaC_print.h"
 
 #include "shared/exceptions.h"
 #include "localizations/messages.h"
-
-
-std::ostream& operator<<(std::ostream& str, const tree_expression& obj)
-  {
-    obj.write(str);
-    return str;
-  }
 
 
 tree_expression::tree_expression(time_function tm_, GiNaC::ex K_, GiNaC::ex ws_, GiNaC_symbol_set em_,
@@ -100,7 +95,7 @@ bool tree_expression::is_matching_type(const tree_expression& obj) const
   }
 
 
-std::string tree_expression::to_Mathematica() const
+std::string tree_expression::to_Mathematica(bool) const
   {
     std::ostringstream result;
 
@@ -108,6 +103,31 @@ std::string tree_expression::to_Mathematica() const
     result << "(" << format_print(this->tm) << ")*(" << this->K << ")";
 
     return result.str();
+  }
+
+
+void tree_expression::simplify(const GiNaC::exmap& map)
+  {
+    this->K = this->K.subs(map);
+    this->WickProduct = this->WickProduct.subs(map);
+    this->tm = this->tm.subs(map);
+  }
+
+
+void tree_expression::canonicalize_external_momenta()
+  {
+    for(const auto& sym : this->external_momenta)
+      {
+        this->K = Legendre_to_cosines(this->K, sym);
+      }
+  }
+
+
+void tree_expression::filter(const GiNaC::symbol& pattern, unsigned int order)
+  {
+    // rewrite kernel as the coefficient of the specified pattern
+    auto temp = this->K.expand().coeff(pattern, order);
+    this->K = temp;
   }
 
 
@@ -152,4 +172,32 @@ size_t tree_expression_key::hash() const
 bool tree_expression_key::is_equal(const tree_expression_key& obj) const
   {
     return this->tree.is_matching_type(obj.tree);
+  }
+
+
+std::ostream& operator<<(std::ostream& str, const tree_expression& obj)
+  {
+    obj.write(str);
+    return str;
+  }
+
+std::ostream& operator<<(std::ostream& out, const tree_expression_db& obj)
+  {
+    unsigned int count = 0;
+
+    for(const auto& record : obj)
+      {
+        const auto& key = record.first;
+        const auto& data = record.second;
+
+        if(data)
+          {
+            out << *data;
+            ++count;
+          }
+      }
+
+    if(count == 0) out << "<no integrals>" << '\n';
+
+    return out;
   }

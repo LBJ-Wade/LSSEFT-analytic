@@ -31,7 +31,8 @@
 
 #include "oneloop_expression.h"
 
-#include "lib/detail/contractions.h"
+#include "lib/correlators/detail/correlation_functions.h"
+#include "lib/correlators/detail/legendre_utils.h"
 
 #include "utilities/hash_combine.h"
 
@@ -301,6 +302,29 @@ oneloop_expression& oneloop_expression::operator+=(const oneloop_expression& rhs
     this->K += rhs.K;
 
     return *this;
+  }
+
+
+void oneloop_expression::simplify(const GiNaC::exmap& map)
+  {
+    this->K = this->K.subs(map);
+    this->WickProduct = this->WickProduct.subs(map);
+    this->tm = this->tm.subs(map);
+
+    // apply simplification to each element of the Rayleigh rules
+    for(auto& item : this->Rayleigh_momenta)
+      {
+        item.second = item.second.subs(map);
+      }
+  }
+
+
+void oneloop_expression::canonicalize_external_momenta()
+  {
+    for(const auto& sym : this->external_momenta)
+      {
+        this->K = Legendre_to_cosines(this->K, sym);
+      }
   }
 
 

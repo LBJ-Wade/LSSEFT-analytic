@@ -75,10 +75,14 @@ void oneloop_db::reduce_angular_integrals(service_locator& loc, bool symmetrize)
 
 void oneloop_db::simplify(const GiNaC::exmap& map)
   {
-    // walk through each expession, applying simplification map to reduced integral if it exists
+    // walk through each expression, applying simplification map to the bare expression
+    // and to the reduced integral if it exists
     for(auto& item : this->db)
       {
+        std::unique_ptr<oneloop_expression>& expr = item.second.first;
         std::unique_ptr<oneloop_reduced_integral>& ri = item.second.second;
+
+        expr->simplify(map);
         if(ri) ri->simplify(map);
       }
   }
@@ -88,7 +92,10 @@ void oneloop_db::canonicalize_external_momenta()
   {
     for(auto& item : this->db)
       {
+        std::unique_ptr<oneloop_expression>& expr = item.second.first;
         std::unique_ptr<oneloop_reduced_integral>& ri = item.second.second;
+
+        expr->canonicalize_external_momenta();
         if(ri) ri->canonicalize_external_momenta();
       }
   }

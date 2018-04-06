@@ -32,9 +32,9 @@
 
 #include "lib/fourier_kernel.h"
 #include "lib/expression_databases/tree_db.h"
-#include "lib/detail/contractions.h"
-#include "lib/detail/relabel_product.h"
-#include "lib/detail/Rayleigh_momenta.h"
+#include "lib/correlators/detail/contractions.h"
+#include "lib/correlators/detail/relabel_product.h"
+#include "lib/correlators/detail/Rayleigh_momenta.h"
 
 #include "services/symbol_factory.h"
 

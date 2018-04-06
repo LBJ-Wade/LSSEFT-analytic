@@ -48,11 +48,13 @@ ADD_EXECUTABLE(LSSEFT_analytic
   lib/correlators/Pk_oneloop.cpp
   lib/correlators/RSDPk_oneloop.cpp
   lib/correlators/Bk_tree.cpp
-  lib/detail/contractions.cpp
-  lib/detail/legendre_utils.cpp
-  lib/detail/Rayleigh_momenta.cpp
-  lib/detail/relabel_product.cpp
-  lib/detail/special_functions.cpp
+  lib/correlators/detail/contractions.cpp
+  lib/correlators/detail/correlation_functions.cpp
+  lib/correlators/detail/legendre_utils.cpp
+  lib/correlators/detail/Rayleigh_momenta.cpp
+  lib/correlators/detail/relabel_product.cpp
+  lib/correlators/detail/special_functions.cpp
+  lib/correlators/detail/Pk_cross_products.cpp
   services/argument_cache.cpp
   services/service_locator.cpp
   services/symbol_factory.cpp
@@ -107,6 +109,24 @@ SET(LIBRARY_CORRELATORS_FILES
   lib/correlators/Bk_tree.h
   )
 
+SET(LIBRARY_CORRELATORS_DETAIL_FILES
+  lib/correlators/detail/contractions.cpp
+  lib/correlators/detail/contractions.h
+  lib/correlators/detail/relabel_product.cpp
+  lib/correlators/detail/relabel_product.h
+  lib/correlators/detail/Rayleigh_momenta.cpp
+  lib/correlators/detail/Rayleigh_momenta.h
+  lib/correlators/detail/special_functions.cpp
+  lib/correlators/detail/special_functions.h
+  lib/correlators/detail/legendre_utils.cpp
+  lib/correlators/detail/legendre_utils.h
+  lib/correlators/detail/Pk_cross_products.h
+  lib/correlators/detail/Pk_cross_products.cpp
+  lib/correlators/detail/cross_products.h
+  lib/correlators/detail/correlation_functions.cpp
+  lib/correlators/detail/correlation_functions.h
+  )
+
 SET(LIBRARY_EXPRESSION_DATABASES_FILES
   lib/expression_databases/oneloop_db.cpp
   lib/expression_databases/oneloop_db.h
@@ -121,19 +141,6 @@ SET(LIBRARY_EXPRESSIONS_FILES
   lib/expressions/oneloop_reduced_integral.h
   lib/expressions/tree_expression.cpp
   lib/expressions/tree_expression.h
-  )
-
-SET(LIBRARY_DETAIL_FILES
-  lib/detail/contractions.cpp
-  lib/detail/contractions.h
-  lib/detail/relabel_product.cpp
-  lib/detail/relabel_product.h
-  lib/detail/Rayleigh_momenta.cpp
-  lib/detail/Rayleigh_momenta.h
-  lib/detail/special_functions.cpp
-  lib/detail/special_functions.h
-  lib/detail/legendre_utils.cpp
-  lib/detail/legendre_utils.h
   )
 
 SET(LOCALIZATIONS_FILES
@@ -188,9 +195,9 @@ ADD_EXECUTABLE(clion_dummy_target
   ${INSTRUMENTS_FILES}
   ${LIBRARY_FILES}
   ${LIBRARY_CORRELATORS_FILES}
+  ${LIBRARY_CORRELATORS_DETAIL_FILES}
   ${LIBRARY_EXPRESSION_DATABASES_FILES}
   ${LIBRARY_EXPRESSIONS_FILES}
-  ${LIBRARY_DETAIL_FILES}
   ${LOCALIZATIONS_FILES}
   ${SERVICES_FILES}
   ${SHARED_FILES}

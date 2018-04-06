@@ -27,37 +27,7 @@
 #include "contractions.h"
 
 
-namespace cfs
-  {
-
-    //! Taylor expansion of Pk needs special attention, because we don't want to end up doing
-    //! an expansion of something Pk(k).
-    //! On the other hand, Pk(sqrt(k^2 + K^2 - 2kLx)) can certainly be expanded
-    GiNaC::ex Pk_series(const GiNaC::ex& a, const GiNaC::ex& b, const GiNaC::ex& x,
-                        const GiNaC::relational& rel, int order, unsigned options);
-
-    // register Pk with custom series expansion function
-    REGISTER_FUNCTION(Pk, series_func(Pk_series))
-
-    GiNaC::ex Pk_series(const GiNaC::ex& a, const GiNaC::ex& b, const GiNaC::ex& x,
-                        const GiNaC::relational& rel, int order, unsigned options)
-      {
-        // get symbol that we're expanding with respect to
-        const auto& sym = GiNaC::ex_to<GiNaC::symbol>(rel.lhs());
-
-        // if series expansion of argument has a constant term, then it's safe to do a normal Taylor
-        // expansion
-        if(x.coeff(sym, 0) != 0) throw GiNaC::do_taylor();
-
-        // otherwise, we should avoid it because we will end up with an expansion of Pk(x) around x=0
-        // instead, just return the original Pk(x) as the zeroth term of a power series
-        return GiNaC::pseries(rel, GiNaC::epvector{ {Pk(a, b, x), 0} });
-      }
-
-  }   // namespace cfs = correlation functions
-
-
-namespace detail
+namespace Wick
   {
 
     size_t double_factorial(size_t N)
@@ -75,8 +45,6 @@ namespace detail
     std::unique_ptr<contractions::contraction_set>
     contractions::enumerate_contractions(size_t num, const iv_list& ivs) const
       {
-        using detail::graph;
-
         // allocate a unique_ptr for the contraction set
         auto ctrs = std::make_unique<contraction_set>();
 
@@ -194,4 +162,4 @@ namespace detail
       }
 
 
-  }   // namespace detail
+  }   // namespace Wick

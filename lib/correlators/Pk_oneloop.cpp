@@ -76,7 +76,7 @@ void Pk_oneloop::write(std::ostream& out) const
 
 void Pk_oneloop::write_Mathematica(std::ostream& out) const
   {
-    this->Ptree.write_Mathematica(out, this->tag + "Tree", false);
+    this->Ptree.write_Mathematica(out, this->tag + "Tree");
     this->P13.write_Mathematica(out, this->tag + "P13", true);
     this->P22.write_Mathematica(out, this->tag + "P22", false);
   }
@@ -84,7 +84,6 @@ void Pk_oneloop::write_Mathematica(std::ostream& out) const
 
 void Pk_oneloop::clear_angular_reductions()
   {
-    this->Ptree.clear_reduced_integrals();
     this->P13.clear_reduced_integrals();
     this->P22.clear_reduced_integrals();
   }
@@ -93,12 +92,10 @@ void Pk_oneloop::clear_angular_reductions()
 void Pk_oneloop::perform_angular_reduction()
   {
     // perform angular reduction on integrands using Rayleigh algorithm
-    this->Ptree.reduce_angular_integrals(loc, false);  // false = don't symmetrize q/s (meaningless at tree level)
     this->P13.reduce_angular_integrals(loc, false);    // false = don't symmetrize q/s
     this->P22.reduce_angular_integrals(loc, true);     // true = symmetrize q/s
 
-    // prune empty records
-    this->Ptree.prune();
+    // prune empty records from the reduced integrals
     this->P13.prune();
     this->P22.prune();
   }

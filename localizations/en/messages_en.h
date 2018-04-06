@@ -50,6 +50,7 @@ constexpr auto ERROR_KERNEL_TRANSFORM_INSERT_FAILED = "Internal error: kernel in
 constexpr auto ERROR_CANT_ADD_PK_INCOMPATIBLE_MOMENTA = "Internal error: can't add power spectra using incompatible external momenta";
 constexpr auto ERROR_CANT_ADD_BK_INCOMPATIBLE_MOMENTA = "Internal error: can't add bispectra using incompatible external momenta";
 constexpr auto ERROR_ONELOOP_INTEGRAL_INSERT_FAILED = "Internal error: 1-loop integral insertion failed";
+constexpr auto ERROR_TREE_INSERT_FAILED = "Internal error: Tree-level insertion failed";
 constexpr auto ERROR_ONELOOP_INTEGRAL_INSERT_AFTER_REDUCTION = "Internal error: attempt to insert 1-loop integral after angular reduction has been performed";
 constexpr auto ERROR_ONELOOP_ELEMENT_INSERT_FAILED = "Internal error: 1-loop integral element insertion failed";
 constexpr auto ERROR_ONELOOP_ELEMENT_INSERT_FAILED_RSD = "Internal error: 1-loop integral element insertion failed during RSD filtering";
@@ -81,7 +82,12 @@ constexpr auto ERROR_COULD_NOT_ASSIGN_LOOP_MOMENTUM = "Internal error: could not
 constexpr auto ERROR_COULD_NOT_ASSIGN_EXTERNAL_MOMENTUM = "Internal error: could not assign external momentum";
 constexpr auto ERROR_COULD_NOT_EVALUATE_WICK_CONTRACTION = "Internal error: cannot (yet) evaluate a Wick contraction between two unassigned momenta";
 
-constexpr auto ERROR_EXPECTED_ONE_LOOP_RESULT = "Internal error: expected one-loop result";
+constexpr auto ERROR_EXPECTED_TREE_PRODUCT = "Internal error: to produce a tree-level power spectrum requires a product of kernels whose orders sum to 2; encountered product with orders";
+constexpr auto ERROR_EXPECTED_PK_ONELOOP_PRODUCT = "Internal error: to produce a 1-loop power spectrum requires a product of kernels whose orders sum to 4; encountered product with orders";
+
+constexpr auto ERROR_EXPECTED_TREE_RESULT = "Internal error: expected tree-level result but obtained result at loop level";
+constexpr auto ERROR_EXPECTED_EMPTY_RAYLEIGH_LIST = "Internal error: expected empty list of Rayleigh momenta at tree level";
+constexpr auto ERROR_EXPECTED_ONELOOP_RESULT = "Internal error: expected 1-loop result but obtained result at loop level";
 constexpr auto ERROR_OUTSTANDING_INDICES = "Simplification of some Pk terms was not complete: indices were left over";
 constexpr auto ERROR_INCORRECT_SUBMAP_SIZE = "Internal error: unexpected size for substitution map from Wick contractions";
 

@@ -36,7 +36,7 @@
 #include "lib/correlators/Pk_oneloop.h"
 #include "lib/correlators/RSDPk_oneloop.h"
 #include "lib/correlators/Bk_tree.h"
-#include "lib/detail/special_functions.h"
+#include "lib/correlators/detail/special_functions.h"
 
 #include "SPT/time_functions.h"
 #include "SPT/oneloop_kernels.h"
@@ -51,7 +51,7 @@ std::vector<std::string> generate_UV_limit(const RSDPk_oneloop::RSDPk_oneloop_se
   {
     std::vector<std::string> output;
 
-    const auto UV_limit = group.get_UV_limit<>(2*max_k);
+    const auto UV_limit = group.get_UV_limit(2*max_k);
 
     for(unsigned int i = 0; i <= max_k; ++i)
       {
@@ -81,7 +81,7 @@ std::vector<std::string> generate_map(const RSDPk_oneloop::RSDPk_oneloop_set& gr
   {
     std::vector<std::string> output;
 
-    const auto UV_limit = group.get_UV_limit<>(2*max_k);
+    const auto UV_limit = group.get_UV_limit(2*max_k);
     const auto time_funcs = group.get_time_functions();
 
     for(unsigned int i = 0; i <= max_mu; ++i)

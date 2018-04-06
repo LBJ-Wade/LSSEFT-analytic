@@ -31,10 +31,11 @@
 #include <iostream>
 
 #include "lib/fourier_kernel.h"
+#include "lib/expression_databases/tree_db.h"
 #include "lib/expression_databases/oneloop_db.h"
-#include "lib/detail/contractions.h"
-#include "lib/detail/relabel_product.h"
-#include "lib/detail/Rayleigh_momenta.h"
+#include "lib/correlators/detail/Pk_cross_products.h"
+#include "lib/correlators/detail/relabel_product.h"
+#include "lib/correlators/detail/Rayleigh_momenta.h"
 
 #include "services/symbol_factory.h"
 
@@ -47,8 +48,11 @@ class Pk_oneloop
     
   public:
 
-    // pull in oneloop_db as our database type
-    using Pk_db = oneloop_db;
+    //! pull in tree_db as our database type for tree terms
+    using Pk_tree_db = tree_db;
+
+    //! pull in oneloop_db as our database type for 1-loop terms
+    using Pk_oneloop_db = oneloop_db;
 
 
     // CONSTRUCTOR, DESTRUCTOR
@@ -70,12 +74,7 @@ class Pk_oneloop
     // BUILD POWER SPECTRA EXPRESSIONS
     
   protected:
-    
-    //! generic algorithm to construct cross-products of kernels
-    //! (assumed to be of a single order, but the algorithm doesn't enforce that)
-    template <typename Kernel1, typename Kernel2>
-    void cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db& db);
-    
+
     //! build tree power spectrum
     template <typename Kernel1, typename Kernel2>
     void build_tree(const Kernel1& ker1, const Kernel2& ker2);
@@ -108,13 +107,13 @@ class Pk_oneloop
   public:
     
     //! get tree power spectrum
-    const Pk_db& get_tree() const { return this->Ptree; }
+    const Pk_tree_db& get_tree() const { return this->Ptree; }
     
     //! get 13 power spectrum
-    const Pk_db& get_13() const { return this->P13; }
+    const Pk_oneloop_db& get_13() const { return this->P13; }
     
     //! get 22 power spectrum
-    const Pk_db& get_22() const { return this->P22; }
+    const Pk_oneloop_db& get_22() const { return this->P22; }
 
 
     // TRANSFORMATIONS
@@ -175,13 +174,13 @@ class Pk_oneloop
     // POWER SPECTRUM EXPRESSIONS
     
     //! expression for tree power spectrum
-    Pk_db Ptree;
+    Pk_tree_db Ptree;
     
     //! expression for 13 power spectrum
-    Pk_db P13;
+    Pk_oneloop_db P13;
     
     //! expression for 22 power spectrum
-    Pk_db P22;
+    Pk_oneloop_db P22;
   
   };
 
@@ -215,98 +214,12 @@ Pk_oneloop::Pk_oneloop(std::string n_, std::string t_, const fourier_kernel<N1>&
 
 
 template <typename Kernel1, typename Kernel2>
-void Pk_oneloop::cross_product(const Kernel1& ker1, const Kernel2& ker2, Pk_db& db)
-  {
-    // multiply out all terms in ker1 and ker2, using the insertion operator 'ins'
-    // to store the results in a suitable Pk database
-    
-    for(auto t1 = ker1.cbegin(); t1 != ker1.cend(); ++t1)
-      {
-        for(auto t2 = ker2.cbegin(); t2 != ker2.cend(); ++t2)
-          {
-            const auto& tm1 = t1->second->get_time_function();
-            const auto& tm2 = t2->second->get_time_function();
-        
-            const auto& K1 = t1->second->get_kernel();
-            const auto& K2 = t2->second->get_kernel();
-        
-            const auto& iv1 = t1->second->get_initial_value_set();
-            const auto& iv2 = t2->second->get_initial_value_set();
-            
-            const auto& rm1 = t1->second->get_substitution_list();
-            const auto& rm2 = t2->second->get_substitution_list();
-        
-            detail::contractions ctrs(detail::contractions::iv_group<2>{ iv1, iv2 },
-                                      detail::contractions::kext_group<2>{ this->k, -this->k }, this->loc);
-        
-            const auto& Wicks = ctrs.get();
-            for(const auto& W : Wicks)
-              {
-                const auto& data = *W;
-                const auto& loops = data.get_loop_momenta();
-                
-                if(loops.size() > 1)
-                  throw exception(ERROR_EXPECTED_ONE_LOOP_RESULT, exception_code::Pk_error);
-    
-                // before taking the product K1*K2 we must relabel indices in K2 if they clash with
-                // K1, otherwise we will get nonsensical results
-                const auto& subs_maps = data.get_substitution_rules();
-                if(subs_maps.size() != 2)
-                  throw exception(ERROR_INCORRECT_SUBMAP_SIZE, exception_code::Pk_error);
-    
-                // merge lists of Rayleigh rules together
-                GiNaC::exmap Rayleigh_list;
-                GiNaC_symbol_set reserved{k};
-                std::copy(loops.begin(), loops.end(), std::inserter(reserved, reserved.begin()));
-                
-                using detail::merge_Rayleigh_lists;
-                auto Ray_remap1 = merge_Rayleigh_lists(rm1, Rayleigh_list, reserved, subs_maps[0], this->loc);
-                auto Ray_remap2 = merge_Rayleigh_lists(rm2, Rayleigh_list, reserved, subs_maps[1], this->loc);
-                
-                // perform all relabellings
-                auto K1_remap = K1.subs(subs_maps[0]).subs(Ray_remap1);
-                auto K2_remap = K2.subs(subs_maps[1]).subs(Ray_remap2);
-                
-                // relabel indices
-                using detail::relabel_index_product;
-                auto K = relabel_index_product(K1_remap, K2_remap, this->loc);
-                
-                using detail::remove_Rayleigh_trivial;
-                auto Rayleigh_triv = remove_Rayleigh_trivial(Rayleigh_list);
-                K = K.subs(Rayleigh_triv);
-                
-                // simplify dot products where possible
-                GiNaC::scalar_products dotp;
-                dotp.add(this->k, this->k, this->k*this->k);
-                // k.l, l.l and other inner products are supposed to be picked up later by
-                // loop integral transformations
-
-                K = simplify_index(K, dotp, Rayleigh_list, this->loc);
-
-                // prune Rayleigh list to remove momenta that have dropped out
-                using detail::prune_Rayleigh_list;
-                prune_Rayleigh_list(Rayleigh_list, K);
-                
-                if(static_cast<bool>(K != 0))
-                  {
-                    auto elt =
-                      std::make_unique<oneloop_expression>(tm1*tm2, K, data.get_Wick_string(), loops,
-                                                      GiNaC_symbol_set{this->k}, Rayleigh_list, this->loc);
-                    db.emplace(std::move(elt));
-                  }
-              }
-          }
-      }
-  }
-
-
-template <typename Kernel1, typename Kernel2>
 void Pk_oneloop::build_tree(const Kernel1& ker1, const Kernel2& ker2)
   {
     const auto ker1_db = ker1.order(1);
     const auto ker2_db = ker2.order(1);
 
-    this->cross_product(ker1_db, ker2_db, this->Ptree);
+    cross_product(ker1_db, ker2_db, this->k, this->Ptree, this->loc);
   }
 
 
@@ -319,8 +232,8 @@ void Pk_oneloop::build_13(const Kernel1& ker1, const Kernel2& ker2)
     const auto ker2_db1 = ker2.order(1);
     const auto ker2_db3 = ker2.order(3);
 
-    this->cross_product(ker1_db1, ker2_db3, this->P13);
-    this->cross_product(ker1_db3, ker2_db1, this->P13);
+    cross_product(ker1_db1, ker2_db3, this->k, this->P13, this->loc);
+    cross_product(ker1_db3, ker2_db1, this->k, this->P13, this->loc);
   }
 
 
@@ -330,7 +243,7 @@ void Pk_oneloop::build_22(const Kernel1& ker1, const Kernel2& ker2)
     const auto ker1_db2 = ker1.order(2);
     const auto ker2_db2 = ker2.order(2);
 
-    this->cross_product(ker1_db2, ker2_db2, this->P22);
+    cross_product(ker1_db2, ker2_db2, this->k, this->P22, this->loc);
   }
 
 

@@ -28,8 +28,8 @@
 
 #include "oneloop_reduced_integral.h"
 
-#include "lib/detail/special_functions.h"
-#include "lib/detail/legendre_utils.h"
+#include "lib/correlators/detail/special_functions.h"
+#include "lib/correlators/detail/legendre_utils.h"
 
 #include "utilities/GiNaC_print.h"
 
@@ -38,7 +38,7 @@
 
 
 oneloop_element::oneloop_element(GiNaC::ex ig_, GiNaC::ex ms_, GiNaC::ex wp_, time_function tm_,
-                                   GiNaC_symbol_set vs_, GiNaC::symbol ang_, GiNaC_symbol_set em_)
+                                 GiNaC_symbol_set vs_, GiNaC::symbol ang_, GiNaC_symbol_set em_)
   : integrand(std::move(ig_)),
     measure(std::move(ms_)),
     WickProduct(std::move(wp_)),

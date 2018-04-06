@@ -43,7 +43,6 @@
 class oneloop_element_key;
 
 
-
 //! integration element captures a single integration
 class oneloop_element
   {
@@ -112,7 +111,8 @@ class oneloop_element
     //! apply simplification map
     void simplify(const GiNaC::exmap& map);
 
-    //! convert external momenta to canonical Cos form
+    //! convert external momenta by converting any angular factors
+    //! involving them to Cos form (rather than Legendre polynomials)
     void canonicalize_external_momenta();
 
     //! filter integrand
@@ -206,8 +206,8 @@ class oneloop_element_key
   };
 
 
-//! an integrand database is a map from integration with given dummy variables, time function and Wick product
-//! to the cumulative integrand
+//! the final 1-loop reduced integral will be a collection of oneloop_element containers
+//! each container is a map from a measure, Wick product, loop variables, and set of external momenta to an integrand
 using oneloop_element_db = std::unordered_map< oneloop_element_key, std::unique_ptr<oneloop_element> >;
 
 //! stream insertion
@@ -271,7 +271,8 @@ class oneloop_reduced_integral
     //! apply simplification map
     void simplify(const GiNaC::exmap& map);
 
-    //! canonicalize external momenta
+    //! canonicalize external momenta by converting any angular products involving them to
+    //! cosines rather than Legendre polynomials
     void canonicalize_external_momenta();
 
     //! remove empty records

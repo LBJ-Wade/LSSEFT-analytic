@@ -94,6 +94,15 @@ class oneloop_expression
 
     // TRANSFORMATIONS
 
+  public:
+
+    //! apply simplification map
+    void simplify(const GiNaC::exmap& map);
+
+    //! canonicalize external momenta by converting any angular products involving them to
+    //! cosines rather than Legendre polynomials
+    void canonicalize_external_momenta();
+
   protected:
 
     //! convert loop momenta to a canonical form

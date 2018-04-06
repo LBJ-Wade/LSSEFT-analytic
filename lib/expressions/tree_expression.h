@@ -29,6 +29,7 @@
 
 
 #include <iostream>
+#include <unordered_map>
 
 #include "shared/common.h"
 #include "services/service_locator.h"
@@ -67,6 +68,9 @@ class tree_expression
     //! get order in the loop expression
     constexpr unsigned int get_loop_order() const { return 0; }
 
+    //! expression is null?
+    bool null() const { return static_cast<bool>(K == 0); }
+
 
     // INTEGRAND ACCESSORS
 
@@ -85,6 +89,21 @@ class tree_expression
     const GiNaC_symbol_set& get_external_momenta() const { return this->external_momenta; }
 
 
+    // TRANSFORMATIONS
+
+  public:
+
+    //! apply simplification map
+    void simplify(const GiNaC::exmap& map);
+
+    //! canonicalize external momenta by converting any angular products involving them to
+    //! cosines rather than Legendre polynomials
+    void canonicalize_external_momenta();
+
+    //! filter expression
+    void filter(const GiNaC::symbol& pattern, unsigned int order = 1);
+
+
     // SERVICES
 
   public:
@@ -93,11 +112,14 @@ class tree_expression
     void write(std::ostream& out) const;
 
     //! convert self to Mathematica format expression
-    std::string to_Mathematica() const;
+    std::string to_Mathematica(bool) const;
 
     //! test whether another tree_expression object is of matching type
     //! (ie. shares time functiom, Wick product, loop momenta, external momenta, Rayleigh momenta)
-    bool is_matching_type(const tree_expression& obj) const;;
+    bool is_matching_type(const tree_expression& obj) const;
+
+    //! get UV limit (for use when held inside an RSDPk_set)
+    GiNaC::ex get_UV_limit() const { return GiNaC::ex{0}; }
 
 
     // INTERNAL DATA
@@ -167,6 +189,13 @@ class tree_expression_key
     const tree_expression& tree;
 
   };
+
+
+// a final tree-level exoression is a collection of tree_expression containers
+using tree_expression_db = std::unordered_map< tree_expression_key, std::unique_ptr<tree_expression> >;
+
+//! stream insertion
+std::ostream& operator<<(std::ostream& out, const tree_expression_db& obj);
 
 
 // specialize std::hash and std::equal_to work for oneloop_expression_key

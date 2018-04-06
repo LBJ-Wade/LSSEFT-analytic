@@ -133,7 +133,8 @@ class oneloop_db
     //! apply simplification map
     void simplify(const GiNaC::exmap& map);
 
-    //! canonicalize external momenta
+    //! canonicalize external momenta by converting any angular factors involving them to cosines
+    //! rather than Legendre polynomials
     void canonicalize_external_momenta();
 
     //! prune empty records

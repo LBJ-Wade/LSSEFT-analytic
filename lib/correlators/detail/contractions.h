@@ -42,25 +42,13 @@
 #include "shared/exceptions.h"
 #include "localizations/messages.h"
 
+#include "correlation_functions.h"
 #include "relabel_product.h"
 
 #include "ginac/ginac.h"
 
 
-namespace cfs
-  {
-
-    //! declare a GiNaC function to represent a power spectrum
-    //! this is really just a placeholder function whose job is to accept three arguments:
-    //! the first two specify the correlation function in question and the third specifies
-    //! the momentum
-    DECLARE_FUNCTION_3P(Pk)
-
-  }   // namespace cfs = correlation functions
-
-
-
-namespace detail
+namespace Wick
   {
 
     //! graph represents the Feynman graph built by performing Wick contractions;
@@ -616,7 +604,7 @@ namespace detail
       }
     
     
-  }   // namespace detail
+  }   // namespace Wick
 
 
 #endif //LSSEFT_ANALYTIC_CONTRACTIONS_H

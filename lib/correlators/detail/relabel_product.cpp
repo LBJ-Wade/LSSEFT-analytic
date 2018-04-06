@@ -27,30 +27,25 @@
 #include "relabel_product.h"
 
 
-namespace detail
+GiNaC::ex relabel_index_product(const GiNaC::ex& a, const GiNaC::ex& b, service_locator& loc)
   {
+    GiNaC::exmap idx_map;
+    auto& sf =  loc.get_symbol_factory();
 
-    GiNaC::ex relabel_index_product(const GiNaC::ex& a, const GiNaC::ex& b, service_locator& loc)
-      {
-        GiNaC::exmap idx_map;
-        auto& sf =  loc.get_symbol_factory();
-        
-        // need only relabel indices that occur >= 2 times; can allow single occurrences to be contracted
-        const auto& a_idxs = get_expr_indices(a, 2);
-        const auto& b_idxs = get_expr_indices(b, 2);
-        
-        for(const auto& idx : b_idxs)
-        {
-          // does this index already exist in the a set? if not, nothing to do
-          if(a_idxs.find(idx) == a_idxs.end()) continue;
-          
-          // otherwise, manufacture a new index
-          // note that we remap the index *value* (ie. its symbolic label), not the index itself
-            const auto relabel = sf.make_unique_index();
-            idx_map[idx] = GiNaC::ex_to<GiNaC::symbol>(relabel.get_value());
-        }
-        
-        return a * b.subs(idx_map);
-      }
-    
-  }   // namespace detail
+    // need only relabel indices that occur >= 2 times; can allow single occurrences to be contracted
+    const auto& a_idxs = get_expr_indices(a, 2);
+    const auto& b_idxs = get_expr_indices(b, 2);
+
+    for(const auto& idx : b_idxs)
+    {
+      // does this index already exist in the a set? if not, nothing to do
+      if(a_idxs.find(idx) == a_idxs.end()) continue;
+
+      // otherwise, manufacture a new index
+      // note that we remap the index *value* (ie. its symbolic label), not the index itself
+        const auto relabel = sf.make_unique_index();
+        idx_map[idx] = GiNaC::ex_to<GiNaC::symbol>(relabel.get_value());
+    }
+
+    return a * b.subs(idx_map);
+  }

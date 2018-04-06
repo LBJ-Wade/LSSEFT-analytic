@@ -84,6 +84,54 @@ RSDPk_oneloop::RSDPk_oneloop(const Pk_oneloop& Pk, const GiNaC::symbol& mu_,
   }
 
 
+void RSDPk_oneloop::filter(RSDPk_oneloop::RSDPk_tree_set& dest, const Pk_oneloop::Pk_tree_db& source)
+  {
+    // Walk through the source database, pushing its oneloop_element entries into the destination set.
+    // If the destination set has a filter in place then this will automatically apply the filter
+    // against any entries we push, so there is no need to check that here
+
+    for(const auto& item : source)
+      {
+        // extract oneloop_expression object and oneloop_reduced_integral object
+        const Pk_oneloop::Pk_tree_db::expr_type& elt = *item.second;
+
+        // push into destination set
+        // Filtering occurs automatically if required
+        dest.emplace(elt);
+      }
+  }
+
+void RSDPk_oneloop::filter(RSDPk_oneloop_set& dest, const Pk_oneloop::Pk_oneloop_db& source)
+  {
+    // Walk through the source database, pushing its oneloop_element entries into the destination set.
+    // If the destination set has a filter in place then this will automatically apply the filter
+    // against any entries we push, so there is no need to check that here
+
+    for(const auto& item : source)
+      {
+        // extract oneloop_expression object and oneloop_reduced_integral object
+        const Pk_oneloop::Pk_oneloop_db::expr_type& lp = *item.second.first;
+        const Pk_oneloop::Pk_oneloop_db::reduced_ptr_type& ri = item.second.second;
+
+        // if no reduced integral, then nothing to insert
+        if(!ri) continue;    // skip if pointer is empty
+
+        // get database of one-loop-reduced-integral elements
+        const auto& db  = ri->get_db();
+
+        // walk through this list
+        for(const auto& record : db)
+          {
+            const std::unique_ptr<oneloop_element>& elt = record.second;
+
+            // push into destination set
+            // Filtering occurs automatically if required
+            if(elt) dest.emplace(*elt);
+          }
+      }
+  }
+
+
 void RSDPk_oneloop::write(std::ostream& out) const
   {
     out << "Tree-level:" << '\n';

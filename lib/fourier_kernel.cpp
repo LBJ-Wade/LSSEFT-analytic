@@ -29,8 +29,8 @@
 #include <string>
 
 #include "fourier_kernel.h"
-#include "detail/relabel_product.h"
-#include "detail/Rayleigh_momenta.h"
+#include "lib/correlators/detail/relabel_product.h"
+#include "lib/correlators/detail/Rayleigh_momenta.h"
 #include "utilities/GiNaC_utils.h"
 
 
@@ -167,7 +167,7 @@ namespace fourier_kernel_impl
           }
         
         // also need to remap and merge any substitution rules in the right-hand side
-        using detail::merge_Rayleigh_rules;
+        using Rayleigh::merge_Rayleigh_rules;
         auto relabel_map = merge_Rayleigh_rules(this->vs, rhs.vs, this->iv.get_momenta(), mma_map, this->loc);
         std::copy(relabel_map.begin(), relabel_map.end(), std::inserter(mma_map, mma_map.begin()));
 
@@ -231,12 +231,11 @@ namespace fourier_kernel_impl
     
         // merge RHS substitution list with ours
         // (occurs after merging initial value list so all reserved symbols are captured)
-        using detail::merge_Rayleigh_rules;
+        using Rayleigh::merge_Rayleigh_rules;
         auto relabel_map = merge_Rayleigh_rules(this->vs, rhs.vs, this->iv.get_momenta(), mma_map, this->loc);
         std::copy(relabel_map.begin(), relabel_map.end(), std::inserter(mma_map, mma_map.begin()));
 
         // build final expression, performing any necessary index (or other) relabellings on RHS
-        using detail::relabel_index_product;
         auto temp = simplify_index(relabel_index_product(this->K, rhs.K.subs(mma_map), this->loc), this->vs, this->loc);
         this->K = temp;
 

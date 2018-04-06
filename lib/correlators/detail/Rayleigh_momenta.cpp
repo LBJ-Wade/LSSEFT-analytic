@@ -27,7 +27,7 @@
 #include "Rayleigh_momenta.h"
 
 
-namespace detail
+namespace Rayleigh
   {
     
     GiNaC::exmap
@@ -177,4 +177,4 @@ namespace detail
           }
       }
     
-  }   // namespace detail
+  }   // namespace Rayleigh

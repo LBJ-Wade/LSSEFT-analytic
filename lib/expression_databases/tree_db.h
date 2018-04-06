@@ -41,10 +41,15 @@ class tree_db
 
     // TYPES
 
+  public:
+
+    //! expr_type
+    using expr_type = tree_expression;
+
   protected:
 
     //! database is a set of tree_expressions, keyed by tree_expression_key
-    using db_type = std::unordered_map< tree_expression_key, tree_expression >;
+    using db_type = std::unordered_map< tree_expression_key, std::unique_ptr<tree_expression> >;
 
   public:
 
@@ -100,6 +105,15 @@ class tree_db
 
 
     // TRANSFORMATIONS
+
+  public:
+
+    //! apply simplification map
+    void simplify(const GiNaC::exmap& map);
+
+    //! canonicalize external momenta by converting any angular factors involving them to cosines
+    //! rather than Legendre polynomials
+    void canonicalize_external_momenta();
 
 
     // SERVICES

@@ -32,7 +32,7 @@
 #include "utilities/GiNaC_utils.h"
 
 
-namespace detail
+namespace Rayleigh
   {
     
     //! merge substitution rules from 'source' into an existing map 'dest', applying substitutions in
@@ -53,7 +53,7 @@ namespace detail
     //! prune a list of Rayleigh labels
     void prune_Rayleigh_list(GiNaC::exmap& list, const GiNaC::ex& K);
     
-  }   // namespace detail
+  }   // namespace Rayleigh
 
 
 #endif //LSSEFT_ANALYTIC_RAYLEIGH_MOMENTA_H

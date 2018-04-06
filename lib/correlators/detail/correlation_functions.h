@@ -1,5 +1,5 @@
 //
-// Created by David Seery on 29/08/2017.
+// Created by David Seery on 06/04/2018.
 // --@@
 // Copyright (c) 2017 University of Sussex. All rights reserved.
 //
@@ -24,21 +24,23 @@
 // --@@
 //
 
-#ifndef LSSEFT_ANALYTIC_RELABEL_PRODUCT_H
-#define LSSEFT_ANALYTIC_RELABEL_PRODUCT_H
+#ifndef LSSEFT_ANALYTIC_CORRELATION_FUNCTIONS_H
+#define LSSEFT_ANALYTIC_CORRELATION_FUNCTIONS_H
 
 
-#include "services/service_locator.h"
-#include "utilities/GiNaC_utils.h"
+#include "ginac/ginac.h"
 
 
-namespace detail
+namespace cfs
   {
-    
-    //! relabel indices in a product
-    GiNaC::ex relabel_index_product(const GiNaC::ex& a, const GiNaC::ex& b, service_locator& loc);
-    
-  }   // namespace detail
+
+    //! declare a GiNaC function to represent a power spectrum
+    //! this is really just a placeholder function whose job is to accept three arguments:
+    //! the first two specify the correlation function in question and the third specifies
+    //! the momentum
+    DECLARE_FUNCTION_3P(Pk)
+
+  }   // namespace cfs = correlation functions
 
 
-#endif //LSSEFT_ANALYTIC_RELABEL_PRODUCT_H
+#endif //LSSEFT_ANALYTIC_CORRELATION_FUNCTIONS_H
