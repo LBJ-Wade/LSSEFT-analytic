@@ -1,7 +1,7 @@
 //
-// Created by David Seery on 05/04/2018.
+// Created by David Seery on 06/04/2018.
 // --@@
-// Copyright (c) 2017 University of Sussex. All rights reserved.
+// Copyright (c) 2018 University of Sussex. All rights reserved.
 //
 // This file is part of the Sussex Effective Field Theory for
 // Large-Scale Structure analytic calculation platform (LSSEFT-analytic).
@@ -24,38 +24,38 @@
 // --@@
 //
 
-#include "Pk_cross_products.h"
+#include "Bk_cross_products.h"
 
 
 namespace cross_product_impl
   {
 
-    // construct product of two kernels, performing any necessary relabellings
-    // returns a pair consisting of the relabelled product, and a set of Rayleigh rules
-    std::pair< GiNaC::ex, GiNaC::exmap >
-    relabel_kernel_product(const fourier_kernel_impl::kernel& ker1, const fourier_kernel_impl::kernel& ker2,
-                           GiNaC::symbol k, const Wick::Wick_data& data, service_locator& loc)
+    kernel_product relabel_kernel_product(const fourier_kernel_impl::kernel& ker1, GiNaC::symbol k1,
+                                          const fourier_kernel_impl::kernel& ker2, GiNaC::symbol k2,
+                                          const fourier_kernel_impl::kernel& ker3, GiNaC::symbol k3,
+                                          const Wick::Wick_data& data, service_locator& loc)
       {
         // extract data from each kernel
         const auto& K1 = ker1.get_kernel();
         const auto& K2 = ker2.get_kernel();
+        const auto& K3 = ker3.get_kernel();
 
         const auto& rm1 = ker1.get_substitution_list();
         const auto& rm2 = ker2.get_substitution_list();
+        const auto& rm3 = ker3.get_substitution_list();
 
         const auto& loops = data.get_loop_momenta();
 
         // STEP 1. PERFORM RELABELLING
 
-        // before taking the product K1*K2 we must relabel indices and Rayleigh momenta in K2 if they clash
-        // with K1, otherwise we will get nonsensical results
+        // before taking the product K1*K2*K3 we must relabel indices and Rayleigh momenta
 
         // get substitutions produced by the Wick contractions
         const auto& subs_maps = data.get_substitution_rules();
 
-        // there should be two substitution maps, one for K1 and one for K2. If not, complain
-        if(subs_maps.size() != 2)
-          throw exception(ERROR_INCORRECT_SUBMAP_SIZE, exception_code::Pk_error);
+        // there should be three substitution maps, one each for K1, K2, K3. If not, complain
+        if(subs_maps.size() != 3)
+          throw exception(ERROR_INCORRECT_SUBMAP_SIZE, exception_code::Bk_error);
 
         // STEP 1a. Merge (and relabel) Rayleigh momenta
 
@@ -63,7 +63,7 @@ namespace cross_product_impl
         GiNaC::exmap Rayleigh_list;
         // second, build a list of labels that we must avoid when generating new momenta.
         // this should contain the external momentum 'k' and any loop momenta
-        GiNaC_symbol_set reserved{k};
+        GiNaC_symbol_set reserved{k1, k2, k3};
         std::copy(loops.begin(), loops.end(), std::inserter(reserved, reserved.begin()));
 
         // merge the Rayleigh momenta from each kernel into Rayleigh_list, applying any necessary substitutions
@@ -72,24 +72,36 @@ namespace cross_product_impl
         using Rayleigh::merge_Rayleigh_lists;
         auto Ray_remap1 = merge_Rayleigh_lists(rm1, Rayleigh_list, reserved, subs_maps[0], loc);
         auto Ray_remap2 = merge_Rayleigh_lists(rm2, Rayleigh_list, reserved, subs_maps[1], loc);
+        auto Ray_remap3 = merge_Rayleigh_lists(rm3, Rayleigh_list, reserved, subs_maps[2], loc);
 
         // STEP 1b. Perform relabellings from Wick contraction and Rayleigh relabelling
 
         auto K1_remap = K1.subs(subs_maps[0]).subs(Ray_remap1);
         auto K2_remap = K2.subs(subs_maps[1]).subs(Ray_remap2);
+        auto K3_remap = K3.subs(subs_maps[2]).subs(Ray_remap3);
 
         // STEP 2. Build the product K1*K2, relabelling any common indices in the process
 
-        auto K = relabel_index_product(K1_remap, K2_remap, loc);
+        auto temp = relabel_index_product(K1_remap, K2_remap, loc);
+        auto K = relabel_index_product(temp, K3_remap, loc);
 
         return std::make_pair(K, Rayleigh_list);
       }
 
 
-    void simplify_kernel_product(kernel_product& product, GiNaC::symbol k, service_locator& loc)
+    void simplify_kernel_product(kernel_product& product, GiNaC::symbol k1, GiNaC::symbol k2, GiNaC::symbol k3,
+                                 service_locator& loc)
       {
         auto& K = product.first;
         auto& Rayleigh_list = product.second;
+
+        std::cerr << "simplify_kernel_product: input K = " << K << '\n';
+        std::cerr << "input Rayleigh rules:" << '\n';
+        for(const auto& item : Rayleigh_list)
+          {
+            std::cerr << item.first << " -> " << item.second << '\n';
+          }
+        std::cerr << '\n';
 
         // STEP 1. REMOVE TRIVIAL RAYLEIGH RULES
 
@@ -103,9 +115,13 @@ namespace cross_product_impl
 
         // STEP 3. SIMPLIFY DOT PRODUCTS WHERE POSSIBLE
 
-        // simplify k.k to k^2
         GiNaC::scalar_products dotp;
-        dotp.add(k, k, k*k);
+        dotp.add(k1, k1, k1*k1);
+        dotp.add(k2, k2, k2*k2);
+        dotp.add(k3, k3, k3*k3);
+        dotp.add(k1, k2, (k3*k3 - k1*k1 - k2*k2)/2);
+        dotp.add(k1, k3, (k2*k2 - k1*k1 - k3*k3)/2);
+        dotp.add(k2, k3, (k1*k1 - k2*k2 - k3*k3)/2);
         // k.l, l.l and other inner products are supposed to be picked up later by
         // loop integral transformations
 
@@ -116,8 +132,24 @@ namespace cross_product_impl
 
         // some mappings may now be redundant as a result of simplification of dot products
 
+        std::cerr << "simplify_kernel_product: input to prune K = " << product.first << '\n';
+        std::cerr << "input to prune Rayleigh rules:" << '\n';
+        for(const auto& item : product.second)
+          {
+            std::cerr << item.first << " -> " << item.second << '\n';
+          }
+        std::cerr << '\n';
+
         using Rayleigh::prune_Rayleigh_list;
         prune_Rayleigh_list(Rayleigh_list, K);
+
+        std::cerr << "simplify_kernel_product: output K = " << product.first << '\n';
+        std::cerr << "output Rayleigh rules:" << '\n';
+        for(const auto& item : product.second)
+          {
+            std::cerr << item.first << " -> " << item.second << '\n';
+          }
+        std::cerr << '\n';
       }
 
   }   // namespace cross_product_impl

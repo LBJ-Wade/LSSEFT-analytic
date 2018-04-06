@@ -32,9 +32,7 @@
 
 #include "lib/fourier_kernel.h"
 #include "lib/expression_databases/tree_db.h"
-#include "lib/correlators/detail/contractions.h"
-#include "lib/correlators/detail/relabel_product.h"
-#include "lib/correlators/detail/Rayleigh_momenta.h"
+#include "lib/correlators/detail/Bk_cross_products.h"
 
 #include "services/symbol_factory.h"
 
@@ -48,7 +46,7 @@ class Bk_tree
   public:
 
     // pull in tree_db as our database type
-    using Bk_db = tree_db;
+    using Bk_tree_db = tree_db;
 
 
     // CONSTRUCTOR, DESTRUCTOR
@@ -57,7 +55,8 @@ class Bk_tree
 
     //! constructor accepts three Fourier kernels and their corresponding momentum labels
     template <unsigned int N1, unsigned int N2, unsigned int N3>
-    Bk_tree(std::string n_, std::string t_, const fourier_kernel<N1>& ker1, GiNaC::symbol k1_,
+    Bk_tree(std::string n_, std::string t_,
+            const fourier_kernel<N1>& ker1, GiNaC::symbol k1_,
             const fourier_kernel<N2>& ker2, GiNaC::symbol k2_,
             const fourier_kernel<N3>& ker3, GiNaC::symbol k3_, service_locator& lc_);
 
@@ -69,11 +68,6 @@ class Bk_tree
 
 
     // BUILD BISPECTRUM EXPRESSIONS
-
-    //! generic algorithm to construct cross-products of kernels
-    //! (assumed to be of a single order, but the algorithm doesn't enforce that)
-    template <typename Kernel1, typename Kernel2, typename Kernel3>
-    void cross_product(const Kernel1& ker1, const Kernel2& ker2, const Kernel3& ker3, Bk_db& db);
 
     //! build tree-level bispectrum
     template <typename Kernel1, typename Kernel2, typename Kernel3>
@@ -93,7 +87,7 @@ class Bk_tree
   public:
 
     //! get tree power spectrum
-    const Bk_db& get_tree() const { return this->Btree; }
+    const Bk_tree_db& get_tree() const { return this->Btree; }
 
 
     // SERVICES
@@ -147,7 +141,7 @@ class Bk_tree
     // BISPECTRUM EXPRESSIONS
 
     //! expressions for tree-level bispectrum
-    Bk_db Btree;
+    Bk_tree_db Btree;
 
   };
 
@@ -171,20 +165,12 @@ Bk_tree::Bk_tree(std::string n_, std::string t_, const fourier_kernel<N1>& ker1,
     k3(k3_),
     loc(lc_)
   {
-    static_assert(N1 >= 1, "To construct a tree-level bispectrum requires ker1 to be Fourier kernel of first-order or above");
-    static_assert(N2 >= 1, "To construct a tree-level bispectrum requires ker2 to be Fourier kernel of first-order or above");
-    static_assert(N3 >= 1, "To construct a tree-level bispectrum requires ker3 to be Fourier kernel of first-order or above");
+    static_assert(N1 >= 2, "To construct a tree-level bispectrum requires ker1 to be Fourier kernel of second order or above");
+    static_assert(N2 >= 2, "To construct a tree-level bispectrum requires ker2 to be Fourier kernel of second order or above");
+    static_assert(N3 >= 2, "To construct a tree-level bispectrum requires ker3 to be Fourier kernel of second order or above");
 
     // build bispectrum components from products of ker1, ker2 and ker3
     this->build_tree(ker1, ker2, ker3);
-  }
-
-
-template <typename Kernel1, typename Kernel2, typename Kernel3>
-void Bk_tree::cross_product(const Kernel1& ker1, const Kernel2& ker2, const Kernel3& ker3, Bk_db& db)
-  {
-    // multiply out all terms in ker1, ker2 and ker3, using the insertion operator 'ins'
-    // to store the results in a suitable Bk database
   }
 
 
@@ -200,9 +186,9 @@ void Bk_tree::build_tree(const Kernel1& ker1, const Kernel2& ker2, const Kernel3
     const auto ker3_db1 = ker3.order(1);
     const auto ker3_db2 = ker3.order(2);
 
-    this->cross_product(ker1_db1, ker2_db1, ker3_db2, this->Btree);
-    this->cross_product(ker1_db1, ker2_db2, ker3_db1, this->Btree);
-    this->cross_product(ker1_db2, ker2_db1, ker3_db1, this->Btree);
+    cross_product(ker1_db1, this->k1, ker2_db1, this->k2, ker3_db2, this->k3, this->Btree, this->loc);
+    cross_product(ker1_db1, this->k1, ker2_db2, this->k2, ker3_db1, this->k3, this->Btree, this->loc);
+    cross_product(ker1_db2, this->k1, ker2_db1, this->k2, ker3_db1, this->k3, this->Btree, this->loc);
   }
 
 

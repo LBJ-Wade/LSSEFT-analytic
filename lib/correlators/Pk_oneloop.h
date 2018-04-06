@@ -34,8 +34,6 @@
 #include "lib/expression_databases/tree_db.h"
 #include "lib/expression_databases/oneloop_db.h"
 #include "lib/correlators/detail/Pk_cross_products.h"
-#include "lib/correlators/detail/relabel_product.h"
-#include "lib/correlators/detail/Rayleigh_momenta.h"
 
 #include "services/symbol_factory.h"
 
@@ -201,8 +199,8 @@ Pk_oneloop::Pk_oneloop(std::string n_, std::string t_, const fourier_kernel<N1>&
     k(std::move(k_)),
     loc(lc_)
   {
-    static_assert(N1 >= 3, "To construct a 1-loop power spectrum requires ker1 to be a Fourier kernel of third-order or above");
-    static_assert(N2 >= 3, "To construct a 1-loop power spectrum requires ker2 to be a Fourier kernel of third-order or above");
+    static_assert(N1 >= 3, "To construct a 1-loop power spectrum requires ker1 to be a Fourier kernel of third order or above");
+    static_assert(N2 >= 3, "To construct a 1-loop power spectrum requires ker2 to be a Fourier kernel of third order or above");
 
     // build power spectrum components from products of ker1 and ker2
     this->build_tree(ker1, ker2);

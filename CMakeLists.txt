@@ -55,6 +55,7 @@ ADD_EXECUTABLE(LSSEFT_analytic
   lib/correlators/detail/relabel_product.cpp
   lib/correlators/detail/special_functions.cpp
   lib/correlators/detail/Pk_cross_products.cpp
+  lib/correlators/detail/Bk_cross_products.cpp
   services/argument_cache.cpp
   services/service_locator.cpp
   services/symbol_factory.cpp
@@ -125,6 +126,8 @@ SET(LIBRARY_CORRELATORS_DETAIL_FILES
   lib/correlators/detail/cross_products.h
   lib/correlators/detail/correlation_functions.cpp
   lib/correlators/detail/correlation_functions.h
+  lib/correlators/detail/Bk_cross_products.cpp
+  lib/correlators/detail/Bk_cross_products.h
   )
 
 SET(LIBRARY_EXPRESSION_DATABASES_FILES

@@ -82,8 +82,9 @@ constexpr auto ERROR_COULD_NOT_ASSIGN_LOOP_MOMENTUM = "Internal error: could not
 constexpr auto ERROR_COULD_NOT_ASSIGN_EXTERNAL_MOMENTUM = "Internal error: could not assign external momentum";
 constexpr auto ERROR_COULD_NOT_EVALUATE_WICK_CONTRACTION = "Internal error: cannot (yet) evaluate a Wick contraction between two unassigned momenta";
 
-constexpr auto ERROR_EXPECTED_TREE_PRODUCT = "Internal error: to produce a tree-level power spectrum requires a product of kernels whose orders sum to 2; encountered product with orders";
+constexpr auto ERROR_EXPECTED_PK_TREE_PRODUCT = "Internal error: to produce a tree-level power spectrum requires a product of kernels whose orders sum to 2; encountered product with orders";
 constexpr auto ERROR_EXPECTED_PK_ONELOOP_PRODUCT = "Internal error: to produce a 1-loop power spectrum requires a product of kernels whose orders sum to 4; encountered product with orders";
+constexpr auto ERROR_EXPECTED_BK_TREE_PRODUCT = "Internal error: to product a tree-level bispectrum requires a product of kernels whose orders sum to 4; encountered product with orders";
 
 constexpr auto ERROR_EXPECTED_TREE_RESULT = "Internal error: expected tree-level result but obtained result at loop level";
 constexpr auto ERROR_EXPECTED_EMPTY_RAYLEIGH_LIST = "Internal error: expected empty list of Rayleigh momenta at tree level";

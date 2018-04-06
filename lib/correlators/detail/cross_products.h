@@ -36,7 +36,7 @@
 namespace cross_product_impl
   {
 
-    //! a kernel product is a GiNaC expression representing the product, and an examp representing a list
+    //! a kernel product is a GiNaC expression representing the product, and an exmap representing a list
     //! of Rayleigh rules
     using kernel_product = std::pair< GiNaC::ex, GiNaC::exmap >;
 

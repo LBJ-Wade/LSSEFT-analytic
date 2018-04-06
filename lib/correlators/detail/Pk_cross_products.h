@@ -106,7 +106,7 @@ namespace cross_product_impl
       public:
 
         //! apply handler
-        void operator()(fourier_kernel_impl::kernel& ker1, fourier_kernel_impl::kernel& ker2)
+        void operator()(const fourier_kernel_impl::kernel& ker1, const fourier_kernel_impl::kernel& ker2)
           {
             // extract data from each kernel
             const auto& tm1 = ker1.get_time_function();
@@ -151,8 +151,8 @@ namespace cross_product_impl
                     const auto& map = product.second;
                     for(const auto& item : map)
                       {
-                        std::cerr << item.first << " -> " << item.second;
-                        std::cerr << "K = " << item.second;
+                        std::cerr << item.first << " -> " << item.second << '\n';
+                        std::cerr << "K = " << item.second << '\n';
                       }
                     throw exception(ERROR_EXPECTED_EMPTY_RAYLEIGH_LIST, exception_code::Pk_error);
                   }
@@ -208,7 +208,7 @@ namespace cross_product_impl
       public:
 
         //! apply handler
-        void operator()(fourier_kernel_impl::kernel& ker1, fourier_kernel_impl::kernel& ker2)
+        void operator()(const fourier_kernel_impl::kernel& ker1, const fourier_kernel_impl::kernel& ker2)
           {
             // extract data from each kernel
             const auto& tm1 = ker1.get_time_function();
@@ -284,7 +284,7 @@ void cross_product(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker
     using cross_product_impl::cross_product;
     using cross_product_impl::Pk_tree_handler;
 
-    cross_product(ker1, ker2, 2, ERROR_EXPECTED_TREE_PRODUCT, Pk_tree_handler(db, k, loc));
+    cross_product(ker1, ker2, 2, ERROR_EXPECTED_PK_TREE_PRODUCT, Pk_tree_handler(db, k, loc));
   }
 
 
