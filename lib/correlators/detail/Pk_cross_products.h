@@ -137,10 +137,6 @@ namespace cross_product_impl
                 // STEP 1. CONSTRUCT THE PRODUCT OF KERNELS
                 auto product = relabel_kernel_product(ker1, ker2, this->k, data, this->loc);
 
-                // check that no Rayleigh rules were produced
-                if(product.second.size() != 0)
-                  throw exception(ERROR_EXPECTED_EMPTY_RAYLEIGH_LIST, exception_code::Pk_error);
-
                 // STEP 2. SIMPLIFY RESULT
                 // (performs in-place modification of 'product' if needed)
                 simplify_kernel_product(product, this->k, this->loc);
@@ -149,9 +145,17 @@ namespace cross_product_impl
                 auto& K = product.first;
                 auto& Rayleigh_list = product.second;
 
-                // check that there are still no Rayleigh rules
+                // check that no Rayleigh rules have been produced
                 if(product.second.size() != 0)
-                  throw exception(ERROR_EXPECTED_EMPTY_RAYLEIGH_LIST, exception_code::Pk_error);
+                  {
+                    const auto& map = product.second;
+                    for(const auto& item : map)
+                      {
+                        std::cerr << item.first << " -> " << item.second;
+                        std::cerr << "K = " << item.second;
+                      }
+                    throw exception(ERROR_EXPECTED_EMPTY_RAYLEIGH_LIST, exception_code::Pk_error);
+                  }
 
                 // if resulting kernel is not identically zero, push it to the database
                 if(static_cast<bool>(K != 0))
