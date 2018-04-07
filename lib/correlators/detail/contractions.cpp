@@ -43,7 +43,7 @@ namespace Wick
 
 
     std::unique_ptr<contractions::contraction_set>
-    contractions::enumerate_contractions(size_t num, const iv_list& ivs) const
+    contractions::enumerate_contractions(size_t num, const iv_list& ivs, bool verbose) const
       {
         // allocate a unique_ptr for the contraction set
         auto ctrs = std::make_unique<contraction_set>();
@@ -99,8 +99,19 @@ namespace Wick
                 if(j == 1) break;
               }
 
+            if(verbose)
+              {
+                std::cerr << "Generated new " << (G.is_connected() ? "connected" : "disconnected") << " graph:" << '\n';
+
+                const contraction_group& ref = *group;
+                std::cerr << ref << '\n';
+              }
+
             // if the graph we built was connected, store this contraction group
-            if(G.is_connected()) ctrs->push_back(std::move(group));
+            if(G.is_connected())
+              {
+                ctrs->push_back(std::move(group));
+              }
           }
 
         return ctrs;
@@ -116,6 +127,11 @@ namespace Wick
         // insert source -> dest edge
         auto& dest_set = this->edges[source];
         dest_set.insert(dest);
+
+        // also insert edge going the other way, since we treat edges as unoriented
+        // (we only care about the graph as a means to test connectedness)
+        auto& src_set = this->edges[dest];
+        src_set.insert(source);
       }
 
 
@@ -159,6 +175,34 @@ namespace Wick
         visit_all(this->edges, vs, *vs.begin());
 
         return vs.empty();
+      }
+
+
+    std::ostream& operator<<(std::ostream& str, const contractions::iv_element& ct)
+      {
+        const auto& item = ct.first;
+        const auto cluster = ct.second;
+
+        str << "[Cluster=" << cluster << ", " << item->get_symbol() << "(" << item->get_momentum() << ")]";
+
+        return str;
+      }
+
+
+    std::ostream& operator<<(std::ostream& str, const contractions::contraction_group& group)
+      {
+        size_t count = 0;
+
+        for(const auto& ct : group)
+          {
+            const auto& src = ct.first;
+            const auto& dest = ct.second;
+            // src and dest are iv_element instances
+            str << count << ". " << src << " -> " << dest << '\n';
+            ++count;
+          }
+
+        return str;
       }
 
 

@@ -68,6 +68,13 @@ void Bk_tree::write_Mathematica(std::ostream& out) const
   }
 
 
+std::ostream& operator<<(std::ostream& str, const Bk_tree& obj)
+  {
+    obj.write(str);
+    return str;
+  }
+
+
 Bk_tree operator+(const Bk_tree& a, const Bk_tree& b)
   {
     Bk_tree c{a};

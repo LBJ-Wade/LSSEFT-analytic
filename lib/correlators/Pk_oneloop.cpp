@@ -27,12 +27,6 @@
 #include "Pk_oneloop.h"
 
 
-namespace Pk_oneloop_impl
-  {
-
-  }   // namespace Pk_oneloop_impl
-
-
 Pk_oneloop::Pk_oneloop(const Pk_oneloop& obj)
   : loc(obj.loc),
     k(obj.k),

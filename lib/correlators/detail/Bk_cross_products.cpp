@@ -95,14 +95,6 @@ namespace cross_product_impl
         auto& K = product.first;
         auto& Rayleigh_list = product.second;
 
-        std::cerr << "simplify_kernel_product: input K = " << K << '\n';
-        std::cerr << "input Rayleigh rules:" << '\n';
-        for(const auto& item : Rayleigh_list)
-          {
-            std::cerr << item.first << " -> " << item.second << '\n';
-          }
-        std::cerr << '\n';
-
         // STEP 1. REMOVE TRIVIAL RAYLEIGH RULES
 
         // a trivial rule is a replacement such as p -> q. These cause no problems.
@@ -113,7 +105,7 @@ namespace cross_product_impl
         K = K.subs(Rayleigh_triv);
 
 
-        // STEP 3. SIMPLIFY DOT PRODUCTS WHERE POSSIBLE
+        // STEP 2. SIMPLIFY DOT PRODUCTS WHERE POSSIBLE
 
         GiNaC::scalar_products dotp;
         dotp.add(k1, k1, k1*k1);
@@ -128,28 +120,11 @@ namespace cross_product_impl
         K = simplify_index(K, dotp, Rayleigh_list, loc);
 
 
-        // STEP 4. PRUNE RAYLEIGH RULES TO REMOVE UNNEEDED ENTRIES
+        // STEP 3. PRUNE RAYLEIGH RULES TO REMOVE UNNEEDED ENTRIES
 
         // some mappings may now be redundant as a result of simplification of dot products
-
-        std::cerr << "simplify_kernel_product: input to prune K = " << product.first << '\n';
-        std::cerr << "input to prune Rayleigh rules:" << '\n';
-        for(const auto& item : product.second)
-          {
-            std::cerr << item.first << " -> " << item.second << '\n';
-          }
-        std::cerr << '\n';
-
         using Rayleigh::prune_Rayleigh_list;
         prune_Rayleigh_list(Rayleigh_list, K);
-
-        std::cerr << "simplify_kernel_product: output K = " << product.first << '\n';
-        std::cerr << "output Rayleigh rules:" << '\n';
-        for(const auto& item : product.second)
-          {
-            std::cerr << item.first << " -> " << item.second << '\n';
-          }
-        std::cerr << '\n';
       }
 
   }   // namespace cross_product_impl

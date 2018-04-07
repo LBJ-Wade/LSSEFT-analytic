@@ -72,7 +72,7 @@ class initial_value
     //! get GiNaC symbol representing the variable type
     const GiNaC::symbol& get_symbol() const { return this->obj; }
     
-    //! perform momentum remapping, generating a new initial_value objext
+    //! perform momentum remapping, generating a new initial_value object
     initial_value relabel_momentum(GiNaC::symbol new_k) const;
     
     

@@ -414,6 +414,8 @@ int main(int argc, char* argv[])
     timer = std::make_unique<timing_instrument>("Construct tree-level bispectrum");
     Bk_tree Bk_delta{"Tree dark matter B(k1,k2,k3)", "tree", delta, k1, delta, k2, delta, k3, loc};
 
+    std::cout << "Dark matter tree-level bispectrum:" << '\n';
+    std::cout << Bk_delta << '\n';
 
     // OUTPUT
 

@@ -133,6 +133,7 @@ namespace cross_product_impl
             // loop through all Wick contractions, arranging the correct replacements and pushing
             // an appropriate product into the output database
             const auto& Wicks = ctrs.get();
+
             for(const auto& W : Wicks)
               {
                 const auto& data = *W;
@@ -172,7 +173,7 @@ namespace cross_product_impl
                 if(static_cast<bool>(K != 0))
                   {
                     auto elt =
-                      std::make_unique<tree_expression>(tm1*tm2, K, data.get_Wick_string(),
+                      std::make_unique<tree_expression>(tm1*tm2*tm3, K, data.get_Wick_string(),
                                                         GiNaC_symbol_set{this->k1, this->k2, this->k3}, this->loc);
                     this->db.emplace(std::move(elt));
                   }
