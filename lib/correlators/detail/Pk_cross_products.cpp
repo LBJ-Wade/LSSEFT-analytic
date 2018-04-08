@@ -33,8 +33,9 @@ namespace cross_product_impl
     // construct product of two kernels, performing any necessary relabellings
     // returns a pair consisting of the relabelled product, and a set of Rayleigh rules
     std::pair< GiNaC::ex, GiNaC::exmap >
-    relabel_kernel_product(const fourier_kernel_impl::kernel& ker1, const fourier_kernel_impl::kernel& ker2,
-                           GiNaC::symbol k, const Wick::Wick_data& data, service_locator& loc)
+    relabel_kernel_product(const fourier_kernel_impl::kernel& ker1, GiNaC::symbol k1,
+                           const fourier_kernel_impl::kernel& ker2, GiNaC::symbol k2,
+                           const Wick::Wick_data& data, service_locator& loc)
       {
         // extract data from each kernel
         const auto& K1 = ker1.get_kernel();
@@ -63,7 +64,7 @@ namespace cross_product_impl
         GiNaC::exmap Rayleigh_list;
         // second, build a list of labels that we must avoid when generating new momenta.
         // this should contain the external momentum 'k' and any loop momenta
-        GiNaC_symbol_set reserved{k};
+        GiNaC_symbol_set reserved{k1, k2};
         std::copy(loops.begin(), loops.end(), std::inserter(reserved, reserved.begin()));
 
         // merge the Rayleigh momenta from each kernel into Rayleigh_list, applying any necessary substitutions
@@ -86,7 +87,7 @@ namespace cross_product_impl
       }
 
 
-    void simplify_kernel_product(kernel_product& product, GiNaC::symbol k, service_locator& loc)
+    void simplify_kernel_product(kernel_product& product, GiNaC::symbol k1, GiNaC::symbol k2, service_locator& loc)
       {
         auto& K = product.first;
         auto& Rayleigh_list = product.second;
@@ -105,7 +106,9 @@ namespace cross_product_impl
 
         // simplify k.k to k^2
         GiNaC::scalar_products dotp;
-        dotp.add(k, k, k*k);
+        dotp.add(k1, k1, k1*k1);
+        dotp.add(k2, k2, k1*k1);
+        dotp.add(k1, k2, -k1*k1);
         // k.l, l.l and other inner products are supposed to be picked up later by
         // loop integral transformations
 

@@ -59,8 +59,9 @@ class Pk_oneloop
     
     //! constructor accepts two Fourier kernels and the corresponding momentum labels
     template <unsigned int N1, unsigned int N2>
-    Pk_oneloop(std::string n_, std::string t_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
-                GiNaC::symbol k_, service_locator& lc_);
+    Pk_oneloop(std::string n_, std::string t_,
+               const fourier_kernel<N1>& ker1, GiNaC::symbol k1_,
+               const fourier_kernel<N2>& ker2, GiNaC::symbol k2_, service_locator& lc_);
 
     //! copy constructor
     Pk_oneloop(const Pk_oneloop& obj);
@@ -121,7 +122,7 @@ class Pk_oneloop
     //! apply simplifications
     void simplify(const GiNaC::exmap& map);
 
-    //! canonicalize external momenta
+    //! canonicalize external momenta (convert all angular terms to Cos representation)
     void canonicalize_external_momenta();
 
 
@@ -156,8 +157,9 @@ class Pk_oneloop
     
     // RESERVED SYMBOLS
 
-    //! cache momentum label k
-    const GiNaC::symbol k;
+    //! cache momentum labels k1, k2
+    const GiNaC::symbol k1;
+    const GiNaC::symbol k2;
 
 
     // METADATA
@@ -192,11 +194,13 @@ Pk_oneloop operator+(const Pk_oneloop& a, const Pk_oneloop& b);
 
 
 template <unsigned int N1, unsigned int N2>
-Pk_oneloop::Pk_oneloop(std::string n_, std::string t_, const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2,
-                         GiNaC::symbol k_, service_locator& lc_)
+Pk_oneloop::Pk_oneloop(std::string n_, std::string t_,
+                       const fourier_kernel<N1>& ker1, GiNaC::symbol k1_,
+                       const fourier_kernel<N2>& ker2, GiNaC::symbol k2_, service_locator& lc_)
   : name(std::move(n_)),
     tag(std::move(t_)),
-    k(std::move(k_)),
+    k1(std::move(k1_)),
+    k2(std::move(k2_)),
     loc(lc_)
   {
     static_assert(N1 >= 3, "To construct a 1-loop power spectrum requires ker1 to be a Fourier kernel of third order or above");
@@ -217,7 +221,7 @@ void Pk_oneloop::build_tree(const Kernel1& ker1, const Kernel2& ker2)
     const auto ker1_db = ker1.order(1);
     const auto ker2_db = ker2.order(1);
 
-    cross_product(ker1_db, ker2_db, this->k, this->Ptree, this->loc);
+    cross_product(ker1_db, this->k1, ker2_db, this->k2, this->Ptree, this->loc);
   }
 
 
@@ -230,8 +234,8 @@ void Pk_oneloop::build_13(const Kernel1& ker1, const Kernel2& ker2)
     const auto ker2_db1 = ker2.order(1);
     const auto ker2_db3 = ker2.order(3);
 
-    cross_product(ker1_db1, ker2_db3, this->k, this->P13, this->loc);
-    cross_product(ker1_db3, ker2_db1, this->k, this->P13, this->loc);
+    cross_product(ker1_db1, this->k1, ker2_db3, this->k2, this->P13, this->loc);
+    cross_product(ker1_db3, this->k1, ker2_db1, this->k2, this->P13, this->loc);
   }
 
 
@@ -241,7 +245,7 @@ void Pk_oneloop::build_22(const Kernel1& ker1, const Kernel2& ker2)
     const auto ker1_db2 = ker1.order(2);
     const auto ker2_db2 = ker2.order(2);
 
-    cross_product(ker1_db2, ker2_db2, this->k, this->P22, this->loc);
+    cross_product(ker1_db2, this->k1, ker2_db2, this->k2, this->P22, this->loc);
   }
 
 

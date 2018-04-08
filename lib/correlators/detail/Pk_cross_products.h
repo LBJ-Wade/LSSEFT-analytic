@@ -75,12 +75,13 @@ namespace cross_product_impl
     // construct product of two kernels, performing any necessary relabellings
     // returns a pair consisting of the relabelled product, and a set of Rayleigh rules
     kernel_product
-    relabel_kernel_product(const fourier_kernel_impl::kernel& ker1, const fourier_kernel_impl::kernel& ker2,
-                           GiNaC::symbol k, const Wick::Wick_data& data, service_locator& loc);
+    relabel_kernel_product(const fourier_kernel_impl::kernel& ker1, GiNaC::symbol k1,
+                           const fourier_kernel_impl::kernel& ker2, GiNaC::symbol k2,
+                           const Wick::Wick_data& data, service_locator& loc);
 
 
     // perform in-place simplification of a kernel product
-    void simplify_kernel_product(kernel_product& product, GiNaC::symbol k, service_locator& loc);
+    void simplify_kernel_product(kernel_product& product, GiNaC::symbol k1, GiNaC::symbol k2, service_locator& loc);
 
 
     class Pk_tree_handler
@@ -91,9 +92,10 @@ namespace cross_product_impl
       public:
 
         //! constructor captures database
-        Pk_tree_handler(tree_db& db_, GiNaC::symbol k_, service_locator& loc_)
+        Pk_tree_handler(tree_db& db_, GiNaC::symbol k1_, GiNaC::symbol k2_, service_locator& loc_)
           : db(db_),
-            k(k_),
+            k1(std::move(k1_)),
+            k2(std::move(k2_)),
             loc(loc_)
           {
           }
@@ -115,9 +117,15 @@ namespace cross_product_impl
             const auto& iv1 = ker1.get_initial_value_set();
             const auto& iv2 = ker2.get_initial_value_set();
 
+            std::cerr << "TREE LEVEL PRODUCT" << '\n';
+            std::cerr << "KERNEL 1" << '\n';
+            std::cerr << ker1 << '\n';
+            std::cerr << "KERNEL 2" << '\n';
+            std::cerr << ker2 << '\n';
+
             // product the full set of (connected) Wick contractions from this pair of kernels
             Wick::contractions ctrs(Wick::contractions::iv_group<2>{ iv1, iv2 },
-                                    Wick::contractions::kext_group<2>{ this->k, -this->k }, this->loc);
+                                    Wick::contractions::kext_group<2>{ this->k1, this->k2 }, this->loc);
 
             // loop through all Wick contractions, arranging the correct replacements and pushing
             // an appropriate product into the output database
@@ -135,11 +143,11 @@ namespace cross_product_impl
                   }
 
                 // STEP 1. CONSTRUCT THE PRODUCT OF KERNELS
-                auto product = relabel_kernel_product(ker1, ker2, this->k, data, this->loc);
+                auto product = relabel_kernel_product(ker1, this->k1, ker2, this->k2, data, this->loc);
 
                 // STEP 2. SIMPLIFY RESULT
                 // (performs in-place modification of 'product' if needed)
-                simplify_kernel_product(product, this->k, this->loc);
+                simplify_kernel_product(product, this->k1, this->k2, this->loc);
 
                 // STEP 3. PERFORM INSERTION
                 auto& K = product.first;
@@ -162,7 +170,7 @@ namespace cross_product_impl
                   {
                     auto elt =
                       std::make_unique<tree_expression>(tm1*tm2, K, data.get_Wick_string(),
-                                                        GiNaC_symbol_set{this->k}, this->loc);
+                                                        GiNaC_symbol_set{this->k1, this->k2}, this->loc);
                     this->db.emplace(std::move(elt));
                   }
               }
@@ -179,8 +187,11 @@ namespace cross_product_impl
         //! capture reference to database
         tree_db& db;
 
-        //! momentum label
-        GiNaC::symbol k;
+        //! momentum label k1
+        GiNaC::symbol k1;
+
+        //! momentum label k2
+        GiNaC::symbol k2;
 
       };
 
@@ -193,9 +204,10 @@ namespace cross_product_impl
       public:
 
         //! constructor captures database
-        Pk_oneloop_handler(oneloop_db& db_, GiNaC::symbol k_, service_locator& loc_)
+        Pk_oneloop_handler(oneloop_db& db_, GiNaC::symbol k1_, GiNaC::symbol k2_, service_locator& loc_)
           : db(db_),
-            k(k_),
+            k1(std::move(k1_)),
+            k2(std::move(k2_)),
             loc(loc_)
           {
           }
@@ -219,7 +231,7 @@ namespace cross_product_impl
 
             // product the full set of (connected) Wick contractions from this pair of kernels
             Wick::contractions ctrs(Wick::contractions::iv_group<2>{ iv1, iv2 },
-                                    Wick::contractions::kext_group<2>{ this->k, -this->k }, this->loc);
+                                    Wick::contractions::kext_group<2>{ this->k1, this->k2 }, this->loc);
 
             // loop through all Wick contractions, arranging the correct replacements and pushing
             // an appropriate product into the output database
@@ -237,11 +249,11 @@ namespace cross_product_impl
                   }
 
                 // STEP 1. CONSTRUCT THE PRODUCT OF KERNELS
-                auto product = relabel_kernel_product(ker1, ker2, this->k, data, this->loc);
+                auto product = relabel_kernel_product(ker1, this->k1, ker2, this->k2, data, this->loc);
 
                 // STEP 2. SIMPLIFY RESULT
                 // (performs in-place modification of 'product' if needed)
-                simplify_kernel_product(product, this->k, this->loc);
+                simplify_kernel_product(product, this->k1, this->k2, this->loc);
 
                 // STEP 3. PERFORM INSERTION
                 auto& K = product.first;
@@ -252,7 +264,7 @@ namespace cross_product_impl
                   {
                     auto elt =
                       std::make_unique<oneloop_expression>(tm1*tm2, K, data.get_Wick_string(), loops,
-                                                           GiNaC_symbol_set{this->k}, Rayleigh_list, this->loc);
+                                                           GiNaC_symbol_set{this->k1, this->k2}, Rayleigh_list, this->loc);
                     this->db.emplace(std::move(elt));
                   }
               }
@@ -269,8 +281,11 @@ namespace cross_product_impl
         //! capture reference to database
         oneloop_db& db;
 
-        //! momentum label
-        GiNaC::symbol k;
+        //! momentum label k1
+        GiNaC::symbol k1;
+
+        //! momentum label k2
+        GiNaC::symbol k2;
 
       };
 
@@ -278,24 +293,26 @@ namespace cross_product_impl
 
 
 template <unsigned int N1, unsigned int N2>
-void cross_product(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2, GiNaC::symbol k, tree_db& db,
-                   service_locator& loc)
+void cross_product(const fourier_kernel<N1>& ker1, GiNaC::symbol k1,
+                   const fourier_kernel<N2>& ker2, GiNaC::symbol k2,
+                   tree_db& db, service_locator& loc)
   {
     using cross_product_impl::cross_product;
     using cross_product_impl::Pk_tree_handler;
 
-    cross_product(ker1, ker2, 2, ERROR_EXPECTED_PK_TREE_PRODUCT, Pk_tree_handler(db, k, loc));
+    cross_product(ker1, ker2, 2, ERROR_EXPECTED_PK_TREE_PRODUCT, Pk_tree_handler(db, k1, k2, loc));
   }
 
 
 template <unsigned int N1, unsigned int N2>
-void cross_product(const fourier_kernel<N1>& ker1, const fourier_kernel<N2>& ker2, GiNaC::symbol k, oneloop_db& db,
-                   service_locator& loc)
+void cross_product(const fourier_kernel<N1>& ker1, GiNaC::symbol k1,
+                   const fourier_kernel<N2>& ker2, GiNaC::symbol k2,
+                   oneloop_db& db, service_locator& loc)
   {
     using cross_product_impl::cross_product;
     using cross_product_impl::Pk_oneloop_handler;
 
-    cross_product(ker1, ker2, 4, ERROR_EXPECTED_PK_ONELOOP_PRODUCT, Pk_oneloop_handler(db, k, loc));
+    cross_product(ker1, ker2, 4, ERROR_EXPECTED_PK_ONELOOP_PRODUCT, Pk_oneloop_handler(db, k1, k2, loc));
   }
 
 

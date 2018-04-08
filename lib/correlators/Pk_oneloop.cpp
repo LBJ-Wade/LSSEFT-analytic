@@ -29,7 +29,8 @@
 
 Pk_oneloop::Pk_oneloop(const Pk_oneloop& obj)
   : loc(obj.loc),
-    k(obj.k),
+    k1(obj.k1),
+    k2(obj.k2),
     name(obj.name),
     tag(obj.tag),
     Ptree(obj.Ptree),
@@ -98,7 +99,7 @@ void Pk_oneloop::perform_angular_reduction()
 Pk_oneloop& Pk_oneloop::operator+=(const Pk_oneloop& obj)
   {
     // check that power spectra use a compatible momentum variable
-    if(this->k != obj.k) throw exception(ERROR_CANT_ADD_PK_INCOMPATIBLE_MOMENTA, exception_code::Pk_error);
+    if(this->k1 != obj.k1 || this->k2 != obj.k2) throw exception(ERROR_CANT_ADD_PK_INCOMPATIBLE_MOMENTA, exception_code::Pk_error);
 
     // clear angular decompositions before adding in new kernels
     this->clear_angular_reductions();
