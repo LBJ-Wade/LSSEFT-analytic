@@ -54,6 +54,18 @@ Bk_tree& Bk_tree::operator+=(const Bk_tree& obj)
   }
 
 
+void Bk_tree::simplify(const GiNaC::exmap& map)
+  {
+    this->Btree.simplify(map);
+  }
+
+
+void Bk_tree::canonicalize_external_momenta()
+  {
+    this->Btree.canonicalize_external_momenta();
+  }
+
+
 void Bk_tree::write(std::ostream& out) const
   {
     out << LABEL_BK_TREE << ": '" << this->name << "'" << '\n';

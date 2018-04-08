@@ -86,8 +86,19 @@ class Bk_tree
 
   public:
 
-    //! get tree power spectrum
+    //! get tree bispectrum
     const Bk_tree_db& get_tree() const { return this->Btree; }
+
+
+    // TRANSFORMATIONS
+
+  public:
+
+    //! apply simplifications
+    void simplify(const GiNaC::exmap& map);
+
+    //! canonicalize external momenta (convert all angular terms to Cos representation)
+    void canonicalize_external_momenta();
 
 
     // SERVICES
@@ -160,9 +171,9 @@ Bk_tree::Bk_tree(std::string n_, std::string t_, const fourier_kernel<N1>& ker1,
                  service_locator& lc_)
   : name(std::move(n_)),
     tag(std::move(t_)),
-    k1(k1_),
-    k2(k2_),
-    k3(k3_),
+    k1(std::move(k1_)),
+    k2(std::move(k2_)),
+    k3(std::move(k3_)),
     loc(lc_)
   {
     static_assert(N1 >= 2, "To construct a tree-level bispectrum requires ker1 to be Fourier kernel of second order or above");
