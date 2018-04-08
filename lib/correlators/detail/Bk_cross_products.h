@@ -99,9 +99,9 @@ namespace cross_product_impl
         //! constructor captures database
         Bk_tree_handler(tree_db& db_, GiNaC::symbol k1_, GiNaC::symbol k2_, GiNaC::symbol k3_, service_locator& loc_)
           : db(db_),
-            k1(k1_),
-            k2(k2_),
-            k3(k3_),
+            k1(std::move(k1_)),
+            k2(std::move(k2_)),
+            k3(std::move(k3_)),
             loc(loc_)
           {
           }
