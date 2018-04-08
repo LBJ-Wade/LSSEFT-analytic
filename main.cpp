@@ -370,7 +370,11 @@ int main(int argc, char* argv[])
     // captured from the exterior scope.
     // Of course, delta has to be adjusted.
     auto r_dot_v = dotgrad(r, phi);
-    auto make_delta_rsd = [&](const auto& kmu, const auto& d) -> auto
+    auto RSD_map_Kaiser = [&](const auto& kmu, const auto& d) -> auto
+      {
+        return d - (GiNaC::I / H) * kmu * r_dot_v;
+      };
+    auto RSD_map_1loop = [&](const auto& kmu, const auto& d) -> auto
       {
         return d
                - (GiNaC::I / H) * kmu * r_dot_v
@@ -385,13 +389,13 @@ int main(int argc, char* argv[])
     auto k2mu = -k*mu;
 
     timer = std::make_unique<timing_instrument>("RSD transform for dark matter overdensity");
-    auto delta_rsd_k1 = make_delta_rsd(k1mu, delta);
-    auto delta_rsd_k2 = make_delta_rsd(k2mu, delta);
+    auto delta_rsd_k1 = RSD_map_1loop(k1mu, delta);
+    auto delta_rsd_k2 = RSD_map_1loop(k2mu, delta);
 
     // halos in redshift-space
     timer = std::make_unique<timing_instrument>("RSD transform for halo overdensity");
-    auto deltah_rsd_k1 = make_delta_rsd(k1mu, deltah);
-    auto deltah_rsd_k2 = make_delta_rsd(k2mu, deltah);
+    auto deltah_rsd_k1 = RSD_map_1loop(k1mu, deltah);
+    auto deltah_rsd_k2 = RSD_map_1loop(k2mu, deltah);
 
 
     // POWER SPECTRUM
