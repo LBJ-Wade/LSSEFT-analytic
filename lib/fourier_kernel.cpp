@@ -472,9 +472,9 @@ namespace fourier_kernel_impl
     
     void kernel::write(std::ostream& out) const
       {
-        out << "  time factor = " << this->tm << '\n';
+        out << "  " << MESSAGE_KERNEL_TIME_FUNCTION << " = " << this->tm << '\n';
     
-        out << "  IC set =";
+        out << "  " << MESSAGE_KERNEL_IVSET << " = ";
         for(auto u = this->iv.value_cbegin(); u != this->iv.value_cend(); ++u)
           {
             out << " " << u->get_symbol() << "(" << u->get_momentum() << ")";
@@ -483,15 +483,14 @@ namespace fourier_kernel_impl
     
         if(!this->vs.empty())
           {
-            out << "  substitution list = ";
+            out << "  " << MESSAGE_KERNEL_RAYLEIGH_RULES << ":" << '\n';
             for(const auto& u : vs)
               {
-                out << " " << u.first << " -> " << u.second << ";";
+                out << "    " << u.first << " -> " << u.second << '\n';
               }
-            out << '\n';
           }
     
-        out << "  kernel = " << this->K << '\n';
+        out << "  " << MESSAGE_KERNEL_EXPRESSION << " = " << this->K << '\n';
       }
 
 
@@ -541,7 +540,7 @@ bool validate_ivset_nonempty(const initial_value_set& s, const GiNaC::ex& K, boo
             err.warn(WARNING_ORDER_ZERO_KERNEL);
             
             std::ostringstream msg;
-            msg << WARNING_KERNEL_EXPRESSION << " = " << K;
+            msg << MESSAGE_KERNEL_EXPRESSION << " = " << K;
             err.info(msg.str());
           }
         
@@ -669,7 +668,7 @@ void validate_momenta(const initial_value_set& s, const subs_list& vs, const GiN
         err.warn(msg.str());
         
         std::ostringstream ker;
-        ker << WARNING_KERNEL_EXPRESSION << " = " << K;
+        ker << MESSAGE_KERNEL_EXPRESSION << " = " << K;
         err.info(ker.str());
       }
   }

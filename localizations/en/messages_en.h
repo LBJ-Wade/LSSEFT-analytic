@@ -147,11 +147,14 @@ constexpr auto ERROR_BACKEND_PK_ARGUMENTS = "Internal error: Pk correlator has u
 constexpr auto WARNING_UNUSED_MOMENTA_SING = "Kernel does not depend on available momentum vector";
 constexpr auto WARNING_UNUSED_MOMENTA_PLURAL = "Kernel does not depend on available momentum vectors";
 constexpr auto WARNING_ORDER_ZERO_KERNEL = "Ignoring order-zero kernel";
-constexpr auto WARNING_KERNEL_EXPRESSION = "Kernel expression";
 constexpr auto WARNING_UNEVALUATED_FABRIKANT = "Unevaluated Fabrikant integral of order";
 constexpr auto WARNING_PARAMETER_APPEARS_IN_TIME_FUNCTION_RENORMALIZATION = "Encountered normalization of time-dependent function with parameter";
 constexpr auto WARNING_PK_RSD_EMPTY = "Empty RSD Pk group for filter pattern";
 constexpr auto WARNING_KERNEL_IS_NOT_IR_SAFE = "Detected failure of IR safety for LSSEFT kernel";
 
+constexpr auto MESSAGE_KERNEL_EXPRESSION = "Kernel expression";
+constexpr auto MESSAGE_KERNEL_TIME_FUNCTION = "Time function";
+constexpr auto MESSAGE_KERNEL_RAYLEIGH_RULES = "Rayleigh rules";
+constexpr auto MESSAGE_KERNEL_IVSET = "Initial value set";
 
 #endif //LSSEFT_ANALYTIC_MESSAGES_EN_H
