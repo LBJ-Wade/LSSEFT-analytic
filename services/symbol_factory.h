@@ -30,10 +30,10 @@
 
 #include <map>
 
+#include "boost/optional.hpp"
+
 #include "shared/defaults.h"
 #include "utilities/GiNaC_utils.h"
-
-#include "boost/optional.hpp"
 
 #include "ginac/ginac.h"
 
